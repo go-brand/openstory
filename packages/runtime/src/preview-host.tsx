@@ -1,6 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { OpenStoryConfig, PreviewDef, Fixture } from '@gobrand/openstory-config';
+import type {
+  OpenStoryConfig,
+  PreviewDef,
+  Fixture,
+} from '@gobrand/openstory-config';
 import {
   parseBridgeMessage,
   type RenderMessage,
@@ -8,6 +12,13 @@ import {
 } from './bridge.js';
 
 export type ViewportName = 'desktop' | 'mobile';
+
+export function mergeProps(
+  presetProps: Record<string, unknown>,
+  overrides: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  return overrides ? { ...presetProps, ...overrides } : presetProps;
+}
 
 const ViewportContext = createContext<ViewportName>('desktop');
 
@@ -19,6 +30,7 @@ type ActiveSelection = {
   previewId: string;
   variantId: string;
   viewport: 'desktop' | 'mobile';
+  fixtureOverrides?: Record<string, unknown>;
 };
 
 const DEFAULT_PLATFORM_WIDTHS: Record<
@@ -72,7 +84,10 @@ function PreviewStage({
   const Component = preview.component as React.ComponentType<
     Record<string, unknown>
   >;
-  const props = (fixture.props ?? {}) as Record<string, unknown>;
+  const props = mergeProps(
+    (fixture.props ?? {}) as Record<string, unknown>,
+    selection.fixtureOverrides
+  );
 
   return (
     <Providers>
@@ -106,6 +121,9 @@ function App({ config }: { config: OpenStoryConfig }) {
           previewId: next.previewId,
           variantId: next.variantId,
           viewport: next.viewport,
+          ...(next.fixtureOverrides !== undefined && {
+            fixtureOverrides: next.fixtureOverrides,
+          }),
         });
       }
     }
