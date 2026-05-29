@@ -2,6 +2,8 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
 import { buildHarnessEntry, buildHtmlShell } from './harness-loader.js';
+import { deriveControls } from '@gobrand/openstory-config';
+import type { OpenStoryConfig } from '@gobrand/openstory-config';
 
 const VIRTUAL_ID = 'virtual:openstory-entry';
 const RESOLVED_VIRTUAL_ID = '\0virtual:openstory-entry';
@@ -12,6 +14,21 @@ const CONFIG_CANDIDATES = ['openstory.config.ts', 'openstory.config.js'];
 type PluginOptions = {
   configFile?: string;
 };
+
+export function buildManifest(config: OpenStoryConfig) {
+  return {
+    previews: config.previews.map((p) => ({
+      id: p.id,
+      platform: p.platform,
+      variants: p.fixtures.map((f) => ({
+        id: f.id,
+        label: f.label,
+        props: f.props,
+      })),
+      controls: deriveControls(p.fixtures),
+    })),
+  };
+}
 
 function findConfig(root: string): string | null {
   for (const name of CONFIG_CANDIDATES) {
@@ -74,20 +91,8 @@ export function openStory(options: PluginOptions = {}): Plugin {
           }
           try {
             const mod = await server.ssrLoadModule(resolvedConfigPath);
-            const config = (mod.default ?? mod) as {
-              previews: Array<{
-                id: string;
-                platform: string;
-                fixtures: Array<{ id: string; label: string }>;
-              }>;
-            };
-            const manifest = {
-              previews: config.previews.map((p) => ({
-                id: p.id,
-                platform: p.platform,
-                variants: p.fixtures.map((f) => ({ id: f.id, label: f.label })),
-              })),
-            };
+            const config = (mod.default ?? mod) as OpenStoryConfig;
+            const manifest = buildManifest(config);
             res.setHeader('content-type', 'application/json');
             res.end(JSON.stringify(manifest));
           } catch (err) {
