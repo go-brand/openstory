@@ -35,6 +35,18 @@ export class AppStore {
       name: 'openstory',
       defaults,
     });
+    // electron-store only fills whole missing top-level keys, not nested fields.
+    // Migrate stores written by an older schema (e.g. before propOverrides) by
+    // merging the persisted objects over the current defaults, so every nested
+    // field is guaranteed present.
+    this.store.set('selection', {
+      ...defaults.selection,
+      ...this.store.get('selection'),
+    });
+    this.store.set('overlay', {
+      ...defaults.overlay,
+      ...this.store.get('overlay'),
+    });
   }
 
   get state(): PersistedState {

@@ -31,6 +31,24 @@ export default defineConfig({
   },
   renderer: {
     root: '.',
+    // Pre-bundle the renderer's deps up front. Otherwise Vite discovers them
+    // lazily (e.g. only once the project/Select path renders), re-optimizes
+    // mid-session, and force-reloads the window — which briefly tears down React
+    // and surfaces a transient "Invalid hook call" before the reload settles.
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-dom/client',
+        'class-variance-authority',
+        'tailwind-merge',
+        'lucide-react',
+        '@radix-ui/react-slot',
+        '@radix-ui/react-select',
+        '@radix-ui/react-checkbox',
+        '@radix-ui/react-separator',
+      ],
+    },
     build: {
       rollupOptions: {
         input: {
