@@ -3,7 +3,8 @@ import { appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppStore } from './store';
 import { ViteHost } from './vite-host';
-import { createHudWindow } from './windows/hud';
+import { createMainWindow } from './windows/main-window';
+import { createDetachedWindow } from './windows/detached-window';
 import { registerIpc } from './ipc';
 import { registerShortcuts } from './shortcuts';
 
@@ -37,7 +38,8 @@ process.on('warning', (w) => {
 
 const viteHost = new ViteHost();
 const store = new AppStore();
-let hudWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindow | null = null;
+let detachedWindow: BrowserWindow | null = null;
 let isQuitting = false;
 
 function attachBoundsPersistence(win: BrowserWindow) {
@@ -52,25 +54,40 @@ function attachBoundsPersistence(win: BrowserWindow) {
   win.on('resized', save);
 }
 
-async function createHud() {
+async function createMain() {
   const hudBounds = store.state.hudBounds ?? undefined;
-  hudWindow = await createHudWindow(hudBounds ? { bounds: hudBounds } : {});
-  attachBoundsPersistence(hudWindow);
-
-  if (store.state.overlay.alwaysOnTop) {
-    hudWindow.setAlwaysOnTop(true, 'screen-saver');
-  }
+  mainWindow = await createMainWindow(hudBounds ? { bounds: hudBounds } : {});
+  attachBoundsPersistence(mainWindow);
   if (process.env.ELECTRON_RENDERER_URL) {
-    hudWindow.webContents.openDevTools({ mode: 'detach' });
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
-  hudWindow.webContents.on('preload-error', (_e, preloadPath, err) => {
-    console.error('[HUD preload-error]', preloadPath, err);
+  mainWindow.webContents.on('preload-error', (_e, preloadPath, err) => {
+    console.error('[main preload-error]', preloadPath, err);
   });
-  hudWindow.on('closed', () => {
-    hudWindow = null;
+  mainWindow.on('closed', () => {
+    mainWindow = null;
   });
-  hudWindow.focus();
-  return hudWindow;
+  mainWindow.focus();
+  return mainWindow;
+}
+
+async function openDetached() {
+  if (detachedWindow) {
+    detachedWindow.focus();
+    return;
+  }
+  detachedWindow = await createDetachedWindow({});
+  if (store.state.overlay.alwaysOnTop) {
+    detachedWindow.setAlwaysOnTop(true, 'screen-saver');
+  }
+  detachedWindow.on('closed', () => {
+    detachedWindow = null;
+  });
+}
+
+function closeDetached() {
+  detachedWindow?.close();
+  detachedWindow = null;
 }
 
 async function bootstrap() {
@@ -78,14 +95,19 @@ async function bootstrap() {
   // locked, un-clickable window.
   store.patchOverlay({ clickThrough: false });
 
-  await createHud();
+  await createMain();
 
   const { broadcastState } = registerIpc({
     store,
     viteHost,
-    getHud: () => hudWindow,
+    getMain: () => mainWindow,
+    getDetached: () => detachedWindow,
+    openDetached: () => {
+      void openDetached();
+    },
+    closeDetached,
   });
-  registerShortcuts({ store, getHud: () => hudWindow, broadcastState });
+  registerShortcuts({ store, getHud: () => detachedWindow, broadcastState });
 
   // Resume the last project, if any.
   const { projectId } = store.state.selection;
@@ -99,7 +121,7 @@ app.whenReady().then(bootstrap);
 
 // macOS: re-open a window when the dock icon is clicked and none are open.
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createHud();
+  if (BrowserWindow.getAllWindows().length === 0) void createMain();
 });
 
 app.on('window-all-closed', () => {

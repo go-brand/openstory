@@ -15,6 +15,7 @@ const defaults: PersistedState = {
     previewId: null,
     variantId: null,
     viewport: 'desktop',
+    propOverrides: {},
   },
   overlay: {
     opacity: 1,

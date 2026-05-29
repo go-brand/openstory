@@ -8,23 +8,16 @@ import type { AppState, ManifestPreview } from './types';
 type Deps = {
   store: AppStore;
   viteHost: ViteHost;
-  getHud: () => BrowserWindow | null;
+  getMain: () => BrowserWindow | null;
+  getDetached: () => BrowserWindow | null;
+  openDetached: () => void;
+  closeDetached: () => void;
 };
 
-function buildPreviewUrl(
-  port: number,
-  sel: {
-    previewId: string | null;
-    variantId: string | null;
-    viewport: 'desktop' | 'mobile';
-  }
-): string | null {
-  if (!sel.previewId || !sel.variantId) return null;
-  const params = new URLSearchParams();
-  params.set('preview', sel.previewId);
-  params.set('variant', sel.variantId);
-  params.set('viewport', sel.viewport);
-  return `http://127.0.0.1:${port}/__pl__/?${params}`;
+// Stable base harness URL — selection + overrides flow via postMessage, so the
+// iframe is never re-navigated within a project (no flicker).
+function buildHarnessUrl(port: number): string {
+  return `http://127.0.0.1:${port}/__pl__/`;
 }
 
 function buildAppState(
@@ -36,7 +29,7 @@ function buildAppState(
   const status = viteHost.status();
   const iframeUrl =
     status.status === 'ready' && status.port
-      ? buildPreviewUrl(status.port, s.selection)
+      ? buildHarnessUrl(status.port)
       : null;
   return {
     projects: s.projects,
@@ -53,7 +46,8 @@ export function registerIpc(deps: Deps) {
 
   function broadcastState() {
     const state = buildAppState(deps.store, deps.viteHost, manifest);
-    deps.getHud()?.webContents.send('state:update', state);
+    deps.getMain()?.webContents.send('state:update', state);
+    deps.getDetached()?.webContents.send('state:update', state);
   }
 
   async function fetchManifest(port: number) {
@@ -79,6 +73,7 @@ export function registerIpc(deps: Deps) {
           deps.store.patchSelection({
             previewId: first.id,
             variantId: first.variants[0].id,
+            propOverrides: {},
           });
         }
       }
@@ -99,10 +94,10 @@ export function registerIpc(deps: Deps) {
   );
 
   ipcMain.handle('project:pickFolder', async () => {
-    const hud = deps.getHud();
+    const main = deps.getMain();
     const opts = { properties: ['openDirectory' as const] };
-    const result = hud
-      ? await dialog.showOpenDialog(hud, opts)
+    const result = main
+      ? await dialog.showOpenDialog(main, opts)
       : await dialog.showOpenDialog(opts);
     if (result.canceled || result.filePaths.length === 0) return null;
     return result.filePaths[0] ?? null;
@@ -142,10 +137,27 @@ export function registerIpc(deps: Deps) {
         viewport: 'desktop' | 'mobile';
       }
     ) => {
-      deps.store.patchSelection(input);
+      // Selecting a preset/variant is a clean starting point — clear overrides.
+      deps.store.patchSelection({ ...input, propOverrides: {} });
       broadcastState();
     }
   );
+
+  ipcMain.handle(
+    'preview:setProps',
+    (_e, overrides: Record<string, unknown>) => {
+      deps.store.patchSelection({ propOverrides: overrides });
+      broadcastState();
+    }
+  );
+
+  ipcMain.handle('preview:popOut', () => {
+    deps.openDetached();
+  });
+
+  ipcMain.handle('preview:popIn', () => {
+    deps.closeDetached();
+  });
 
   ipcMain.handle('overlay:setOpacity', (_e, value: number) => {
     deps.store.patchOverlay({ opacity: value });
@@ -154,7 +166,7 @@ export function registerIpc(deps: Deps) {
 
   ipcMain.handle('overlay:setClickThrough', (_e, enabled: boolean) => {
     deps.store.patchOverlay({ clickThrough: enabled });
-    deps.getHud()?.setIgnoreMouseEvents(enabled, { forward: true });
+    deps.getDetached()?.setIgnoreMouseEvents(enabled, { forward: true });
     broadcastState();
   });
 
@@ -173,8 +185,7 @@ export function registerIpc(deps: Deps) {
 
   ipcMain.handle('window:setAlwaysOnTop', (_e, enabled: boolean) => {
     deps.store.patchOverlay({ alwaysOnTop: enabled });
-    const w = deps.getHud();
-    if (w) w.setAlwaysOnTop(enabled, 'screen-saver');
+    deps.getDetached()?.setAlwaysOnTop(enabled, 'screen-saver');
     broadcastState();
   });
 
