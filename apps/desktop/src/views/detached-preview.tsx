@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { MousePointerClick, Pin } from 'lucide-react';
+import { MousePointerClick, Pin, X } from 'lucide-react';
 import type { AppState } from '../../electron/types';
 import type { Api } from '../lib/api';
 import { useHarnessBridge } from '../lib/use-harness-bridge';
@@ -34,8 +34,15 @@ export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-transparent">
-      <div className="drag flex h-7 items-center justify-center bg-neutral-900/70 text-[10px] text-neutral-400 backdrop-blur">
+      <div className="drag relative flex h-7 items-center justify-center bg-neutral-900/70 text-[10px] text-neutral-400 backdrop-blur">
         OpenStory Preview · drag
+        <button
+          className="no-drag absolute right-2 flex items-center justify-center rounded p-0.5 text-neutral-500 hover:text-neutral-200"
+          onClick={() => api?.invoke('preview:popIn')}
+          aria-label="Close preview"
+        >
+          <X className="size-3" />
+        </button>
       </div>
       <div
         className="flex flex-1 items-center justify-center overflow-hidden"

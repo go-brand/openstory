@@ -23,7 +23,8 @@ function buildHarnessUrl(port: number): string {
 function buildAppState(
   store: AppStore,
   viteHost: ViteHost,
-  manifest: ManifestPreview[]
+  manifest: ManifestPreview[],
+  detachedOpen: boolean
 ): AppState {
   const s = store.state;
   const status = viteHost.status();
@@ -37,6 +38,7 @@ function buildAppState(
     overlay: s.overlay,
     manifest,
     iframeUrl,
+    detachedOpen,
     vite: status,
   };
 }
@@ -45,7 +47,12 @@ export function registerIpc(deps: Deps) {
   let manifest: ManifestPreview[] = [];
 
   function broadcastState() {
-    const state = buildAppState(deps.store, deps.viteHost, manifest);
+    const state = buildAppState(
+      deps.store,
+      deps.viteHost,
+      manifest,
+      deps.getDetached() !== null
+    );
     deps.getMain()?.webContents.send('state:update', state);
     deps.getDetached()?.webContents.send('state:update', state);
   }
@@ -90,7 +97,12 @@ export function registerIpc(deps: Deps) {
   });
 
   ipcMain.handle('state:get', () =>
-    buildAppState(deps.store, deps.viteHost, manifest)
+    buildAppState(
+      deps.store,
+      deps.viteHost,
+      manifest,
+      deps.getDetached() !== null
+    )
   );
 
   ipcMain.handle('project:pickFolder', async () => {

@@ -102,7 +102,9 @@ async function openDetached() {
     registerShortcuts({ store, broadcastState }, detachedWindow);
     detachedWindow.on('closed', () => {
       detachedWindow = null;
+      broadcastState();
     });
+    broadcastState();
   } finally {
     detachedOpening = false;
   }

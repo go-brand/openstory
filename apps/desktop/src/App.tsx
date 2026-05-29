@@ -21,6 +21,7 @@ const FALLBACK_STATE: AppState = {
   },
   manifest: [],
   iframeUrl: null,
+  detachedOpen: false,
   vite: { status: 'idle', port: null, error: null },
 };
 

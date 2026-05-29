@@ -43,6 +43,7 @@ export type AppState = {
   overlay: OverlayState;
   manifest: ManifestPreview[];
   iframeUrl: string | null;
+  detachedOpen: boolean;
   vite: {
     status: 'idle' | 'starting' | 'ready' | 'error';
     port: number | null;

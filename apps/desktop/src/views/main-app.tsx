@@ -3,6 +3,7 @@ import {
   FolderPlus,
   Layers,
   Maximize2,
+  Minimize2,
   Smartphone,
   ExternalLink,
 } from 'lucide-react';
@@ -146,9 +147,21 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => api?.invoke('preview:popOut')}
+            onClick={() =>
+              api?.invoke(
+                state.detachedOpen ? 'preview:popIn' : 'preview:popOut'
+              )
+            }
           >
-            <ExternalLink /> Pop out
+            {state.detachedOpen ? (
+              <>
+                <Minimize2 /> Pop in
+              </>
+            ) : (
+              <>
+                <ExternalLink /> Pop out
+              </>
+            )}
           </Button>
         </div>
         <div className="flex flex-1 items-center justify-center overflow-auto">
