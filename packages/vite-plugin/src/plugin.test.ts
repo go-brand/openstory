@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import {
+  defineOpenStoryConfig,
+  deriveControls,
+} from '@gobrand/openstory-config';
 import { buildHarnessEntry } from './harness-loader';
+import { buildManifest } from './plugin';
 
 describe('buildHarnessEntry', () => {
   it('imports the consumer config and mounts the runtime', () => {
@@ -16,13 +21,9 @@ describe('buildHarnessEntry', () => {
   });
 });
 
-import { buildManifest } from './plugin';
-import { deriveControls } from '@gobrand/openstory-config';
-import type { OpenStoryConfig } from '@gobrand/openstory-config';
-
 describe('buildManifest', () => {
   it('emits variants with props and inferred controls', () => {
-    const config = {
+    const config = defineOpenStoryConfig({
       previews: [
         {
           id: 'linkedin',
@@ -34,7 +35,7 @@ describe('buildManifest', () => {
           ],
         },
       ],
-    } as OpenStoryConfig;
+    });
     const manifest = buildManifest(config);
     expect(manifest.previews[0]).toEqual({
       id: 'linkedin',
@@ -44,6 +45,30 @@ describe('buildManifest', () => {
         { id: 'b', label: 'B', props: { text: 'yo' } },
       ],
       controls: deriveControls(config.previews[0].fixtures),
+    });
+  });
+
+  it('returns no previews for an empty config', () => {
+    const config = defineOpenStoryConfig({ previews: [] });
+    expect(buildManifest(config)).toEqual({ previews: [] });
+  });
+
+  it('emits empty variants and controls for a preview with zero fixtures', () => {
+    const config = defineOpenStoryConfig({
+      previews: [
+        {
+          id: 'linkedin',
+          platform: 'linkedin',
+          component: () => null,
+          fixtures: [],
+        },
+      ],
+    });
+    expect(buildManifest(config).previews[0]).toEqual({
+      id: 'linkedin',
+      platform: 'linkedin',
+      variants: [],
+      controls: [],
     });
   });
 });
