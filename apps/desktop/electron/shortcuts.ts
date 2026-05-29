@@ -3,7 +3,6 @@ import { AppStore } from './store';
 
 type Deps = {
   store: AppStore;
-  getHud: () => BrowserWindow | null;
   broadcastState: () => void;
 };
 
@@ -16,10 +15,10 @@ function adjustOpacity(deps: Deps, delta: number) {
   deps.broadcastState();
 }
 
-function toggleClickThrough(deps: Deps) {
+function toggleClickThrough(deps: Deps, win: BrowserWindow) {
   const enabled = !deps.store.state.overlay.clickThrough;
   deps.store.patchOverlay({ clickThrough: enabled });
-  deps.getHud()?.setIgnoreMouseEvents(enabled, { forward: true });
+  win.setIgnoreMouseEvents(enabled, { forward: true });
   deps.broadcastState();
 }
 
@@ -30,8 +29,8 @@ function toggleBlend(deps: Deps) {
   deps.broadcastState();
 }
 
-function reloadHud(deps: Deps) {
-  deps.getHud()?.webContents.reload();
+function reloadWindow(win: BrowserWindow) {
+  win.webContents.reload();
 }
 
 type InputEvent = Electron.Input;
@@ -49,16 +48,19 @@ function matches(
   return true;
 }
 
-export function registerShortcuts(deps: Deps): void {
-  const hud = deps.getHud();
-  if (!hud) return;
-
-  hud.webContents.on('before-input-event', (event, input) => {
+// Bind the overlay shortcut layer to a specific window's webContents. The
+// detached/overlay window is created lazily (and recreated on every
+// popOut→popIn cycle), so this must be called from openDetached after the
+// window exists — not once at bootstrap when no overlay window yet exists.
+// The listener lives on the window's webContents and is torn down with it on
+// close, so each fresh window re-binds cleanly with no leaked listeners.
+export function registerShortcuts(deps: Deps, win: BrowserWindow): void {
+  win.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
 
     // Click-through toggle: F8 OR Cmd+Alt+T
     if (matches(input, 'F8') || matches(input, 't', { cmd: true, alt: true })) {
-      toggleClickThrough(deps);
+      toggleClickThrough(deps, win);
       event.preventDefault();
       return;
     }
@@ -96,7 +98,7 @@ export function registerShortcuts(deps: Deps): void {
 
     // Reload: Cmd+R
     if (matches(input, 'r', { cmd: true })) {
-      reloadHud(deps);
+      reloadWindow(win);
       event.preventDefault();
       return;
     }

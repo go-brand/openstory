@@ -40,7 +40,11 @@ const viteHost = new ViteHost();
 const store = new AppStore();
 let mainWindow: BrowserWindow | null = null;
 let detachedWindow: BrowserWindow | null = null;
+let detachedOpening = false;
 let isQuitting = false;
+// Captured from registerIpc in bootstrap so openDetached can bind the overlay
+// shortcut layer to each freshly created detached window.
+let broadcastState: () => void = () => {};
 
 function attachBoundsPersistence(win: BrowserWindow) {
   // Debounce: drag/resize fire continuously; persist once the gesture settles
@@ -52,9 +56,15 @@ function attachBoundsPersistence(win: BrowserWindow) {
   };
   win.on('moved', save);
   win.on('resized', save);
+  // A pending debounce would call getBounds() on a destroyed window (throws).
+  win.on('closed', () => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 async function createMain() {
+  // 'hudBounds' is the legacy persisted key name for the main window bounds —
+  // the original "hud" window concept is gone, but the store key is kept stable.
   const hudBounds = store.state.hudBounds ?? undefined;
   mainWindow = await createMainWindow(hudBounds ? { bounds: hudBounds } : {});
   attachBoundsPersistence(mainWindow);
@@ -76,18 +86,34 @@ async function openDetached() {
     detachedWindow.focus();
     return;
   }
-  detachedWindow = await createDetachedWindow({});
-  if (store.state.overlay.alwaysOnTop) {
-    detachedWindow.setAlwaysOnTop(true, 'screen-saver');
+  // Synchronous in-flight guard: detachedWindow is only assigned after the
+  // await, so without this two back-to-back calls would both pass the null
+  // check and create duplicate windows.
+  if (detachedOpening) return;
+  detachedOpening = true;
+  try {
+    detachedWindow = await createDetachedWindow({});
+    if (store.state.overlay.alwaysOnTop) {
+      detachedWindow.setAlwaysOnTop(true, 'screen-saver');
+    }
+    // Bind the overlay shortcut layer to this freshly created window. The
+    // listener is torn down with the webContents on close, so re-popOut
+    // re-binds cleanly without leaking listeners.
+    registerShortcuts({ store, broadcastState }, detachedWindow);
+    detachedWindow.on('closed', () => {
+      detachedWindow = null;
+    });
+  } finally {
+    detachedOpening = false;
   }
-  detachedWindow.on('closed', () => {
-    detachedWindow = null;
-  });
 }
 
 function closeDetached() {
+  // close() is async; the 'closed' handler is the single owner of nulling the
+  // ref. Nulling here synchronously would let a quick popIn→popOut build a
+  // second window while the first is mid-close, then orphan the live one when
+  // the first's 'closed' fires.
   detachedWindow?.close();
-  detachedWindow = null;
 }
 
 async function bootstrap() {
@@ -97,7 +123,7 @@ async function bootstrap() {
 
   await createMain();
 
-  const { broadcastState } = registerIpc({
+  const ipc = registerIpc({
     store,
     viteHost,
     getMain: () => mainWindow,
@@ -107,7 +133,9 @@ async function bootstrap() {
     },
     closeDetached,
   });
-  registerShortcuts({ store, getHud: () => detachedWindow, broadcastState });
+  // Stash for openDetached, which binds the overlay shortcut layer to each
+  // detached window as it is created (the window does not exist yet here).
+  broadcastState = ipc.broadcastState;
 
   // Resume the last project, if any.
   const { projectId } = store.state.selection;
