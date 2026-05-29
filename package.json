@@ -1,0 +1,23 @@
+{
+  "name": "openstory",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "release": "bash scripts/release.sh"
+  },
+  "devDependencies": {
+    "turbo": "2.8.9",
+    "typescript": "5.9.3",
+    "oxlint": "1.41.0",
+    "oxfmt": "0.26.0"
+  }
+}

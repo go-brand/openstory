@@ -1,0 +1,14 @@
+node_modules/
+dist/
+out/
+.turbo/
+.DS_Store
+*.log
+.env
+.env.local
+release/
+test-results/
+playwright-report/
+
+# brainstorming visual companion
+.superpowers/

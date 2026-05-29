@@ -1,0 +1,48 @@
+{
+  "name": "openstory-desktop",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./out/main/main.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "package": "electron-vite build && electron-builder",
+    "start": "electron-vite preview",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@gobrand/openstory-config": "workspace:*",
+    "@gobrand/openstory-platforms": "workspace:*",
+    "@gobrand/openstory-runtime": "workspace:*",
+    "@gobrand/openstory-vite": "workspace:*",
+    "@radix-ui/react-checkbox": "^1.3.3",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slider": "^1.3.6",
+    "@radix-ui/react-slot": "^1.2.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "electron-store": "11.0.0",
+    "lucide-react": "^1.16.0",
+    "tailwind-merge": "^3.6.0",
+    "vite": "7.3.1"
+  },
+  "devDependencies": {
+    "@electron-toolkit/preload": "3.0.2",
+    "@playwright/test": "1.49.0",
+    "@tailwindcss/vite": "4.1.18",
+    "@types/node": "24.10.4",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.0.0",
+    "electron": "33.3.0",
+    "electron-builder": "25.1.8",
+    "electron-vite": "5.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "tailwindcss": "4.1.18",
+    "typescript": "5.9.3"
+  }
+}

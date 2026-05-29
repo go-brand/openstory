@@ -1,0 +1,7 @@
+{
+  "extends": "../../tooling/tsconfig/electron.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["electron/**/*", "electron.vite.config.ts"]
+}

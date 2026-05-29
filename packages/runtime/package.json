@@ -1,0 +1,61 @@
+{
+  "name": "@gobrand/openstory-runtime",
+  "version": "0.1.0",
+  "description": "Browser runtime that mounts OpenStory previews inside the host harness",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/go-brand/openstory.git",
+    "directory": "packages/runtime"
+  },
+  "bugs": {
+    "url": "https://github.com/go-brand/openstory/issues"
+  },
+  "homepage": "https://github.com/go-brand/openstory#readme",
+  "keywords": [
+    "openstory",
+    "preview",
+    "runtime",
+    "component-preview",
+    "react"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gobrand/openstory-config": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "extends": "../../tooling/tsconfig/react.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*", "preview-window/**/*", "electron/types.ts"]
+}

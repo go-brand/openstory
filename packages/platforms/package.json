@@ -1,0 +1,56 @@
+{
+  "name": "@gobrand/openstory-platforms",
+  "version": "0.1.0",
+  "description": "Platform presets (viewports, variants) for OpenStory previews",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./linkedin": {
+      "types": "./dist/linkedin/index.d.ts",
+      "import": "./dist/linkedin/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/go-brand/openstory.git",
+    "directory": "packages/platforms"
+  },
+  "bugs": {
+    "url": "https://github.com/go-brand/openstory/issues"
+  },
+  "homepage": "https://github.com/go-brand/openstory#readme",
+  "keywords": [
+    "openstory",
+    "platforms",
+    "linkedin",
+    "preview",
+    "component-preview"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gobrand/openstory-config": "workspace:^"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  }
+}
