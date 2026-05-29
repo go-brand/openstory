@@ -59,4 +59,24 @@ describe('deriveControls', () => {
     ]);
     expect(controls).toEqual([]);
   });
+
+  it('drops a prop that is primitive in one fixture but non-primitive in another', () => {
+    const controls = deriveControls([
+      { id: 'a', label: 'A', props: { value: 'hi' } },
+      { id: 'b', label: 'B', props: { value: { nested: true } } },
+    ]);
+    expect(controls).toEqual([]);
+  });
+
+  it('drops a prop that is only ever null/undefined', () => {
+    const controls = deriveControls([
+      { id: 'a', label: 'A', props: { value: null } },
+      { id: 'b', label: 'B', props: { value: undefined } },
+    ]);
+    expect(controls).toEqual([]);
+  });
+
+  it('returns an empty array for empty fixtures', () => {
+    expect(deriveControls([])).toEqual([]);
+  });
 });

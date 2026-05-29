@@ -23,6 +23,55 @@ export type Fixture<TProps = unknown> = {
   notes?: string;
 };
 
+// =============================================================================
+// Control derivation (editable controls inferred from fixture prop values)
+// =============================================================================
+
+export type ManifestControl = {
+  name: string;
+  kind: 'text' | 'boolean' | 'number';
+};
+
+function controlKind(value: unknown): ManifestControl['kind'] | 'skip' | null {
+  if (value === null || value === undefined) return null; // no kind yet, keep looking
+  if (typeof value === 'string') return 'text';
+  if (typeof value === 'boolean') return 'boolean';
+  if (typeof value === 'number') return 'number';
+  return 'skip'; // object / array / function / ReactNode — not inline-editable
+}
+
+/**
+ * Infer an editable control per prop from the fixtures' values. Keys are unioned
+ * across all fixtures in first-seen order; a prop that is ever non-primitive is
+ * dropped; a prop that is only ever null/undefined is dropped.
+ */
+export function deriveControls(fixtures: Fixture[]): ManifestControl[] {
+  const order: string[] = [];
+  const kinds = new Map<string, ManifestControl['kind'] | 'skip' | null>();
+
+  for (const fixture of fixtures) {
+    const props = (fixture.props ?? {}) as Record<string, unknown>;
+    for (const [name, value] of Object.entries(props)) {
+      if (!kinds.has(name)) {
+        order.push(name);
+        kinds.set(name, null);
+      }
+      const current = kinds.get(name);
+      if (current === 'skip') continue;
+      const k = controlKind(value);
+      if (k === 'skip') kinds.set(name, 'skip');
+      else if (k && current === null) kinds.set(name, k);
+    }
+  }
+
+  return order
+    .map((name) => ({ name, kind: kinds.get(name) }))
+    .filter(
+      (c): c is ManifestControl =>
+        c.kind === 'text' || c.kind === 'boolean' || c.kind === 'number'
+    );
+}
+
 export type PreviewDef<TProps = unknown> = {
   id: string;
   platform: Platform;
@@ -123,51 +172,6 @@ function isLonghandStory<TProps>(
  *
  * Returns a `RegisteredPreview` ready to drop into `previews: [...]`.
  */
-export type ManifestControl = {
-  name: string;
-  kind: 'text' | 'boolean' | 'number';
-};
-
-function controlKind(value: unknown): ManifestControl['kind'] | 'skip' | null {
-  if (value === null || value === undefined) return null; // no kind yet, keep looking
-  if (typeof value === 'string') return 'text';
-  if (typeof value === 'boolean') return 'boolean';
-  if (typeof value === 'number') return 'number';
-  return 'skip'; // object / array / function / ReactNode — not inline-editable
-}
-
-/**
- * Infer an editable control per prop from the fixtures' values. Keys are unioned
- * across all fixtures in first-seen order; a prop that is ever non-primitive is
- * dropped; a prop that is only ever null/undefined is dropped.
- */
-export function deriveControls(fixtures: Fixture[]): ManifestControl[] {
-  const order: string[] = [];
-  const kinds = new Map<string, ManifestControl['kind'] | 'skip' | null>();
-
-  for (const fixture of fixtures) {
-    const props = (fixture.props ?? {}) as Record<string, unknown>;
-    for (const [name, value] of Object.entries(props)) {
-      if (!kinds.has(name)) {
-        order.push(name);
-        kinds.set(name, null);
-      }
-      const current = kinds.get(name);
-      if (current === 'skip') continue;
-      const k = controlKind(value);
-      if (k === 'skip') kinds.set(name, 'skip');
-      else if (k && current == null) kinds.set(name, k);
-    }
-  }
-
-  return order
-    .map((name) => ({ name, kind: kinds.get(name) }))
-    .filter(
-      (c): c is ManifestControl =>
-        c.kind === 'text' || c.kind === 'boolean' || c.kind === 'number'
-    );
-}
-
 export function defineStories<TProps>(
   def: StoriesDef<TProps>
 ): RegisteredPreview {
