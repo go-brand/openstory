@@ -1,7 +1,9 @@
 export {
   defineOpenStoryConfig,
   defineStories,
+  deriveControls,
   type Fixture,
+  type ManifestControl,
   type Platform,
   type PreviewDef,
   type OpenStoryConfig,
