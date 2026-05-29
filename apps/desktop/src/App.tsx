@@ -28,11 +28,13 @@ function getApi() {
   return typeof window !== 'undefined' ? window.openStory : undefined;
 }
 
+// Window is always present in the Electron renderer, so resolve the role once
+// at module load rather than on every render.
+const ROLE = new URLSearchParams(window.location.search).get('role') ?? 'main';
+
 export function App() {
   const api = getApi();
   const [state, setState] = useState<AppState>(FALLBACK_STATE);
-  const role =
-    new URLSearchParams(window.location.search).get('role') ?? 'main';
 
   useEffect(() => {
     if (!api) return;
@@ -50,6 +52,6 @@ export function App() {
     };
   }, [api]);
 
-  if (role === 'detached') return <DetachedPreview state={state} api={api} />;
+  if (ROLE === 'detached') return <DetachedPreview state={state} api={api} />;
   return <MainApp state={state} api={api} />;
 }

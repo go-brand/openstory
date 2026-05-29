@@ -1,12 +1,10 @@
 import { useRef } from 'react';
 import { MousePointerClick, Pin } from 'lucide-react';
 import type { AppState } from '../../electron/types';
-import type { OpenStoryApi } from '../../electron/preload';
+import type { Api } from '../lib/api';
 import { useHarnessBridge } from '../lib/use-harness-bridge';
 import { Slider } from '../components/ui/slider';
 import { Checkbox } from '../components/ui/checkbox';
-
-type Api = OpenStoryApi | undefined;
 
 const PLATFORM_BG: Record<string, string> = {
   linkedin: '#f3f2ef',

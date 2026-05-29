@@ -8,7 +8,10 @@ export function useHarnessBridge(
   const latest = useRef(selection);
   latest.current = selection;
 
-  function post() {
+  // Callback ref keeps the message-listener effect ([] deps) from capturing a
+  // stale `post` closure: it always invokes the latest implementation.
+  const postRef = useRef<() => void>(() => {});
+  postRef.current = () => {
     const win = iframeRef.current?.contentWindow;
     const s = latest.current;
     if (!win || !s.previewId || !s.variantId) return;
@@ -22,22 +25,26 @@ export function useHarnessBridge(
       },
       '*'
     );
-  }
+  };
+
+  // `propOverrides` is a fresh object on every state broadcast; key by its
+  // contents so this effect only fires on a real override change.
+  const propOverridesKey = JSON.stringify(selection.propOverrides);
 
   // Re-post on any selection/override change.
   useEffect(() => {
-    post();
+    postRef.current();
   }, [
     selection.previewId,
     selection.variantId,
     selection.viewport,
-    selection.propOverrides,
+    propOverridesKey,
   ]);
 
   // Re-post when the harness (re)loads and announces readiness.
   useEffect(() => {
     function onMessage(e: MessageEvent) {
-      if ((e.data as { type?: string })?.type === 'pl:ready') post();
+      if ((e.data as { type?: string })?.type === 'pl:ready') postRef.current();
     }
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);

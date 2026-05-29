@@ -7,7 +7,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import type { AppState } from '../../electron/types';
-import type { OpenStoryApi } from '../../electron/preload';
+import type { Api } from '../lib/api';
 import { useHarnessBridge } from '../lib/use-harness-bridge';
 import { Button } from '../components/ui/button';
 import {
@@ -17,8 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
-
-type Api = OpenStoryApi | undefined;
 
 export function MainApp({ state, api }: { state: AppState; api: Api }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -118,7 +116,8 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
         </div>
       </aside>
 
-      {/* Canvas */}
+      {/* Canvas. Plain neutral bg by design — the platform-color tint is
+          detached-only (it backs difference-blend pixel comparison there). */}
       <main className="relative flex flex-1 flex-col bg-neutral-100">
         <div className="no-drag flex h-11 items-center justify-between border-b border-neutral-800 bg-neutral-900 px-3">
           <div className="flex gap-1.5">
@@ -218,9 +217,10 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
                         <input
                           type="number"
                           value={typeof value === 'number' ? value : ''}
-                          onChange={(e) =>
-                            setControl(c.name, e.target.valueAsNumber)
-                          }
+                          onChange={(e) => {
+                            const n = e.target.valueAsNumber;
+                            if (!Number.isNaN(n)) setControl(c.name, n);
+                          }}
                           className="rounded bg-neutral-800 px-2 py-1 text-neutral-200"
                         />
                       ) : (
