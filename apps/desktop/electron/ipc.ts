@@ -84,6 +84,7 @@ export function registerIpc(deps: Deps) {
             previewId: first.id,
             variantId: first.variants[0].id,
             propOverrides: {},
+            docsComponentId: null,
           });
         }
       }
@@ -147,14 +148,19 @@ export function registerIpc(deps: Deps) {
         viewport: "desktop" | "mobile";
       },
     ) => {
-      // Selecting a preset/variant is a clean starting point — clear overrides.
-      deps.store.patchSelection({ ...input, propOverrides: {} });
+      // Selecting a story is a clean start: clear overrides and exit any docs view.
+      deps.store.patchSelection({ ...input, propOverrides: {}, docsComponentId: null });
       broadcastState();
     },
   );
 
   ipcMain.handle("preview:setProps", (_e, overrides: Record<string, unknown>) => {
     deps.store.patchSelection({ propOverrides: overrides });
+    broadcastState();
+  });
+
+  ipcMain.handle("preview:setDocs", (_e, componentId: string | null) => {
+    deps.store.patchSelection({ docsComponentId: componentId });
     broadcastState();
   });
 
