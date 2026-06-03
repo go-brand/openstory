@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Plugin, ViteDevServer } from "vite";
 import { buildHarnessEntry, buildHtmlShell } from "./harness-loader.js";
+import { deriveSection } from "./derive-section.js";
 import { deriveControls, resolvePresets, resolveRender } from "@gobrand/openstory-config";
 import type { OpenStoryConfig } from "@gobrand/openstory-config";
 
@@ -74,9 +75,11 @@ export function buildManifest(config: OpenStoryConfig, projectRoot?: string) {
   return {
     previews: config.previews.map((p) => {
       const render = resolveRender(p, presets);
+      const sourcePath = p.sourcePath && projectRoot ? resolve(projectRoot, p.sourcePath) : null;
       return {
         id: p.id,
         group: p.group ?? "",
+        section: deriveSection(sourcePath),
         background: render.background,
         variants: p.fixtures.map((f) => ({
           id: f.id,
@@ -84,9 +87,7 @@ export function buildManifest(config: OpenStoryConfig, projectRoot?: string) {
           props: f.props,
         })),
         controls: deriveControls(p.fixtures),
-        // Project-root-relative `sourcePath` resolved to an absolute path so the
-        // desktop app can fs-read it for the Code panel. null when unset.
-        sourcePath: p.sourcePath && projectRoot ? resolve(projectRoot, p.sourcePath) : null,
+        sourcePath,
       };
     }),
   };

@@ -58,6 +58,7 @@ describe("buildManifest", () => {
     expect(manifest.previews[0]).toEqual({
       id: "linkedin",
       group: "LinkedIn",
+      section: null,
       background: "#f3f2ef",
       variants: [
         { id: "a", label: "A", props: { text: "hi", dark: true } },
@@ -115,10 +116,23 @@ describe("buildManifest", () => {
     expect(buildManifest(config).previews[0]).toEqual({
       id: "linkedin",
       group: "",
+      section: null,
       background: "#f4f4f5",
       variants: [],
       controls: [],
       sourcePath: null,
     });
+  });
+
+  it("derives a section from a monorepo sourcePath", () => {
+    // This repo IS a pnpm monorepo; resolve a real file under apps/desktop.
+    const config = defineOpenStoryConfig({
+      previews: [
+        { id: "x", component: () => null, fixtures: [], sourcePath: "./electron/types.ts" },
+      ],
+    });
+    // projectRoot = apps/desktop → workspace member basename "desktop".
+    const root = new URL("../../../apps/desktop", import.meta.url).pathname;
+    expect(buildManifest(config, root).previews[0]?.section).toBe("desktop");
   });
 });
