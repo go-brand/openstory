@@ -35,11 +35,11 @@ function GroupTree({
             className="flex items-center justify-between px-1"
             style={{ paddingLeft: depth * 8 }}
           >
-            <span className="text-[10px] font-medium tracking-[0.14em] text-neutral-500 uppercase">
+            <span className="text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
               {node.name}
             </span>
             {node.previews.length > 0 && (
-              <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-medium text-neutral-500 tabular-nums">
+              <span className="rounded-full bg-foreground/[0.06] px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground tabular-nums">
                 {node.previews.length}
               </span>
             )}
@@ -83,7 +83,7 @@ function PreviewButton({
       onClick={() => onSelectPreview(preview.id, preview.variants[0]?.id ?? "")}
     >
       {selected && (
-        <span className="absolute top-1.5 bottom-1.5 left-0 w-[3px] rounded-full bg-accent" />
+        <span className="absolute top-1.5 bottom-1.5 left-0 w-[3px] rounded-full bg-brand" />
       )}
       {preview.id}
     </Button>
@@ -113,9 +113,9 @@ export function Sidebar({
   const tree = buildGroupTree(state.manifest);
 
   return (
-    <aside className="flex w-[260px] flex-col border-r border-line bg-panel">
+    <aside className="flex w-[260px] flex-col border-r border-border bg-sidebar">
       <div className="no-drag flex flex-1 flex-col overflow-y-auto px-3 py-3">
-        <div className="mb-1.5 px-1 text-[10px] font-medium tracking-[0.14em] text-neutral-500 uppercase">
+        <div className="mb-1.5 px-1 text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
           Repositories
         </div>
 
@@ -131,19 +131,19 @@ export function Sidebar({
                     className={cn(
                       "flex h-8 flex-1 items-center gap-1.5 rounded-lg px-2 text-[12px] transition-colors",
                       isActive
-                        ? "text-neutral-100"
-                        : "text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-200",
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
                     )}
                   >
                     <HugeiconsIcon
                       icon={isActive ? ArrowDown01Icon : ArrowRight01Icon}
-                      className="size-3.5 shrink-0 text-neutral-600"
+                      className="size-3.5 shrink-0 text-muted-foreground"
                     />
                     <HugeiconsIcon
                       icon={Folder01Icon}
                       className={cn(
                         "size-3.5 shrink-0",
-                        isActive ? "text-accent" : "text-neutral-500",
+                        isActive ? "text-brand" : "text-muted-foreground",
                       )}
                     />
                     <span className="truncate font-medium">{proj.name}</span>
@@ -152,7 +152,7 @@ export function Sidebar({
                     type="button"
                     title="Remove repository"
                     onClick={() => api?.invoke("project:remove", proj.id)}
-                    className="absolute right-1 flex size-6 items-center justify-center rounded-md text-neutral-600 opacity-0 transition-opacity hover:bg-white/[0.06] hover:text-neutral-300 group-hover:opacity-100"
+                    className="absolute right-1 flex size-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-foreground/[0.06] hover:text-foreground group-hover:opacity-100"
                   >
                     <HugeiconsIcon icon={Cancel01Icon} className="size-3" />
                   </button>
@@ -161,9 +161,9 @@ export function Sidebar({
                 {isActive && (
                   <div className="mt-0.5 mb-1.5 flex flex-col gap-3 pl-3.5">
                     {state.manifest.length === 0 ? (
-                      <p className="rounded-lg border border-line bg-elevated/60 px-3 py-2.5 text-[11px] leading-relaxed text-neutral-500">
+                      <p className="rounded-lg border border-border bg-card/60 px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
                         No previews found in{" "}
-                        <code className="rounded bg-white/[0.06] px-1 py-0.5 text-neutral-400">
+                        <code className="rounded bg-foreground/[0.06] px-1 py-0.5 text-muted-foreground">
                           openstory.config.ts
                         </code>
                         .
@@ -205,7 +205,7 @@ export function Sidebar({
         </Button>
 
         {state.projects.length === 0 && (
-          <p className="mt-3 px-1 text-[11px] leading-relaxed text-neutral-600">
+          <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted-foreground">
             Add a repository to load its OpenStory previews.
           </p>
         )}

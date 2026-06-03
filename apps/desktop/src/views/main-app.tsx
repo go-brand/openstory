@@ -49,7 +49,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
   }
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-canvas text-neutral-200">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
       <Titlebar onOpenPalette={() => setPaletteOpen(true)} />
 
       <div className="flex flex-1 overflow-hidden">
@@ -62,7 +62,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
 
         {/* Canvas. Plain neutral bg by design — the preset-color tint is
             detached-only (it backs difference-blend pixel comparison there). */}
-        <main className="relative flex flex-1 flex-col overflow-hidden bg-canvas">
+        <main className="relative flex flex-1 flex-col overflow-hidden bg-background">
           <Toolbar
             state={state}
             api={api}
@@ -73,7 +73,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
           />
           <div className="flex flex-1 items-center justify-center overflow-auto p-6">
             {state.iframeUrl ? (
-              <div className="h-full w-full overflow-hidden rounded-xl border border-line-strong bg-neutral-100 shadow-2xl shadow-black/50">
+              <div className="h-full w-full overflow-hidden rounded-xl border border-input bg-muted shadow-2xl shadow-black/50">
                 <iframe
                   ref={iframeRef}
                   src={state.iframeUrl}
@@ -119,12 +119,12 @@ function CanvasEmpty({ vite }: { vite: AppState["vite"] }) {
   const spin = vite.status === "starting";
   return (
     <div className="flex max-w-xs flex-col items-center gap-3 text-center">
-      <div className="flex size-12 items-center justify-center rounded-2xl border border-line bg-elevated text-neutral-500">
+      <div className="flex size-12 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground">
         <HugeiconsIcon icon={icon} className={`size-5 ${spin ? "animate-spin" : ""}`} />
       </div>
       <div className="flex flex-col gap-1">
-        <p className="text-[13px] font-medium text-neutral-300">{title}</p>
-        <p className="text-[12px] leading-relaxed text-neutral-600">{subtitle}</p>
+        <p className="text-[13px] font-medium text-foreground">{title}</p>
+        <p className="text-[12px] leading-relaxed text-muted-foreground">{subtitle}</p>
       </div>
     </div>
   );

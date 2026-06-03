@@ -12,7 +12,7 @@ export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
 
   const preview =
     state.manifest.find((p) => p.id === state.selection.previewId) ?? state.manifest[0];
-  const canvasBg = preview?.background ?? "#f4f4f5";
+  const canvasBg = preview?.background ?? "var(--color-foreground)";
 
   const canvasStyle: React.CSSProperties = {
     background: canvasBg,
@@ -22,11 +22,11 @@ export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-transparent">
-      <div className="drag relative flex h-8 items-center justify-center gap-1.5 bg-neutral-950/70 text-[10px] font-medium tracking-[0.12em] text-neutral-400 uppercase backdrop-blur-md">
-        <span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px] shadow-accent/60" />
+      <div className="drag relative flex h-8 items-center justify-center gap-1.5 bg-background/70 text-[10px] font-medium tracking-[0.12em] text-muted-foreground uppercase backdrop-blur-md">
+        <span className="size-1.5 rounded-full bg-brand shadow-[0_0_8px] shadow-brand/60" />
         OpenStory Preview
         <button
-          className="no-drag absolute right-2 flex items-center justify-center rounded-md p-1 text-neutral-500 transition-colors hover:bg-white/[0.08] hover:text-neutral-100"
+          className="no-drag absolute right-2 flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-foreground/[0.08] hover:text-foreground"
           onClick={() => api?.invoke("preview:popIn")}
           aria-label="Close preview"
         >
@@ -42,11 +42,11 @@ export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
           />
         )}
       </div>
-      <div className="no-drag flex flex-col gap-4 border-t border-line bg-neutral-950/85 p-4 backdrop-blur-md">
+      <div className="no-drag flex flex-col gap-4 border-t border-border bg-background/85 p-4 backdrop-blur-md">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between text-[11px]">
-            <span className="font-medium text-neutral-400">Opacity</span>
-            <span className="tabular-nums text-neutral-300">
+            <span className="font-medium text-muted-foreground">Opacity</span>
+            <span className="tabular-nums text-foreground">
               {Math.round(state.overlay.opacity * 100)}%
             </span>
           </div>
@@ -59,7 +59,7 @@ export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
           />
         </div>
         <div className="flex flex-col gap-2.5">
-          <label className="flex cursor-pointer items-center gap-2.5 text-[11px] text-neutral-300">
+          <label className="flex cursor-pointer items-center gap-2.5 text-[11px] text-foreground">
             <Checkbox
               checked={state.overlay.blendMode === "difference"}
               onCheckedChange={(c) =>
@@ -68,20 +68,21 @@ export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
             />
             Difference blend
           </label>
-          <label className="flex cursor-pointer items-center gap-2.5 text-[11px] text-neutral-300">
+          <label className="flex cursor-pointer items-center gap-2.5 text-[11px] text-foreground">
             <Checkbox
               checked={state.overlay.clickThrough}
               onCheckedChange={(c) => api?.invoke("overlay:setClickThrough", Boolean(c))}
             />
-            <HugeiconsIcon icon={Cursor02Icon} className="size-3.5 text-neutral-500" />{" "}
+            <HugeiconsIcon icon={Cursor02Icon} className="size-3.5 text-muted-foreground" />{" "}
             Click-through
           </label>
-          <label className="flex cursor-pointer items-center gap-2.5 text-[11px] text-neutral-300">
+          <label className="flex cursor-pointer items-center gap-2.5 text-[11px] text-foreground">
             <Checkbox
               checked={state.overlay.alwaysOnTop}
               onCheckedChange={(c) => api?.invoke("window:setAlwaysOnTop", Boolean(c))}
             />
-            <HugeiconsIcon icon={Pin02Icon} className="size-3.5 text-neutral-500" /> Always on top
+            <HugeiconsIcon icon={Pin02Icon} className="size-3.5 text-muted-foreground" /> Always on
+            top
           </label>
         </div>
       </div>

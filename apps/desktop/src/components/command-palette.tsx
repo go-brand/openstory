@@ -100,27 +100,29 @@ export function CommandPalette({
       onMouseDown={onClose}
     >
       <div
-        className="w-[560px] overflow-hidden rounded-xl border border-line-strong bg-elevated shadow-2xl shadow-black/60"
+        className="w-[560px] overflow-hidden rounded-xl border border-input bg-card shadow-2xl shadow-black/60"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2.5 border-b border-line px-3.5">
-          <HugeiconsIcon icon={Search01Icon} className="size-4 text-neutral-500" />
+        <div className="flex items-center gap-2.5 border-b border-border px-3.5">
+          <HugeiconsIcon icon={Search01Icon} className="size-4 text-muted-foreground" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Search components…"
-            className="h-11 flex-1 bg-transparent text-[13px] text-neutral-100 placeholder:text-neutral-600 focus:outline-none"
+            className="h-11 flex-1 bg-transparent text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
-          <kbd className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-neutral-500">
+          <kbd className="rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
             esc
           </kbd>
         </div>
 
         <div className="max-h-[320px] overflow-y-auto p-1.5">
           {items.length === 0 ? (
-            <div className="px-3 py-8 text-center text-[12px] text-neutral-600">No matches</div>
+            <div className="px-3 py-8 text-center text-[12px] text-muted-foreground">
+              No matches
+            </div>
           ) : (
             items.map((it, i) => (
               <button
@@ -130,15 +132,15 @@ export function CommandPalette({
                 onClick={() => choose(it)}
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[12px] transition-colors",
-                  i === active ? "bg-accent-soft text-blue-200" : "text-neutral-300",
+                  i === active ? "bg-brand-soft text-blue-200" : "text-foreground",
                 )}
               >
                 <HugeiconsIcon
                   icon={it.kind === "preview" ? PackageIcon : Folder01Icon}
-                  className="size-4 shrink-0 text-neutral-500"
+                  className="size-4 shrink-0 text-muted-foreground"
                 />
                 <span className="truncate">{it.label}</span>
-                <span className="ml-auto shrink-0 text-[10px] tracking-wide text-neutral-600 uppercase">
+                <span className="ml-auto shrink-0 text-[10px] tracking-wide text-muted-foreground uppercase">
                   {it.kind === "preview" ? it.meta : "Switch repo"}
                 </span>
               </button>
