@@ -5,7 +5,7 @@ import { cn } from "../lib/utils";
 import { HugeiconsIcon, Search01Icon, PackageIcon, Folder01Icon } from "../lib/icons";
 
 type Item =
-  | { kind: "preview"; id: string; label: string; meta: string }
+  | { kind: "story"; previewId: string; variantId: string; label: string; meta: string }
   | { kind: "repo"; id: string; label: string };
 
 // Subsequence match: every char of `query` appears in `text` in order. Cheap,
@@ -37,20 +37,21 @@ export function CommandPalette({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const items = useMemo<Item[]>(() => {
-    const previews: Item[] = state.manifest
-      .filter((p) => fuzzy(query, `${p.id} ${p.group}`))
-      .map((p) => ({
-        kind: "preview",
-        id: p.id,
-        label: p.id,
-        meta: p.group || "—",
-      }));
-    // Other repos surface as switch actions — only the active repo's components
-    // are loaded (single Vite host), so jumping repos goes through project:select.
+    const stories: Item[] = state.manifest.flatMap((p) =>
+      p.variants
+        .filter((v) => fuzzy(query, `${p.id} ${v.label} ${p.group} ${p.section ?? ""}`))
+        .map((v) => ({
+          kind: "story",
+          previewId: p.id,
+          variantId: v.id,
+          label: `${p.id} · ${v.label}`,
+          meta: p.section || p.group || "—",
+        })),
+    );
     const repos: Item[] = state.projects
       .filter((p) => p.id !== state.selection.projectId && fuzzy(query, p.name))
       .map((p) => ({ kind: "repo", id: p.id, label: p.name }));
-    return [...previews, ...repos];
+    return [...stories, ...repos];
   }, [query, state.manifest, state.projects, state.selection.projectId]);
 
   useEffect(() => setActive(0), [query]);
@@ -65,11 +66,10 @@ export function CommandPalette({
   if (!open) return null;
 
   function choose(item: Item) {
-    if (item.kind === "preview") {
-      const preview = state.manifest.find((p) => p.id === item.id);
+    if (item.kind === "story") {
       api?.invoke("preview:set", {
-        previewId: item.id,
-        variantId: preview?.variants[0]?.id ?? "",
+        previewId: item.previewId,
+        variantId: item.variantId,
         viewport: state.selection.viewport,
       });
     } else {
@@ -126,7 +126,7 @@ export function CommandPalette({
           ) : (
             items.map((it, i) => (
               <button
-                key={`${it.kind}:${it.id}`}
+                key={it.kind === "story" ? `s:${it.previewId}:${it.variantId}` : `r:${it.id}`}
                 type="button"
                 onMouseMove={() => setActive(i)}
                 onClick={() => choose(it)}
@@ -136,12 +136,12 @@ export function CommandPalette({
                 )}
               >
                 <HugeiconsIcon
-                  icon={it.kind === "preview" ? PackageIcon : Folder01Icon}
+                  icon={it.kind === "story" ? PackageIcon : Folder01Icon}
                   className="size-4 shrink-0 text-muted-foreground"
                 />
                 <span className="truncate">{it.label}</span>
                 <span className="ml-auto shrink-0 text-[10px] tracking-wide text-muted-foreground uppercase">
-                  {it.kind === "preview" ? it.meta : "Switch repo"}
+                  {it.kind === "story" ? it.meta : "Switch repo"}
                 </span>
               </button>
             ))
