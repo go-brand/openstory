@@ -1,4 +1,4 @@
-import type { Platform, Viewport } from '@gobrand/openstory-config';
+import type { Viewport } from "@gobrand/openstory-config";
 
 export type PlatformViewportSet = {
   desktop: Viewport;
@@ -12,7 +12,7 @@ export type CanonicalVariant = {
 };
 
 export type PlatformMetadata = {
-  platform: Platform;
+  name: string;
   viewports: PlatformViewportSet;
   variants: CanonicalVariant[];
 };
