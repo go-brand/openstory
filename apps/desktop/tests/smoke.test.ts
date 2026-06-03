@@ -88,15 +88,22 @@ test("viewport toggle buttons are rendered (Desktop / Mobile)", async () => {
   }
 });
 
-test('sidebar always offers "Add repository…"', async () => {
+test("sidebar renders the repo switcher and component search", async () => {
   const { app, main } = await launchApp();
   try {
-    // The repo accordion renders an "Add repository…" action regardless of
-    // whether any project is stored, so it's a stable readiness signal in
-    // either state (fresh store or pre-seeded).
-    await expect(main.locator("text=Add repository")).toBeVisible({
-      timeout: 8_000,
-    });
+    // The search input is always rendered in the sidebar regardless of project state.
+    await expect(main.getByPlaceholder("Find components…")).toBeVisible({ timeout: 8_000 });
+  } finally {
+    await app.close();
+  }
+});
+
+test('repo switcher dropdown offers "Add repository…"', async () => {
+  const { app, main } = await launchApp();
+  try {
+    // Open the switcher (first button in the <aside>), then assert the add action.
+    await main.locator("aside button").first().click();
+    await expect(main.locator("text=Add repository")).toBeVisible({ timeout: 8_000 });
   } finally {
     await app.close();
   }
