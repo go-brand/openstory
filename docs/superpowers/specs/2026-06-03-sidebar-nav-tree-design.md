@@ -50,7 +50,7 @@ single-story hoist, #1859 mixed levels). We adopt the layout *and* the fixes:
 | Storybook pain | Our fix |
 |----------------|---------|
 | Fuzzy search is noisy — "button" misses Button (#10757) | Rank **exact → prefix → substring → fuzzy**; never bury an exact label. Match component + story + section labels. |
-| Tedious to open folders one-by-one in large libs | **Expand-all / collapse-all** per section (the caret affordance in the reference), + auto-expand the path to the active node. |
+| Tedious to open folders one-by-one in large libs | **Default-expanded** tree (Storybook defaults collapsed — the actual papercut) + search **auto-expands** the path to every hit; per-node collapse for what you want hidden. |
 | Keyboard nav skips items / jumps scroll to top / loses cursor (#13040) | Cursor walks a **flattened list of currently-visible nodes**; selection preserves scroll; no focus reset on expand/collapse. |
 | Single-story components create ugly one-entry folders (#8255) | **Hoist:** a component with exactly one variant is a leaf that loads it directly — no expand arrow, no lone Docs child. |
 | Can't have stories + nested folders at one level (#1859) | Folders hold components **and** subfolders; ungrouped/sectionless leaves render first at the root. |
@@ -82,8 +82,10 @@ Algorithm, per preview, at manifest-build time:
 4. Author `group` is independent: it nests **under** the derived section. A
    config-level section rename/pin escape hatch is reserved (not MVP).
 
-Emitted as `section: { key: string; label: string } | null` on `ManifestPreview`.
-Pure additive field — no behavior change to `group`/`background`.
+Emitted as `section: string | null` on `ManifestPreview` (the workspace package
+basename, e.g. `"app"`, `"ui"`). The section header renders it **uppercased via
+CSS** (like Storybook's `APPLICATION` / `DESIGN SYSTEM`), so no title-casing is
+stored. Pure additive field — no behavior change to `group`/`background`.
 
 ### B. Tree model — renderer
 
@@ -130,10 +132,13 @@ expressed via semantic tokens where possible.
   visible-node list**, `→` expand/descend, `←` collapse/ascend, `Enter`/`Space`
   select. Selection preserves scroll position; expand/collapse never resets the
   cursor or jumps to top (the Storybook #13040 fix).
-- **Expand/collapse** — per-section expand-all / collapse-all caret. Collapse state
-  persisted **per-repo** in `AppState.ui.expanded` (survives reload, like theme).
-- **Selection** — `selection.previewId` + `variantId` already persist. Add
-  `selection.docsComponentId?: string` for when a Docs stub is the active node.
+- **Expand/collapse** — the tree is **default-expanded**; clicking a container
+  toggles it. Collapse is a pure UI concern, so it lives in the renderer and
+  persists in `localStorage` keyed by repo id (survives reload; no IPC round-trip).
+- **Selection** — `selection.previewId` + `variantId` already persist (in the
+  electron store, since they drive the iframe). Add `selection.docsComponentId:
+  string | null` for when a Docs stub is the active node, set via a new
+  `preview:setDocs` IPC; selecting a story clears it.
 
 ### D. Repo switcher + right-panel cleanup
 
@@ -149,18 +154,22 @@ expressed via semantic tokens where possible.
 
 | Type | Change |
 |------|--------|
-| `ManifestPreview` (`apps/desktop/electron/types.ts`) | add `section: { key, label } \| null` |
-| Bridge manifest message (`packages/runtime/src/bridge.ts`) | carry `section` through |
-| `ActiveSelection` | add `docsComponentId?: string` (active node is a Docs stub) |
-| `AppState.ui` (new slice) | `expanded: Record<projectId, string[]>` — collapse state per repo, keyed by node id |
+| `ManifestPreview` (`apps/desktop/electron/types.ts`) | add `section: string \| null` |
+| `ManifestPreview` build (`packages/vite-plugin/src/plugin.ts`) | emit `section` |
+| `ActiveSelection` | add `docsComponentId: string \| null` (active node is a Docs stub) |
+| `IpcInvoke` | add `preview:setDocs(componentId: string \| null)` |
+
+The desktop reads the manifest over HTTP (`/__pl__/manifest.json` → `fetchManifest`
+in `ipc.ts`), **not** through `bridge.ts` — so the runtime bridge message is
+untouched. Collapse state is renderer `localStorage`, not store state.
 
 ## File touch-points
 
 | Layer | File | Change |
 |-------|------|--------|
-| Section derive | `packages/vite-plugin/src/plugin.ts` | resolve workspace root + `section` per preview; emit it |
-| Types | `apps/desktop/electron/types.ts` | `section` field; `docsComponentId`; collapse state |
-| Bridge | `packages/runtime/src/bridge.ts` | pass `section` through manifest message |
+| Section derive | `packages/vite-plugin/src/plugin.ts` (+ new `derive-section.ts`) | resolve workspace root + `section` per preview; emit it |
+| Types | `apps/desktop/electron/types.ts` | `section` field; `docsComponentId`; `preview:setDocs` |
+| IPC | `apps/desktop/electron/ipc.ts` | `preview:setDocs` handler; clear `docsComponentId` on `preview:set` |
 | Tree | `apps/desktop/src/components/sidebar.tsx` | replace `buildGroupTree`→`buildTree`; node-kind rendering; switcher; search; keyboard |
 | Tree build (extract) | `apps/desktop/src/components/sidebar/build-tree.ts` (new) | pure `buildTree` + node types, unit-tested in isolation |
 | Icons | `apps/desktop/src/lib/icons.ts` | add component / document / bookmark glyphs |
@@ -177,9 +186,12 @@ expressed via semantic tokens where possible.
   (no component wrapper / no docs node); multi-variant → component + docs + stories;
   folders hold mixed children; stable ids; search ranking (exact before fuzzy) +
   ancestor-keep; collapse persistence round-trips.
-- **desktop e2e** (Playwright `_electron`, per existing theme tests) — select story
-  leaf → canvas loads that variant; Docs node → stub view; keyboard ↑/↓/←/→ moves +
-  selects without scroll jump; repo switcher swaps the tree.
+- **desktop e2e** (Playwright `_electron`, per existing theme tests) — the harness
+  doesn't seed a project, so automated e2e covers always-rendered chrome: repo
+  switcher present, `Find components…` search present, `Add repository…` reachable
+  in the dropdown, existing suite stays green. Story-leaf → canvas, Docs → stub,
+  and keyboard nav are covered by the `build-tree`/`search` unit tests (selection +
+  flatten mapping) plus a manual smoke pass against `examples/linkedin-starter`.
 
 ## Risks
 
