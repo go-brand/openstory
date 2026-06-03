@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppState, ManifestPreview, PreviewSource } from "../../electron/types";
 import type { Api } from "../lib/api";
 import { Button } from "./ui/button";
-import { HugeiconsIcon, Layers01Icon, SlidersHorizontalIcon, Copy01Icon } from "../lib/icons";
+import { HugeiconsIcon, SlidersHorizontalIcon, Copy01Icon } from "../lib/icons";
 import type { PanelMode } from "./toolbar";
 
 type Variant = ManifestPreview["variants"][number] | undefined;
@@ -13,7 +13,6 @@ export function RightPanel({
   api,
   preview,
   variant,
-  onSelectPreview,
   onSetControl,
 }: {
   mode: Exclude<PanelMode, null>;
@@ -21,7 +20,6 @@ export function RightPanel({
   api: Api;
   preview: ManifestPreview;
   variant: Variant;
-  onSelectPreview: (previewId: string, variantId: string) => void;
   onSetControl: (name: string, value: unknown) => void;
 }) {
   return (
@@ -33,7 +31,6 @@ export function RightPanel({
           state={state}
           preview={preview}
           variant={variant}
-          onSelectPreview={onSelectPreview}
           onSetControl={onSetControl}
         />
       )}
@@ -41,45 +38,20 @@ export function RightPanel({
   );
 }
 
-// ── Inspect: presets + live controls (unchanged behavior) ────────────────────
-
 function InspectPanel({
   state,
   preview,
   variant,
-  onSelectPreview,
   onSetControl,
 }: {
   state: AppState;
   preview: ManifestPreview;
   variant: Variant;
-  onSelectPreview: (previewId: string, variantId: string) => void;
   onSetControl: (name: string, value: unknown) => void;
 }) {
   return (
     <div className="flex flex-col gap-7 overflow-y-auto px-5 py-5">
-      <section className="flex flex-col gap-3">
-        <SectionHeader
-          icon={<HugeiconsIcon icon={Layers01Icon} className="size-3" />}
-          title="Presets"
-          subtitle="Saved prop combinations"
-        />
-        <div className="flex flex-col gap-1">
-          {preview.variants.map((v) => (
-            <Button
-              key={v.id}
-              variant={v.id === variant?.id ? "active" : "ghost"}
-              size="sm"
-              className="h-8 justify-start"
-              onClick={() => onSelectPreview(preview.id, v.id)}
-            >
-              {v.label}
-            </Button>
-          ))}
-        </div>
-      </section>
-
-      {preview.controls.length > 0 && variant && (
+      {preview.controls.length > 0 && variant ? (
         <section className="flex flex-col gap-3">
           <SectionHeader
             icon={<HugeiconsIcon icon={SlidersHorizontalIcon} className="size-3" />}
@@ -122,6 +94,10 @@ function InspectPanel({
             })}
           </div>
         </section>
+      ) : (
+        <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
+          No editable controls for this story.
+        </p>
       )}
     </div>
   );

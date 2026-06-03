@@ -93,7 +93,6 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
             api={api}
             preview={preview}
             variant={variant}
-            onSelectPreview={selectPreview}
             onSetControl={setControl}
           />
         )}
