@@ -184,16 +184,15 @@ test("settings menu toggles to dark theme and persists across reload", async () 
     await expect
       .poll(() => main.evaluate(() => document.documentElement.classList.contains("dark")))
       .toBe(true);
-
-    // Restore the default (light) so the shared electron-store is left in the
-    // default state and the "defaults to light" test is order-independent.
-    await main.getByRole("button", { name: "Settings" }).click();
-    await main.getByRole("menuitem").filter({ hasText: "Theme" }).hover();
-    await main.getByRole("menuitem", { name: "Light", exact: true }).click();
-    await expect
-      .poll(() => main.evaluate(() => document.documentElement.classList.contains("dark")))
-      .toBe(false);
   } finally {
+    // Restore default (light) so the shared store doesn't leak dark into other tests.
+    try {
+      await main.getByRole("button", { name: "Settings" }).click();
+      await main.getByRole("menuitem").filter({ hasText: "Theme" }).hover();
+      await main.getByRole("menuitem", { name: "Light", exact: true }).click();
+    } catch {
+      // best-effort cleanup
+    }
     await app.close();
   }
 });

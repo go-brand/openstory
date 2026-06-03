@@ -13,7 +13,7 @@ const buttonVariants = cva(
         secondary:
           "bg-foreground/[0.06] text-foreground ring-1 ring-border ring-inset hover:bg-foreground/[0.1] hover:text-foreground",
         ghost: "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",
-        active: "bg-brand-soft text-blue-300 ring-1 ring-brand/30 ring-inset hover:bg-brand-soft",
+        active: "bg-brand-soft text-brand ring-1 ring-brand/30 ring-inset hover:bg-brand-soft",
       },
       size: {
         sm: "h-7 px-2.5 text-[11px]",

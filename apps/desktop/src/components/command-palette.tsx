@@ -132,7 +132,7 @@ export function CommandPalette({
                 onClick={() => choose(it)}
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[12px] transition-colors",
-                  i === active ? "bg-brand-soft text-blue-200" : "text-foreground",
+                  i === active ? "bg-brand-soft text-brand" : "text-foreground",
                 )}
               >
                 <HugeiconsIcon

@@ -12,7 +12,7 @@ export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
 
   const preview =
     state.manifest.find((p) => p.id === state.selection.previewId) ?? state.manifest[0];
-  const canvasBg = preview?.background ?? "var(--color-foreground)";
+  const canvasBg = preview?.background ?? "var(--color-muted)";
 
   const canvasStyle: React.CSSProperties = {
     background: canvasBg,
