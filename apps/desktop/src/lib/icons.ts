@@ -4,6 +4,9 @@
 export {
   FolderAddIcon,
   Folder01Icon,
+  DashboardSquare01Icon,
+  File01Icon,
+  Bookmark02Icon,
   Layers01Icon,
   ComputerIcon,
   SmartPhone01Icon,
