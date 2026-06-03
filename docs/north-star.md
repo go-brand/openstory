@@ -1,5 +1,9 @@
 # North Star: a better Storybook
 
+> **Mission:** make developers happy and make them fast as hell — a Storybook
+> alternative that gets out of the way. Every decision is judged by: does this
+> make a dev's day better and their loop tighter?
+
 OpenStory started as a live preview tool for social-media post components. The
 goal now is broader: **be the Storybook people actually want** — a component
 workbench that is _simple as hell by default_, automatic to set up, and fully
