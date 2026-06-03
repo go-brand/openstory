@@ -1,6 +1,6 @@
-import { test, expect, _electron as electron } from '@playwright/test';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { test, expect, _electron as electron } from "@playwright/test";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -11,27 +11,23 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 /** Launch the Electron app and wait for the main "OpenStory" window. */
 async function launchApp() {
   const app = await electron.launch({
-    args: ['.'],
-    cwd: resolve(__dirname, '..'),
+    args: ["."],
+    cwd: resolve(__dirname, ".."),
     env: {
       ...process.env,
-      NODE_ENV: 'production',
+      NODE_ENV: "production",
     },
   });
 
   const proc = app.process();
-  proc.stdout?.on('data', (data) =>
-    console.log('MAIN STDOUT:', data.toString().trim())
-  );
-  proc.stderr?.on('data', (data) =>
-    console.error('MAIN STDERR:', data.toString().trim())
-  );
+  proc.stdout?.on("data", (data) => console.log("MAIN STDOUT:", data.toString().trim()));
+  proc.stderr?.on("data", (data) => console.error("MAIN STDERR:", data.toString().trim()));
 
-  const main = await app.waitForEvent('window', {
+  const main = await app.waitForEvent("window", {
     predicate: async (win) => {
       try {
         const title = await win.title();
-        return title === 'OpenStory';
+        return title === "OpenStory";
       } catch {
         return false;
       }
@@ -46,76 +42,77 @@ async function launchApp() {
 // Tests
 // ---------------------------------------------------------------------------
 
-test('launches main window with OpenStory title', async () => {
+test("launches main window with OpenStory title", async () => {
   const { app, main } = await launchApp();
   try {
     // Use the exact header element to avoid strict-mode collisions with any
     // other node that happens to contain the word "OpenStory" (e.g. the
     // "No previews found in openstory.config.ts" hint text).
-    await expect(
-      main.locator('header').filter({ hasText: 'OpenStory' })
-    ).toBeVisible();
+    await expect(main.locator("header").filter({ hasText: "OpenStory" })).toBeVisible();
   } finally {
     await app.close();
   }
 });
 
-test('sidebar is rendered', async () => {
+test("sidebar is rendered", async () => {
   const { app, main } = await launchApp();
   try {
     // The <aside> sidebar is always rendered in main-app.tsx regardless of
     // whether a project is loaded. Confirm the full component tree mounted.
-    await expect(main.locator('aside').first()).toBeVisible({ timeout: 8_000 });
+    await expect(main.locator("aside").first()).toBeVisible({ timeout: 8_000 });
   } finally {
     await app.close();
   }
 });
 
-test('main canvas has a <main> element', async () => {
+test("main canvas has a <main> element", async () => {
   const { app, main } = await launchApp();
   try {
     // The <main> element wraps the canvas/preview area in main-app.tsx.
     // This confirms the full React tree has mounted and rendered the correct role.
-    await expect(main.locator('main')).toBeVisible({ timeout: 8_000 });
+    await expect(main.locator("main")).toBeVisible({ timeout: 8_000 });
   } finally {
     await app.close();
   }
 });
 
-test('viewport toggle buttons are rendered (Desktop / Mobile)', async () => {
+test("viewport toggle buttons are rendered (Desktop / Mobile)", async () => {
   const { app, main } = await launchApp();
   try {
     // Viewport buttons live in the toolbar and are always rendered regardless
     // of whether a project is loaded (main-app.tsx toolbar row).
-    await expect(main.locator('text=Desktop')).toBeVisible({ timeout: 8_000 });
-    await expect(main.locator('text=Mobile')).toBeVisible({ timeout: 8_000 });
+    await expect(main.locator("text=Desktop")).toBeVisible({ timeout: 8_000 });
+    await expect(main.locator("text=Mobile")).toBeVisible({ timeout: 8_000 });
   } finally {
     await app.close();
   }
 });
 
-test('empty state: shows "Open a project…" when no project is stored', async () => {
+test('sidebar always offers "Add repository…"', async () => {
   const { app, main } = await launchApp();
   try {
-    // This assertion is only valid when the electron-store has no persisted
-    // projects (fresh machine / cleared store). When a project is already
-    // stored the app shows the project-select dropdown instead.
-    // We detect which state we're in by checking for the sidebar content.
-    const hasNoProjects = await main
-      .locator('text=Open a project…')
-      .isVisible({ timeout: 3_000 })
-      .catch(() => false);
+    // The repo accordion renders an "Add repository…" action regardless of
+    // whether any project is stored, so it's a stable readiness signal in
+    // either state (fresh store or pre-seeded).
+    await expect(main.locator("text=Add repository")).toBeVisible({
+      timeout: 8_000,
+    });
+  } finally {
+    await app.close();
+  }
+});
 
-    if (hasNoProjects) {
-      await expect(main.locator('text=Open a project…')).toBeVisible();
-    } else {
-      // A project is already loaded — confirm the project selector is rendered
-      // instead, so the test stays meaningful in either state.
-      // The SelectTrigger renders a <button> with role="combobox".
-      await expect(main.locator('[role="combobox"]').first()).toBeVisible({
-        timeout: 8_000,
-      });
-    }
+test("⌘K opens the command palette", async () => {
+  const { app, main } = await launchApp();
+  try {
+    // Palette is closed initially; the search input only mounts when open.
+    const input = main.getByPlaceholder("Search components…");
+    await expect(input).toHaveCount(0);
+
+    await main.locator("body").press("Meta+k");
+
+    await expect(input).toBeVisible({ timeout: 8_000 });
+    await expect(input).toBeFocused();
   } finally {
     await app.close();
   }
@@ -126,11 +123,11 @@ test('pop-out: "Pop out" button opens a second window (detached preview)', async
   try {
     // "Pop out" is always rendered in the toolbar regardless of project state
     // (main-app.tsx L146). Use it as both the readiness signal and the trigger.
-    const popOutBtn = main.locator('button', { hasText: 'Pop out' });
+    const popOutBtn = main.locator("button", { hasText: "Pop out" });
     await expect(popOutBtn).toBeVisible({ timeout: 8_000 });
 
     // Register the listener BEFORE clicking to avoid a timing race.
-    const secondWindowPromise = app.waitForEvent('window', { timeout: 10_000 });
+    const secondWindowPromise = app.waitForEvent("window", { timeout: 10_000 });
 
     await popOutBtn.click();
 
@@ -140,12 +137,62 @@ test('pop-out: "Pop out" button opens a second window (detached preview)', async
     // page.title() can't distinguish them. Instead assert on the DOM content
     // that is unique to the detached renderer (role=detached → DetachedPreview).
     // detached-preview.tsx renders "OpenStory Preview · drag" in its drag-bar.
-    await expect(detached.locator('text=OpenStory Preview')).toBeVisible({
+    await expect(detached.locator("text=OpenStory Preview")).toBeVisible({
       timeout: 8_000,
     });
 
     // Exactly two windows are now open.
     expect(app.windows().length).toBe(2);
+  } finally {
+    await app.close();
+  }
+});
+
+test("app defaults to light theme (no dark class on <html>)", async () => {
+  const { app, main } = await launchApp();
+  try {
+    await expect(main.locator("header").filter({ hasText: "OpenStory" })).toBeVisible();
+    const hasDark = await main.evaluate(() => document.documentElement.classList.contains("dark"));
+    expect(hasDark).toBe(false);
+  } finally {
+    await app.close();
+  }
+});
+
+test("settings menu toggles to dark theme and persists across reload", async () => {
+  const { app, main } = await launchApp();
+  try {
+    await expect(main.locator("header").filter({ hasText: "OpenStory" })).toBeVisible();
+
+    // Open settings → Theme submenu → Dark.
+    // The Theme submenu trigger is a `menuitem` whose accessible text also
+    // includes the current-theme indicator ("Light"/"Dark"), so scope by role
+    // + hasText. base-ui submenus open on hover; hover the trigger, then click
+    // the Dark item (exact name, to avoid matching the trigger's indicator).
+    await main.getByRole("button", { name: "Settings" }).click();
+    await main.getByRole("menuitem").filter({ hasText: "Theme" }).hover();
+    await main.getByRole("menuitem", { name: "Dark", exact: true }).click();
+
+    // <html> gains the `dark` class.
+    await expect
+      .poll(() => main.evaluate(() => document.documentElement.classList.contains("dark")))
+      .toBe(true);
+
+    // Persisted: reload the renderer and confirm it boots dark.
+    await main.reload();
+    await expect(main.locator("header").filter({ hasText: "OpenStory" })).toBeVisible();
+    await expect
+      .poll(() => main.evaluate(() => document.documentElement.classList.contains("dark")))
+      .toBe(true);
+
+    // Restore the default (light) so the shared electron-store is left in the
+    // default state and the "defaults to light" test is order-independent.
+    await main.getByRole("button", { name: "Settings" }).click();
+    await main.getByRole("menuitem").filter({ hasText: "Theme" }).hover();
+    await main.getByRole("menuitem", { name: "Light", exact: true }).click();
+    await expect
+      .poll(() => main.evaluate(() => document.documentElement.classList.contains("dark")))
+      .toBe(false);
   } finally {
     await app.close();
   }
