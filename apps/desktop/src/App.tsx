@@ -8,8 +8,8 @@ const FALLBACK_STATE: AppState = {
   projects: [],
   selection: {
     projectId: null,
-    previewId: null,
-    variantId: null,
+    componentId: null,
+    storyId: null,
     docsComponentId: null,
     viewport: "desktop",
     propOverrides: {},

@@ -29,18 +29,18 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const preview =
-    state.manifest.find((p) => p.id === state.selection.previewId) ?? state.manifest[0];
-  const variant =
-    preview?.variants.find((v) => v.id === state.selection.variantId) ?? preview?.variants[0];
-  const docsPreview = state.selection.docsComponentId
+  const component =
+    state.manifest.find((p) => p.id === state.selection.componentId) ?? state.manifest[0];
+  const story =
+    component?.stories.find((v) => v.id === state.selection.storyId) ?? component?.stories[0];
+  const docsComponent = state.selection.docsComponentId
     ? state.manifest.find((p) => p.id === state.selection.docsComponentId)
     : undefined;
 
-  function selectPreview(previewId: string, variantId: string) {
+  function selectStory(componentId: string, storyId: string) {
     api?.invoke("preview:set", {
-      previewId,
-      variantId,
+      componentId,
+      storyId,
       viewport: state.selection.viewport,
     });
   }
@@ -57,7 +57,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
       <Titlebar onOpenPalette={() => setPaletteOpen(true)} />
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar state={state} api={api} onSelectPreview={selectPreview} />
+        <Sidebar state={state} api={api} onSelectStory={selectStory} />
 
         {/* Canvas. Plain neutral bg by design — the preset-color tint is
             detached-only (it backs difference-blend pixel comparison there). */}
@@ -65,8 +65,8 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
           <Toolbar
             state={state}
             api={api}
-            preview={preview}
-            variant={variant}
+            component={component}
+            story={story}
             panelMode={panelMode}
             setPanelMode={setPanelMode}
           />
@@ -82,8 +82,8 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
             ) : (
               <CanvasEmpty vite={state.vite} />
             )}
-            {docsPreview && <DocsStub componentName={docsPreview.id} />}
-            {state.iframeUrl && !preview && !docsPreview && (
+            {docsComponent && <DocsStub componentName={docsComponent.id} />}
+            {state.iframeUrl && !component && !docsComponent && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-background p-6">
                 <CanvasEmpty vite={state.vite} emptyRepo />
               </div>
@@ -91,13 +91,13 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
           </div>
         </main>
 
-        {preview && panelMode && (
+        {component && panelMode && (
           <RightPanel
             mode={panelMode}
             state={state}
             api={api}
-            preview={preview}
-            variant={variant}
+            component={component}
+            story={story}
             onSetControl={setControl}
           />
         )}
@@ -122,10 +122,10 @@ function CanvasEmpty({ vite, emptyRepo = false }: { vite: AppState["vite"]; empt
         : emptyRepo
           ? ([
               PackageIcon,
-              "No previews in this repository",
-              "Add OpenStory previews to openstory.config.ts",
+              "No stories in this repository",
+              "Add OpenStory stories to openstory.config.ts",
             ] as const)
-          : ([PackageIcon, "No preview loaded", "Pick a repository to load previews"] as const);
+          : ([PackageIcon, "No preview loaded", "Pick a repository to load stories"] as const);
   const spin = vite.status === "starting";
   return (
     <div className="flex max-w-xs flex-col items-center gap-3 text-center">

@@ -4,7 +4,7 @@ import { defineOpenStoryConfig, deriveControls } from "./define";
 describe("defineOpenStoryConfig", () => {
   it("returns the config unchanged", () => {
     const config = defineOpenStoryConfig({
-      previews: [
+      components: [
         {
           id: "linkedin",
           component: () => null,
@@ -13,14 +13,14 @@ describe("defineOpenStoryConfig", () => {
       ],
     });
 
-    expect(config.previews).toHaveLength(1);
-    expect(config.previews[0].id).toBe("linkedin");
+    expect(config.components).toHaveLength(1);
+    expect(config.components[0].id).toBe("linkedin");
   });
 
   it("preserves provider component when given", () => {
     const Providers = ({ children }: { children: React.ReactNode }) => children;
     const config = defineOpenStoryConfig({
-      previews: [],
+      components: [],
       providers: Providers,
     });
 

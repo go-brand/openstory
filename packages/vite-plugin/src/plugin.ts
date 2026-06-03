@@ -73,7 +73,7 @@ type PluginOptions = {
 export function buildManifest(config: OpenStoryConfig, projectRoot?: string) {
   const presets = resolvePresets(config.presets);
   return {
-    previews: config.previews.map((p) => {
+    components: config.components.map((p) => {
       const render = resolveRender(p, presets);
       const sourcePath = p.sourcePath && projectRoot ? resolve(projectRoot, p.sourcePath) : null;
       return {
@@ -81,7 +81,7 @@ export function buildManifest(config: OpenStoryConfig, projectRoot?: string) {
         group: p.group ?? "",
         section: deriveSection(sourcePath),
         background: render.background,
-        variants: p.fixtures.map((f) => ({
+        stories: p.fixtures.map((f) => ({
           id: f.id,
           label: f.label,
           props: f.props,
@@ -123,7 +123,7 @@ export function openStory(options: PluginOptions = {}): Plugin {
         );
       }
       // Zero-config fallback: probe well-known Tailwind entry locations so
-      // previews render styled even when the project declares no `styles`.
+      // components render styled even when the project declares no `styles`.
       return detectStyles(projectRoot);
     } catch {
       return [];

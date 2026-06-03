@@ -1,36 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppState, ManifestPreview, PreviewSource } from "../../electron/types";
+import type { AppState, ManifestComponent, PreviewSource } from "../../electron/types";
 import type { Api } from "../lib/api";
 import { Button } from "./ui/button";
 import { HugeiconsIcon, SlidersHorizontalIcon, Copy01Icon } from "../lib/icons";
 import type { PanelMode } from "./toolbar";
 
-type Variant = ManifestPreview["variants"][number] | undefined;
+type Story = ManifestComponent["stories"][number] | undefined;
 
 export function RightPanel({
   mode,
   state,
   api,
-  preview,
-  variant,
+  component,
+  story,
   onSetControl,
 }: {
   mode: Exclude<PanelMode, null>;
   state: AppState;
   api: Api;
-  preview: ManifestPreview;
-  variant: Variant;
+  component: ManifestComponent;
+  story: Story;
   onSetControl: (name: string, value: unknown) => void;
 }) {
   return (
     <aside className="flex w-[320px] flex-col overflow-hidden border-l border-border bg-sidebar">
       {mode === "code" ? (
-        <CodePanel state={state} api={api} preview={preview} variant={variant} />
+        <CodePanel state={state} api={api} component={component} story={story} />
       ) : (
         <InspectPanel
           state={state}
-          preview={preview}
-          variant={variant}
+          component={component}
+          story={story}
           onSetControl={onSetControl}
         />
       )}
@@ -40,18 +40,18 @@ export function RightPanel({
 
 function InspectPanel({
   state,
-  preview,
-  variant,
+  component,
+  story,
   onSetControl,
 }: {
   state: AppState;
-  preview: ManifestPreview;
-  variant: Variant;
+  component: ManifestComponent;
+  story: Story;
   onSetControl: (name: string, value: unknown) => void;
 }) {
   return (
     <div className="flex flex-col gap-7 overflow-y-auto px-5 py-5">
-      {preview.controls.length > 0 && variant ? (
+      {component.controls.length > 0 && story ? (
         <section className="flex flex-col gap-3">
           <SectionHeader
             icon={<HugeiconsIcon icon={SlidersHorizontalIcon} className="size-3" />}
@@ -59,8 +59,8 @@ function InspectPanel({
             subtitle="Tweak props live"
           />
           <div className="flex flex-col gap-4">
-            {preview.controls.map((c) => {
-              const value = state.selection.propOverrides[c.name] ?? variant.props[c.name];
+            {component.controls.map((c) => {
+              const value = state.selection.propOverrides[c.name] ?? story.props[c.name];
               return (
                 <label key={c.name} className="flex flex-col gap-1.5 text-[11px]">
                   <span className="font-medium text-muted-foreground">{c.name}</span>
@@ -108,13 +108,13 @@ function InspectPanel({
 function CodePanel({
   state,
   api,
-  preview,
-  variant,
+  component,
+  story,
 }: {
   state: AppState;
   api: Api;
-  preview: ManifestPreview;
-  variant: Variant;
+  component: ManifestComponent;
+  story: Story;
 }) {
   const [source, setSource] = useState<PreviewSource | null | "loading">("loading");
   const [copied, setCopied] = useState(false);
@@ -123,20 +123,20 @@ function CodePanel({
     let alive = true;
     setSource("loading");
     api
-      ?.invoke("preview:getSource", preview.id)
+      ?.invoke("preview:getSource", component.id)
       .then((r) => alive && setSource(r))
       .catch(() => alive && setSource(null));
     return () => {
       alive = false;
     };
-  }, [api, preview.id]);
+  }, [api, component.id]);
 
   // Snippet from the live props (preset + overrides) — used when there is no
   // resolvable source file, and shown while the read is in flight.
   const fallback = useMemo(() => {
-    const props = { ...(variant?.props ?? {}), ...state.selection.propOverrides };
-    return snippet(preview.id, props);
-  }, [preview.id, variant?.props, state.selection.propOverrides]);
+    const props = { ...(story?.props ?? {}), ...state.selection.propOverrides };
+    return snippet(component.id, props);
+  }, [component.id, story?.props, state.selection.propOverrides]);
 
   const hasSource = source !== "loading" && source !== null;
   const code = hasSource ? source.code : fallback;

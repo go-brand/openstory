@@ -14,12 +14,12 @@ export function useHarnessBridge(
   postRef.current = () => {
     const win = iframeRef.current?.contentWindow;
     const s = latest.current;
-    if (!win || !s.previewId || !s.variantId) return;
+    if (!win || !s.componentId || !s.storyId) return;
     win.postMessage(
       {
         type: 'pl:render',
-        previewId: s.previewId,
-        variantId: s.variantId,
+        componentId: s.componentId,
+        storyId: s.storyId,
         viewport: s.viewport,
         fixtureOverrides: s.propOverrides,
       },
@@ -35,8 +35,8 @@ export function useHarnessBridge(
   useEffect(() => {
     postRef.current();
   }, [
-    selection.previewId,
-    selection.variantId,
+    selection.componentId,
+    selection.storyId,
     selection.viewport,
     propOverridesKey,
   ]);

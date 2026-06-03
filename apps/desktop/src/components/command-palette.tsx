@@ -5,7 +5,7 @@ import { cn } from "../lib/utils";
 import { HugeiconsIcon, Search01Icon, PackageIcon, Folder01Icon } from "../lib/icons";
 
 type Item =
-  | { kind: "story"; previewId: string; variantId: string; label: string; meta: string }
+  | { kind: "story"; componentId: string; storyId: string; label: string; meta: string }
   | { kind: "repo"; id: string; label: string };
 
 // Subsequence match: every char of `query` appears in `text` in order. Cheap,
@@ -38,12 +38,12 @@ export function CommandPalette({
 
   const items = useMemo<Item[]>(() => {
     const stories: Item[] = state.manifest.flatMap((p) =>
-      p.variants
+      p.stories
         .filter((v) => fuzzy(query, `${p.id} ${v.label} ${p.group} ${p.section ?? ""}`))
         .map((v) => ({
           kind: "story",
-          previewId: p.id,
-          variantId: v.id,
+          componentId: p.id,
+          storyId: v.id,
           label: `${p.id} · ${v.label}`,
           meta: p.section || p.group || "—",
         })),
@@ -68,8 +68,8 @@ export function CommandPalette({
   function choose(item: Item) {
     if (item.kind === "story") {
       api?.invoke("preview:set", {
-        previewId: item.previewId,
-        variantId: item.variantId,
+        componentId: item.componentId,
+        storyId: item.storyId,
         viewport: state.selection.viewport,
       });
     } else {
@@ -126,7 +126,7 @@ export function CommandPalette({
           ) : (
             items.map((it, i) => (
               <button
-                key={it.kind === "story" ? `s:${it.previewId}:${it.variantId}` : `r:${it.id}`}
+                key={it.kind === "story" ? `s:${it.componentId}:${it.storyId}` : `r:${it.id}`}
                 type="button"
                 onMouseMove={() => setActive(i)}
                 onClick={() => choose(it)}

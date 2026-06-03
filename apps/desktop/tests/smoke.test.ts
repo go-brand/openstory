@@ -47,7 +47,7 @@ test("launches main window with OpenStory title", async () => {
   try {
     // Use the exact header element to avoid strict-mode collisions with any
     // other node that happens to contain the word "OpenStory" (e.g. the
-    // "No previews found in openstory.config.ts" hint text).
+    // "No stories found in openstory.config.ts" hint text).
     await expect(main.locator("header").filter({ hasText: "OpenStory" })).toBeVisible();
   } finally {
     await app.close();

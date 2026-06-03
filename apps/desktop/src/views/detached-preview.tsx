@@ -10,9 +10,9 @@ export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   useHarnessBridge(iframeRef, state.selection);
 
-  const preview =
-    state.manifest.find((p) => p.id === state.selection.previewId) ?? state.manifest[0];
-  const canvasBg = preview?.background ?? "var(--color-muted)";
+  const component =
+    state.manifest.find((p) => p.id === state.selection.componentId) ?? state.manifest[0];
+  const canvasBg = component?.background ?? "var(--color-muted)";
 
   const canvasStyle: React.CSSProperties = {
     background: canvasBg,

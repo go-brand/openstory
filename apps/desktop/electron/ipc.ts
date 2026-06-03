@@ -4,7 +4,7 @@ import { basename, relative, resolve, sep } from "node:path";
 import { readFileSync, statSync } from "node:fs";
 import { AppStore } from "./store";
 import { ViteHost } from "./vite-host";
-import type { AppState, ManifestPreview, PreviewSource } from "./types";
+import type { AppState, ManifestComponent, PreviewSource } from "./types";
 import { reconcileSelection } from "./selection";
 
 // Hard cap so a stray huge file can't be slurped into the renderer's Code panel.
@@ -35,7 +35,7 @@ function buildHarnessUrl(port: number): string {
 function buildAppState(
   store: AppStore,
   viteHost: ViteHost,
-  manifest: ManifestPreview[],
+  manifest: ManifestComponent[],
   detachedOpen: boolean,
 ): AppState {
   const s = store.state;
@@ -54,7 +54,7 @@ function buildAppState(
 }
 
 export function registerIpc(deps: Deps) {
-  let manifest: ManifestPreview[] = [];
+  let manifest: ManifestComponent[] = [];
 
   function broadcastState() {
     const state = buildAppState(deps.store, deps.viteHost, manifest, deps.getDetached() !== null);
@@ -69,12 +69,12 @@ export function registerIpc(deps: Deps) {
         manifest = [];
         return;
       }
-      const body = (await res.json()) as { previews: ManifestPreview[] };
-      manifest = body.previews ?? [];
+      const body = (await res.json()) as { components: ManifestComponent[] };
+      manifest = body.components ?? [];
 
       // Reconcile the persisted selection against the new manifest: keep it if
       // still valid, reset to the first preview, or clear it entirely when the
-      // manifest can't satisfy it (e.g. switching to a repo with no previews) —
+      // manifest can't satisfy it (e.g. switching to a repo with no components) —
       // otherwise the harness would render the previous repo's stale preview.
       const patch = reconcileSelection(manifest, deps.store.state.selection);
       if (patch) deps.store.patchSelection(patch);
@@ -133,8 +133,8 @@ export function registerIpc(deps: Deps) {
     (
       _e,
       input: {
-        previewId: string;
-        variantId: string;
+        componentId: string;
+        storyId: string;
         viewport: "desktop" | "mobile";
       },
     ) => {
@@ -159,8 +159,8 @@ export function registerIpc(deps: Deps) {
   // path escapes the active project root, the file is missing/oversized, or the
   // read fails. Path comes from the trusted manifest, but is re-checked against
   // the active project root before reading — defense in depth.
-  ipcMain.handle("preview:getSource", (_e, previewId: string): PreviewSource | null => {
-    const preview = manifest.find((p) => p.id === previewId);
+  ipcMain.handle("preview:getSource", (_e, componentId: string): PreviewSource | null => {
+    const preview = manifest.find((p) => p.id === componentId);
     if (!preview?.sourcePath) return null;
 
     const state = deps.store.state;

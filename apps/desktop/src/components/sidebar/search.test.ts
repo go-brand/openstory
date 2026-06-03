@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { rank, filterTree } from "./search";
 import { buildTree } from "./build-tree";
-import type { ManifestPreview } from "../../../electron/types";
+import type { ManifestComponent } from "../../../electron/types";
 
-function preview(over: Partial<ManifestPreview> & { id: string }): ManifestPreview {
+function component(over: Partial<ManifestComponent> & { id: string }): ManifestComponent {
   return {
     id: over.id,
     group: over.group ?? "",
     section: over.section ?? null,
     background: "#fff",
-    variants: over.variants ?? [{ id: "default", label: "Default", props: {} }],
+    stories: over.stories ?? [{ id: "default", label: "Default", props: {} }],
     controls: [],
     sourcePath: null,
   };
@@ -37,8 +37,8 @@ describe("rank", () => {
 describe("filterTree", () => {
   it("keeps matched nodes + ancestors and marks ancestors to expand", () => {
     const tree = buildTree([
-      preview({ id: "button", section: "ui", group: "Forms" }),
-      preview({ id: "avatar", section: "ui" }),
+      component({ id: "button", section: "ui", group: "Forms" }),
+      component({ id: "avatar", section: "ui" }),
     ]);
     const { nodes, expand } = filterTree(tree, "button");
     // Only the "ui" section survives, with Forms → Button; avatar pruned.
@@ -49,7 +49,7 @@ describe("filterTree", () => {
   });
 
   it("returns the tree unchanged and empty expand set for an empty query", () => {
-    const tree = buildTree([preview({ id: "button" })]);
+    const tree = buildTree([component({ id: "button" })]);
     const { nodes, expand } = filterTree(tree, "");
     expect(nodes).toBe(tree);
     expect(expand.size).toBe(0);

@@ -1,4 +1,4 @@
-import type { AppState, ManifestPreview } from "../../electron/types";
+import type { AppState, ManifestComponent } from "../../electron/types";
 import type { Api } from "../lib/api";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
@@ -15,7 +15,7 @@ import {
 
 export type PanelMode = "inspect" | "code" | null;
 
-type Variant = ManifestPreview["variants"][number] | undefined;
+type Story = ManifestComponent["stories"][number] | undefined;
 
 // Per-tab toolbar under the titlebar: the active component "tab" (one for now —
 // seam for future multi-tab), the viewport toggle (moved here from the canvas),
@@ -23,23 +23,23 @@ type Variant = ManifestPreview["variants"][number] | undefined;
 export function Toolbar({
   state,
   api,
-  preview,
-  variant,
+  component,
+  story,
   panelMode,
   setPanelMode,
 }: {
   state: AppState;
   api: Api;
-  preview: ManifestPreview | undefined;
-  variant: Variant;
+  component: ManifestComponent | undefined;
+  story: Story;
   panelMode: PanelMode;
   setPanelMode: (mode: PanelMode) => void;
 }) {
   function setViewport(viewport: "desktop" | "mobile") {
-    if (preview && variant) {
+    if (component && story) {
       api?.invoke("preview:set", {
-        previewId: preview.id,
-        variantId: variant.id,
+        componentId: component.id,
+        storyId: story.id,
         viewport,
       });
     }
@@ -53,7 +53,7 @@ export function Toolbar({
     <div className="no-drag flex h-11 shrink-0 items-center gap-3 border-b border-border bg-sidebar/50 px-3">
       <div className="flex h-7 items-center gap-2 rounded-lg border border-border bg-foreground/[0.03] px-3 text-[12px] text-foreground">
         <HugeiconsIcon icon={PackageIcon} className="size-3.5 text-muted-foreground" />
-        <span className="font-medium">{preview?.id ?? "No component"}</span>
+        <span className="font-medium">{component?.id ?? "No component"}</span>
       </div>
 
       <div className="inline-flex items-center gap-0.5 rounded-lg bg-foreground/[0.04] p-0.5 ring-1 ring-border ring-inset">
@@ -62,7 +62,7 @@ export function Toolbar({
             key={v}
             variant={state.selection.viewport === v ? "active" : "ghost"}
             size="sm"
-            disabled={!preview}
+            disabled={!component}
             onClick={() => setViewport(v)}
           >
             <HugeiconsIcon icon={v === "desktop" ? ComputerIcon : SmartPhone01Icon} />
@@ -75,7 +75,7 @@ export function Toolbar({
         <Button
           variant={panelMode === "code" ? "active" : "ghost"}
           size="sm"
-          disabled={!preview}
+          disabled={!component}
           onClick={() => togglePanel("code")}
         >
           <HugeiconsIcon icon={SourceCodeIcon} />
@@ -84,7 +84,7 @@ export function Toolbar({
         <Button
           variant={panelMode === "inspect" ? "active" : "ghost"}
           size="sm"
-          disabled={!preview}
+          disabled={!component}
           onClick={() => togglePanel("inspect")}
         >
           <HugeiconsIcon icon={SlidersHorizontalIcon} />

@@ -1,11 +1,11 @@
-import type { ManifestPreview } from "../../../electron/types";
+import type { ManifestComponent } from "../../../electron/types";
 
 export type StoryLeaf = {
   kind: "story";
   id: string;
   label: string;
   componentId: string;
-  variantId: string;
+  storyId: string;
 };
 export type DocsLeaf = {
   kind: "docs";
@@ -55,16 +55,16 @@ function segments(group: string): string[] {
     .filter(Boolean);
 }
 
-function componentNode(p: ManifestPreview, idPrefix: string): ComponentNode | StoryLeaf {
+function componentNode(p: ManifestComponent, idPrefix: string): ComponentNode | StoryLeaf {
   // Single-variant hoist: the component IS its only story (no wrapper, no docs).
-  if (p.variants.length <= 1) {
-    const v = p.variants[0];
+  if (p.stories.length <= 1) {
+    const v = p.stories[0];
     return {
       kind: "story",
       id: `${idPrefix}/story:${p.id}:${v?.id ?? ""}`,
       label: humanize(p.id),
       componentId: p.id,
-      variantId: v?.id ?? "",
+      storyId: v?.id ?? "",
     };
   }
   const docs: DocsLeaf = {
@@ -73,12 +73,12 @@ function componentNode(p: ManifestPreview, idPrefix: string): ComponentNode | St
     label: "Documentation",
     componentId: p.id,
   };
-  const stories: StoryLeaf[] = p.variants.map((v) => ({
+  const stories: StoryLeaf[] = p.stories.map((v) => ({
     kind: "story",
     id: `${idPrefix}/story:${p.id}:${v.id}`,
     label: v.label,
     componentId: p.id,
-    variantId: v.id,
+    storyId: v.id,
   }));
   return {
     kind: "component",
@@ -89,12 +89,12 @@ function componentNode(p: ManifestPreview, idPrefix: string): ComponentNode | St
   };
 }
 
-type Item = { preview: ManifestPreview; segs: string[] };
+type Item = { preview: ManifestComponent; segs: string[] };
 
 // Build folders + components for one container, recursing on remaining segments.
 // Direct (no-more-segments) components render first, alpha; folders follow, first-seen.
 function container(items: Item[], idPrefix: string): TreeNode[] {
-  const direct: ManifestPreview[] = [];
+  const direct: ManifestComponent[] = [];
   const folderOrder: string[] = [];
   const folders = new Map<string, Item[]>();
   for (const { preview, segs } of items) {
@@ -126,9 +126,9 @@ function container(items: Item[], idPrefix: string): TreeNode[] {
 }
 
 /** Project the flat manifest into the sidebar tree. */
-export function buildTree(manifest: ManifestPreview[]): TreeNode[] {
+export function buildTree(manifest: ManifestComponent[]): TreeNode[] {
   const order: (string | null)[] = [];
-  const bySection = new Map<string | null, ManifestPreview[]>();
+  const bySection = new Map<string | null, ManifestComponent[]>();
   for (const p of manifest) {
     const s = p.section ?? null;
     if (!bySection.has(s)) {
@@ -138,7 +138,7 @@ export function buildTree(manifest: ManifestPreview[]): TreeNode[] {
     bySection.get(s)!.push(p);
   }
   const roots: TreeNode[] = [];
-  const toItems = (ps: ManifestPreview[]): Item[] =>
+  const toItems = (ps: ManifestComponent[]): Item[] =>
     ps.map((p) => ({ preview: p, segs: segments(p.group) }));
   // Sectionless bucket renders flat at the root, first.
   if (bySection.has(null)) {

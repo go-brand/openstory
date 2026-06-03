@@ -16,7 +16,7 @@ export type TreeCallbacks = {
   focusedId: string | null;
   isExpanded: (id: string) => boolean;
   onToggle: (id: string) => void;
-  onSelectStory: (componentId: string, variantId: string) => void;
+  onSelectStory: (componentId: string, storyId: string) => void;
   onSelectDocs: (componentId: string) => void;
   setFocusedId: (id: string) => void;
 };
@@ -27,8 +27,8 @@ function isSelected(node: TreeNode, sel: ActiveSelection): boolean {
   if (node.kind === "story") {
     return (
       sel.docsComponentId === null &&
-      sel.previewId === node.componentId &&
-      sel.variantId === node.variantId
+      sel.componentId === node.componentId &&
+      sel.storyId === node.storyId
     );
   }
   if (node.kind === "docs") return sel.docsComponentId === node.componentId;
@@ -43,7 +43,7 @@ function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallb
 
   function activate() {
     cb.setFocusedId(node.id);
-    if (node.kind === "story") cb.onSelectStory(node.componentId, node.variantId);
+    if (node.kind === "story") cb.onSelectStory(node.componentId, node.storyId);
     else if (node.kind === "docs") cb.onSelectDocs(node.componentId);
     else cb.onToggle(node.id);
   }

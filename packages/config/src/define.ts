@@ -62,10 +62,10 @@ export function deriveControls(fixtures: Fixture[]): ManifestControl[] {
     );
 }
 
-export type PreviewDef<TProps = unknown> = {
+export type ComponentDef<TProps = unknown> = {
   id: string;
   /** Slash-delimited sidebar path, e.g. "Design System/Forms/Button". Omit to
-   *  place the preview at the sidebar root, labeled by component name. */
+   *  place the component at the sidebar root, labeled by component name. */
   group?: string;
   /** Named render preset (viewport + chrome). Omit for the neutral default. */
   preset?: string;
@@ -81,21 +81,21 @@ export type PreviewDef<TProps = unknown> = {
   sourcePath?: string;
 };
 
-// A registered preview, erased of its TProps so heterogeneous previews coexist
-// in `previews[]`. ComponentType<never> accepts any component (contravariance).
-export type RegisteredPreview = {
+// A registered component, erased of its TProps so heterogeneous components coexist
+// in `components[]`. ComponentType<never> accepts any component (contravariance).
+export type RegisteredComponent = {
   id: string;
   group?: string;
   preset?: string;
   component: ComponentType<never>;
   fixtures: Fixture<unknown>[];
   viewports?: Partial<Record<"desktop" | "mobile", Viewport>>;
-  /** Project-root-relative source file for the "Code" panel. See PreviewDef. */
+  /** Project-root-relative source file for the "Code" panel. See ComponentDef. */
   sourcePath?: string;
 };
 
 export type OpenStoryConfig = {
-  previews: RegisteredPreview[];
+  components: RegisteredComponent[];
   providers?: ComponentType<{ children: ReactNode }>;
   styles?: string[];
   /** User-defined render presets, merged over the built-ins. */
@@ -183,9 +183,9 @@ function isLonghandStory<TProps>(
  * })
  * ```
  *
- * Returns a `RegisteredPreview` ready to drop into `previews: [...]`.
+ * Returns a `RegisteredComponent` ready to drop into `components: [...]`.
  */
-export function defineStories<TProps>(def: StoriesDef<TProps>): RegisteredPreview {
+export function defineStories<TProps>(def: StoriesDef<TProps>): RegisteredComponent {
   const fixtures: Fixture<unknown>[] = Object.entries(def.stories).map(([key, story]) => {
     const longhand = isLonghandStory(story);
     const args = longhand ? story.args : story;
@@ -204,7 +204,7 @@ export function defineStories<TProps>(def: StoriesDef<TProps>): RegisteredPrevie
   const componentName = def.component.displayName ?? def.component.name ?? "preview";
   const autoId = kebabCase(componentName.replace(/Preview$/, "")) || "preview";
 
-  const result: RegisteredPreview = {
+  const result: RegisteredComponent = {
     id: def.id ?? autoId,
     component: def.component as unknown as ComponentType<never>,
     fixtures,

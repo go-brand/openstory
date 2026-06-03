@@ -39,9 +39,9 @@ describe("buildHarnessEntry", () => {
 });
 
 describe("buildManifest", () => {
-  it("emits variants with props and inferred controls", () => {
+  it("emits stories with props and inferred controls", () => {
     const config = defineOpenStoryConfig({
-      previews: [
+      components: [
         {
           id: "linkedin",
           group: "LinkedIn",
@@ -55,38 +55,38 @@ describe("buildManifest", () => {
       ],
     });
     const manifest = buildManifest(config);
-    expect(manifest.previews[0]).toEqual({
+    expect(manifest.components[0]).toEqual({
       id: "linkedin",
       group: "LinkedIn",
       section: null,
       background: "#f3f2ef",
-      variants: [
+      stories: [
         { id: "a", label: "A", props: { text: "hi", dark: true } },
         { id: "b", label: "B", props: { text: "yo" } },
       ],
-      controls: deriveControls(config.previews[0].fixtures),
+      controls: deriveControls(config.components[0].fixtures),
       sourcePath: null,
     });
   });
 
   it("resolves a relative sourcePath against the project root", () => {
     const config = defineOpenStoryConfig({
-      previews: [
+      components: [
         {
           id: "linkedin",
           component: () => null,
           fixtures: [],
-          sourcePath: "./src/previews/linkedin.tsx",
+          sourcePath: "./src/components/linkedin.tsx",
         },
       ],
     });
     const manifest = buildManifest(config, "/project");
-    expect(manifest.previews[0]?.sourcePath).toBe("/project/src/previews/linkedin.tsx");
+    expect(manifest.components[0]?.sourcePath).toBe("/project/src/components/linkedin.tsx");
   });
 
   it("leaves sourcePath null when no project root is provided", () => {
     const config = defineOpenStoryConfig({
-      previews: [
+      components: [
         {
           id: "linkedin",
           component: () => null,
@@ -95,17 +95,17 @@ describe("buildManifest", () => {
         },
       ],
     });
-    expect(buildManifest(config).previews[0]?.sourcePath).toBeNull();
+    expect(buildManifest(config).components[0]?.sourcePath).toBeNull();
   });
 
-  it("returns no previews for an empty config", () => {
-    const config = defineOpenStoryConfig({ previews: [] });
-    expect(buildManifest(config)).toEqual({ previews: [] });
+  it("returns no components for an empty config", () => {
+    const config = defineOpenStoryConfig({ components: [] });
+    expect(buildManifest(config)).toEqual({ components: [] });
   });
 
-  it("emits empty variants and controls for a preview with zero fixtures", () => {
+  it("emits empty stories and controls for a preview with zero fixtures", () => {
     const config = defineOpenStoryConfig({
-      previews: [
+      components: [
         {
           id: "linkedin",
           component: () => null,
@@ -113,12 +113,12 @@ describe("buildManifest", () => {
         },
       ],
     });
-    expect(buildManifest(config).previews[0]).toEqual({
+    expect(buildManifest(config).components[0]).toEqual({
       id: "linkedin",
       group: "",
       section: null,
       background: "#f4f4f5",
-      variants: [],
+      stories: [],
       controls: [],
       sourcePath: null,
     });
@@ -127,12 +127,12 @@ describe("buildManifest", () => {
   it("derives a section from a monorepo sourcePath", () => {
     // This repo IS a pnpm monorepo; resolve a real file under apps/desktop.
     const config = defineOpenStoryConfig({
-      previews: [
+      components: [
         { id: "x", component: () => null, fixtures: [], sourcePath: "./electron/types.ts" },
       ],
     });
     // projectRoot = apps/desktop → workspace member basename "desktop".
     const root = new URL("../../../apps/desktop", import.meta.url).pathname;
-    expect(buildManifest(config, root).previews[0]?.section).toBe("desktop");
+    expect(buildManifest(config, root).components[0]?.section).toBe("desktop");
   });
 });

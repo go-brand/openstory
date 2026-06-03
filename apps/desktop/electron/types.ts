@@ -17,8 +17,8 @@ export type OverlayState = {
 
 export type ActiveSelection = {
   projectId: string | null;
-  previewId: string | null;
-  variantId: string | null;
+  componentId: string | null;
+  storyId: string | null;
   /** Component id whose Docs node is the active selection, else null. */
   docsComponentId: string | null;
   viewport: "desktop" | "mobile";
@@ -30,7 +30,7 @@ export type ManifestControl = {
   kind: "text" | "boolean" | "number";
 };
 
-export type ManifestPreview = {
+export type ManifestComponent = {
   id: string;
   /** Slash-delimited sidebar path. "" means the sidebar root. */
   group: string;
@@ -38,7 +38,7 @@ export type ManifestPreview = {
   section: string | null;
   /** Resolved chrome background for this preview's preset. */
   background: string;
-  variants: Array<{
+  stories: Array<{
     id: string;
     label: string;
     props: Record<string, unknown>;
@@ -59,7 +59,7 @@ export type AppState = {
   selection: ActiveSelection;
   overlay: OverlayState;
   theme: Theme;
-  manifest: ManifestPreview[];
+  manifest: ManifestComponent[];
   iframeUrl: string | null;
   detachedOpen: boolean;
   vite: {
@@ -75,13 +75,13 @@ export type IpcInvoke = {
   "project:select": (projectId: string) => void;
   "project:remove": (projectId: string) => void;
   "preview:set": (input: {
-    previewId: string;
-    variantId: string;
+    componentId: string;
+    storyId: string;
     viewport: "desktop" | "mobile";
   }) => void;
   "preview:setProps": (overrides: Record<string, unknown>) => void;
   "preview:setDocs": (componentId: string | null) => void;
-  "preview:getSource": (previewId: string) => PreviewSource | null;
+  "preview:getSource": (componentId: string) => PreviewSource | null;
   "preview:popOut": () => void;
   "preview:popIn": () => void;
   "overlay:setOpacity": (value: number) => void;

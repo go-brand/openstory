@@ -4,7 +4,7 @@ import {
   resolvePresets,
   resolveRender,
   type OpenStoryConfig,
-  type PreviewDef,
+  type ComponentDef,
   type Fixture,
 } from "@gobrand/openstory-config";
 import { parseBridgeMessage, type RenderMessage, type ManifestMessage } from "./bridge.js";
@@ -25,19 +25,19 @@ export function useOpenStoryViewport(): ViewportName {
 }
 
 type ActiveSelection = {
-  previewId: string;
-  variantId: string;
+  componentId: string;
+  storyId: string;
   viewport: "desktop" | "mobile";
   fixtureOverrides?: Record<string, unknown>;
 };
 
 function readSelectionFromUrl(): ActiveSelection | null {
   const params = new URLSearchParams(window.location.search);
-  const previewId = params.get("preview");
-  const variantId = params.get("variant");
+  const componentId = params.get("component");
+  const storyId = params.get("story");
   const viewport = params.get("viewport") as "desktop" | "mobile" | null;
-  if (!previewId || !variantId || !viewport) return null;
-  return { previewId, variantId, viewport };
+  if (!componentId || !storyId || !viewport) return null;
+  return { componentId, storyId, viewport };
 }
 
 function PreviewStage({
@@ -47,20 +47,20 @@ function PreviewStage({
   config: OpenStoryConfig;
   selection: ActiveSelection;
 }) {
-  const preview = config.previews.find((p) => p.id === selection.previewId) as
-    | PreviewDef
+  const component = config.components.find((p) => p.id === selection.componentId) as
+    | ComponentDef
     | undefined;
-  if (!preview) return <FallbackMessage text={`Unknown preview: ${selection.previewId}`} />;
+  if (!component) return <FallbackMessage text={`Unknown component: ${selection.componentId}`} />;
 
-  const fixture = preview.fixtures.find((f) => f.id === selection.variantId) as Fixture | undefined;
-  if (!fixture) return <FallbackMessage text={`Unknown variant: ${selection.variantId}`} />;
+  const fixture = component.fixtures.find((f) => f.id === selection.storyId) as Fixture | undefined;
+  if (!fixture) return <FallbackMessage text={`Unknown story: ${selection.storyId}`} />;
 
   const presets = resolvePresets(config.presets);
-  const render = resolveRender(preview, presets);
+  const render = resolveRender(component, presets);
   const width = render.viewport[selection.viewport].width;
 
   const Providers = config.providers ?? (({ children }) => <>{children}</>);
-  const Component = preview.component as React.ComponentType<Record<string, unknown>>;
+  const Component = component.component as React.ComponentType<Record<string, unknown>>;
   const props = mergeProps(
     (fixture.props ?? {}) as Record<string, unknown>,
     selection.fixtureOverrides,
@@ -96,8 +96,8 @@ function App({ config }: { config: OpenStoryConfig }) {
       if (msg.type === "pl:render") {
         const next: RenderMessage = msg;
         setSelection({
-          previewId: next.previewId,
-          variantId: next.variantId,
+          componentId: next.componentId,
+          storyId: next.storyId,
           viewport: next.viewport,
           ...(next.fixtureOverrides !== undefined && {
             fixtureOverrides: next.fixtureOverrides,
@@ -112,10 +112,10 @@ function App({ config }: { config: OpenStoryConfig }) {
   useEffect(() => {
     const manifest: ManifestMessage = {
       type: "pl:manifest",
-      previews: config.previews.map((p) => ({
+      components: config.components.map((p) => ({
         id: p.id,
         group: p.group ?? "",
-        variants: p.fixtures.map((f) => ({ id: f.id, label: f.label })),
+        stories: p.fixtures.map((f) => ({ id: f.id, label: f.label })),
       })),
     };
     window.parent.postMessage(manifest, "*");

@@ -11,11 +11,11 @@ import { useExpanded } from "./sidebar/use-expanded";
 export function Sidebar({
   state,
   api,
-  onSelectPreview,
+  onSelectStory,
 }: {
   state: AppState;
   api: Api;
-  onSelectPreview: (previewId: string, variantId: string) => void;
+  onSelectStory: (componentId: string, storyId: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [focusedId, setFocusedId] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export function Sidebar({
     focusedId,
     isExpanded: expanded,
     onToggle: toggle,
-    onSelectStory: (componentId, variantId) => onSelectPreview(componentId, variantId),
+    onSelectStory,
     onSelectDocs: (componentId) => api?.invoke("preview:setDocs", componentId),
     setFocusedId,
   };
@@ -65,7 +65,7 @@ export function Sidebar({
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (!cur) return;
-      if (cur.kind === "story") onSelectPreview(cur.componentId, cur.variantId);
+      if (cur.kind === "story") onSelectStory(cur.componentId, cur.storyId);
       else if (cur.kind === "docs") api?.invoke("preview:setDocs", cur.componentId);
       else toggle(cur.id);
     }
@@ -95,11 +95,11 @@ export function Sidebar({
       >
         {state.projects.length === 0 ? (
           <p className="px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-            Add a repository to load its OpenStory previews.
+            Add a repository to load its OpenStory components.
           </p>
         ) : nodes.length === 0 ? (
           <p className="px-3 py-2 text-[11px] text-muted-foreground">
-            {query ? "No matches." : "No previews found in openstory.config.ts."}
+            {query ? "No matches." : "No stories found in openstory.config.ts."}
           </p>
         ) : (
           <Tree nodes={nodes} cb={cb} />

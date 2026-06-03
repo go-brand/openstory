@@ -1,7 +1,7 @@
 export type RenderMessage = {
   type: "pl:render";
-  previewId: string;
-  variantId: string;
+  componentId: string;
+  storyId: string;
   viewport: "desktop" | "mobile";
   fixtureOverrides?: Record<string, unknown>;
 };
@@ -12,10 +12,10 @@ export type ReadyMessage = {
 
 export type ManifestMessage = {
   type: "pl:manifest";
-  previews: Array<{
+  components: Array<{
     id: string;
     group: string;
-    variants: Array<{ id: string; label: string }>;
+    stories: Array<{ id: string; label: string }>;
   }>;
 };
 

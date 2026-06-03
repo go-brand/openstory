@@ -5,8 +5,8 @@ describe('parseBridgeMessage', () => {
   it('accepts a valid pl:render message', () => {
     const msg = {
       type: 'pl:render',
-      previewId: 'linkedin',
-      variantId: 'text-short',
+      componentId: 'linkedin',
+      storyId: 'text-short',
       viewport: 'desktop',
     } as const;
 
