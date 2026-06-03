@@ -66,10 +66,15 @@ function PreviewStage({
     selection.fixtureOverrides,
   );
 
+  // Constrain the rendered component to the resolved viewport width and center
+  // it. This is what makes the desktop/mobile toggle visibly resize the preview:
+  // `width` is re-derived from `selection.viewport` on every render message.
   return (
     <Providers>
       <ViewportContext.Provider value={selection.viewport}>
-        <Component {...props} />
+        <div style={{ width, maxWidth: "100%", margin: "0 auto" }}>
+          <Component {...props} />
+        </div>
       </ViewportContext.Provider>
     </Providers>
   );
