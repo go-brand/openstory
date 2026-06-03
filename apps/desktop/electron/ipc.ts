@@ -5,6 +5,7 @@ import { readFileSync, statSync } from "node:fs";
 import { AppStore } from "./store";
 import { ViteHost } from "./vite-host";
 import type { AppState, ManifestPreview, PreviewSource } from "./types";
+import { reconcileSelection } from "./selection";
 
 // Hard cap so a stray huge file can't be slurped into the renderer's Code panel.
 const MAX_SOURCE_BYTES = 256 * 1024;
@@ -71,23 +72,12 @@ export function registerIpc(deps: Deps) {
       const body = (await res.json()) as { previews: ManifestPreview[] };
       manifest = body.previews ?? [];
 
-      // Reset to first preview + variant when the persisted selection is not
-      // present in the current manifest (nothing selected yet, or stale ids
-      // left over from a different project).
-      const sel = deps.store.state.selection;
-      const selectedPreview = manifest.find((p) => p.id === sel.previewId);
-      const selectionValid = selectedPreview?.variants.some((v) => v.id === sel.variantId) ?? false;
-      if (!selectionValid) {
-        const first = manifest[0];
-        if (first && first.variants[0]) {
-          deps.store.patchSelection({
-            previewId: first.id,
-            variantId: first.variants[0].id,
-            propOverrides: {},
-            docsComponentId: null,
-          });
-        }
-      }
+      // Reconcile the persisted selection against the new manifest: keep it if
+      // still valid, reset to the first preview, or clear it entirely when the
+      // manifest can't satisfy it (e.g. switching to a repo with no previews) —
+      // otherwise the harness would render the previous repo's stale preview.
+      const patch = reconcileSelection(manifest, deps.store.state.selection);
+      if (patch) deps.store.patchSelection(patch);
     } catch {
       manifest = [];
     }

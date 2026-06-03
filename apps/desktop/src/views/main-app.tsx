@@ -83,6 +83,11 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
               <CanvasEmpty vite={state.vite} />
             )}
             {docsPreview && <DocsStub componentName={docsPreview.id} />}
+            {state.iframeUrl && !preview && !docsPreview && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background p-6">
+                <CanvasEmpty vite={state.vite} emptyRepo />
+              </div>
+            )}
           </div>
         </main>
 
@@ -108,13 +113,19 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
   );
 }
 
-function CanvasEmpty({ vite }: { vite: AppState["vite"] }) {
+function CanvasEmpty({ vite, emptyRepo = false }: { vite: AppState["vite"]; emptyRepo?: boolean }) {
   const [icon, title, subtitle] =
     vite.status === "error"
       ? ([Alert02Icon, "Vite failed to start", vite.error ?? "Unknown error"] as const)
       : vite.status === "starting"
         ? ([Loading03Icon, "Starting Vite…", "Spinning up the dev server"] as const)
-        : ([PackageIcon, "No preview loaded", "Pick a repository to load previews"] as const);
+        : emptyRepo
+          ? ([
+              PackageIcon,
+              "No previews in this repository",
+              "Add OpenStory previews to openstory.config.ts",
+            ] as const)
+          : ([PackageIcon, "No preview loaded", "Pick a repository to load previews"] as const);
   const spin = vite.status === "starting";
   return (
     <div className="flex max-w-xs flex-col items-center gap-3 text-center">
