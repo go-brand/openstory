@@ -201,8 +201,10 @@ export function defineStories<TProps>(def: StoriesDef<TProps>): RegisteredCompon
     return fixture;
   });
 
-  const componentName = def.component.displayName ?? def.component.name ?? "preview";
-  const autoId = kebabCase(componentName.replace(/Preview$/, "")) || "preview";
+  const componentName = def.component.displayName ?? def.component.name ?? "component";
+  // Strip a trailing "Preview" (legacy social-preview components like
+  // `LinkedinPreview` → id "linkedin"); harmless for normally-named components.
+  const autoId = kebabCase(componentName.replace(/Preview$/, "")) || "component";
 
   const result: RegisteredComponent = {
     id: def.id ?? autoId,
