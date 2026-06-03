@@ -31,7 +31,7 @@ that web Storybook can't do.
 | # | Area | Status | Sub-spec |
 |---|------|--------|----------|
 | 1 | Design tokens + light/dark theme | `done` | [theme sub-spec](./2026-06-03-theme-light-dark-design.md) |
-| 2 | Sidebar + navigation tree | `in-progress` | [sidebar sub-spec](./2026-06-03-sidebar-nav-tree-design.md) |
+| 2 | Sidebar + navigation tree | `done` | [sidebar sub-spec](./2026-06-03-sidebar-nav-tree-design.md) |
 | 3 | View model / top nav (Canvas ↔ Docs, addon tabs) | `not-started` | — |
 | 4 | Controls panel (typed controls + args table) | `not-started` | — |
 | 5 | Canvas toolbar / editor | `not-started` | — |
