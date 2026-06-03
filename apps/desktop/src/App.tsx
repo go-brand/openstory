@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import type { AppState } from '../electron/types';
-import { MainApp } from './views/main-app';
-import { DetachedPreview } from './views/detached-preview';
+import { useEffect, useState } from "react";
+import type { AppState } from "../electron/types";
+import { MainApp } from "./views/main-app";
+import { DetachedPreview } from "./views/detached-preview";
 
 const FALLBACK_STATE: AppState = {
   projects: [],
@@ -9,29 +9,30 @@ const FALLBACK_STATE: AppState = {
     projectId: null,
     previewId: null,
     variantId: null,
-    viewport: 'desktop',
+    viewport: "desktop",
     propOverrides: {},
   },
   overlay: {
     opacity: 1,
     clickThrough: false,
-    blendMode: 'normal',
+    blendMode: "normal",
     visible: true,
     alwaysOnTop: false,
   },
+  theme: "light",
   manifest: [],
   iframeUrl: null,
   detachedOpen: false,
-  vite: { status: 'idle', port: null, error: null },
+  vite: { status: "idle", port: null, error: null },
 };
 
 function getApi() {
-  return typeof window !== 'undefined' ? window.openStory : undefined;
+  return typeof window !== "undefined" ? window.openStory : undefined;
 }
 
 // Window is always present in the Electron renderer, so resolve the role once
 // at module load rather than on every render.
-const ROLE = new URLSearchParams(window.location.search).get('role') ?? 'main';
+const ROLE = new URLSearchParams(window.location.search).get("role") ?? "main";
 
 export function App() {
   const api = getApi();
@@ -41,18 +42,18 @@ export function App() {
     if (!api) return;
     let mounted = true;
     api
-      .invoke('state:get')
+      .invoke("state:get")
       .then((next) => {
         if (mounted) setState(next);
       })
       .catch(() => {});
-    const off = api.on('state:update', (next) => setState(next));
+    const off = api.on("state:update", (next) => setState(next));
     return () => {
       mounted = false;
       off();
     };
   }, [api]);
 
-  if (ROLE === 'detached') return <DetachedPreview state={state} api={api} />;
+  if (ROLE === "detached") return <DetachedPreview state={state} api={api} />;
   return <MainApp state={state} api={api} />;
 }

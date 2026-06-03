@@ -1,9 +1,20 @@
-import { ipcMain, BrowserWindow, dialog } from 'electron';
-import { randomUUID } from 'node:crypto';
-import { basename } from 'node:path';
-import { AppStore } from './store';
-import { ViteHost } from './vite-host';
-import type { AppState, ManifestPreview } from './types';
+import { ipcMain, BrowserWindow, dialog } from "electron";
+import { randomUUID } from "node:crypto";
+import { basename, relative, resolve, sep } from "node:path";
+import { readFileSync, statSync } from "node:fs";
+import { AppStore } from "./store";
+import { ViteHost } from "./vite-host";
+import type { AppState, ManifestPreview, PreviewSource } from "./types";
+
+// Hard cap so a stray huge file can't be slurped into the renderer's Code panel.
+const MAX_SOURCE_BYTES = 256 * 1024;
+
+// True when `target` resolves inside `root` (defends the fs read against a
+// sourcePath that escapes the active project, e.g. via `..`).
+function isInside(root: string, target: string): boolean {
+  const rel = relative(root, target);
+  return rel.length > 0 && !rel.startsWith("..") && !rel.startsWith(`..${sep}`);
+}
 
 type Deps = {
   store: AppStore;
@@ -24,18 +35,16 @@ function buildAppState(
   store: AppStore,
   viteHost: ViteHost,
   manifest: ManifestPreview[],
-  detachedOpen: boolean
+  detachedOpen: boolean,
 ): AppState {
   const s = store.state;
   const status = viteHost.status();
-  const iframeUrl =
-    status.status === 'ready' && status.port
-      ? buildHarnessUrl(status.port)
-      : null;
+  const iframeUrl = status.status === "ready" && status.port ? buildHarnessUrl(status.port) : null;
   return {
     projects: s.projects,
     selection: s.selection,
     overlay: s.overlay,
+    theme: s.theme,
     manifest,
     iframeUrl,
     detachedOpen,
@@ -47,14 +56,9 @@ export function registerIpc(deps: Deps) {
   let manifest: ManifestPreview[] = [];
 
   function broadcastState() {
-    const state = buildAppState(
-      deps.store,
-      deps.viteHost,
-      manifest,
-      deps.getDetached() !== null
-    );
-    deps.getMain()?.webContents.send('state:update', state);
-    deps.getDetached()?.webContents.send('state:update', state);
+    const state = buildAppState(deps.store, deps.viteHost, manifest, deps.getDetached() !== null);
+    deps.getMain()?.webContents.send("state:update", state);
+    deps.getDetached()?.webContents.send("state:update", state);
   }
 
   async function fetchManifest(port: number) {
@@ -72,8 +76,7 @@ export function registerIpc(deps: Deps) {
       // left over from a different project).
       const sel = deps.store.state.selection;
       const selectedPreview = manifest.find((p) => p.id === sel.previewId);
-      const selectionValid =
-        selectedPreview?.variants.some((v) => v.id === sel.variantId) ?? false;
+      const selectionValid = selectedPreview?.variants.some((v) => v.id === sel.variantId) ?? false;
       if (!selectionValid) {
         const first = manifest[0];
         if (first && first.variants[0]) {
@@ -90,24 +93,19 @@ export function registerIpc(deps: Deps) {
   }
 
   deps.viteHost.subscribe(async (status) => {
-    if (status.status === 'ready' && status.port) {
+    if (status.status === "ready" && status.port) {
       await fetchManifest(status.port);
     }
     broadcastState();
   });
 
-  ipcMain.handle('state:get', () =>
-    buildAppState(
-      deps.store,
-      deps.viteHost,
-      manifest,
-      deps.getDetached() !== null
-    )
+  ipcMain.handle("state:get", () =>
+    buildAppState(deps.store, deps.viteHost, manifest, deps.getDetached() !== null),
   );
 
-  ipcMain.handle('project:pickFolder', async () => {
+  ipcMain.handle("project:pickFolder", async () => {
     const main = deps.getMain();
-    const opts = { properties: ['openDirectory' as const] };
+    const opts = { properties: ["openDirectory" as const] };
     const result = main
       ? await dialog.showOpenDialog(main, opts)
       : await dialog.showOpenDialog(opts);
@@ -115,7 +113,7 @@ export function registerIpc(deps: Deps) {
     return result.filePaths[0] ?? null;
   });
 
-  ipcMain.handle('project:add', async (_e, path: string) => {
+  ipcMain.handle("project:add", async (_e, path: string) => {
     const record = deps.store.addProject({
       id: randomUUID(),
       name: basename(path),
@@ -126,12 +124,12 @@ export function registerIpc(deps: Deps) {
     return record;
   });
 
-  ipcMain.handle('project:remove', (_e, id: string) => {
+  ipcMain.handle("project:remove", (_e, id: string) => {
     deps.store.removeProject(id);
     broadcastState();
   });
 
-  ipcMain.handle('project:select', async (_e, id: string) => {
+  ipcMain.handle("project:select", async (_e, id: string) => {
     const project = deps.store.state.projects.find((p) => p.id === id);
     if (!project) return;
     deps.store.patchSelection({ projectId: id });
@@ -140,64 +138,88 @@ export function registerIpc(deps: Deps) {
   });
 
   ipcMain.handle(
-    'preview:set',
+    "preview:set",
     (
       _e,
       input: {
         previewId: string;
         variantId: string;
-        viewport: 'desktop' | 'mobile';
-      }
+        viewport: "desktop" | "mobile";
+      },
     ) => {
       // Selecting a preset/variant is a clean starting point — clear overrides.
       deps.store.patchSelection({ ...input, propOverrides: {} });
       broadcastState();
-    }
+    },
   );
 
-  ipcMain.handle(
-    'preview:setProps',
-    (_e, overrides: Record<string, unknown>) => {
-      deps.store.patchSelection({ propOverrides: overrides });
-      broadcastState();
-    }
-  );
+  ipcMain.handle("preview:setProps", (_e, overrides: Record<string, unknown>) => {
+    deps.store.patchSelection({ propOverrides: overrides });
+    broadcastState();
+  });
 
-  ipcMain.handle('preview:popOut', () => {
+  // Read a preview's component source for the Code panel. Returns null (panel
+  // falls back to a generated snippet) when the preview has no sourcePath, the
+  // path escapes the active project root, the file is missing/oversized, or the
+  // read fails. Path comes from the trusted manifest, but is re-checked against
+  // the active project root before reading — defense in depth.
+  ipcMain.handle("preview:getSource", (_e, previewId: string): PreviewSource | null => {
+    const preview = manifest.find((p) => p.id === previewId);
+    if (!preview?.sourcePath) return null;
+
+    const state = deps.store.state;
+    const project = state.projects.find((p) => p.id === state.selection.projectId);
+    if (!project) return null;
+
+    const root = resolve(project.path);
+    const path = resolve(preview.sourcePath);
+    if (!isInside(root, path)) return null;
+
+    try {
+      if (statSync(path).size > MAX_SOURCE_BYTES) return null;
+      return { path, code: readFileSync(path, "utf8") };
+    } catch {
+      return null;
+    }
+  });
+
+  ipcMain.handle("preview:popOut", () => {
     deps.openDetached();
   });
 
-  ipcMain.handle('preview:popIn', () => {
+  ipcMain.handle("preview:popIn", () => {
     deps.closeDetached();
   });
 
-  ipcMain.handle('overlay:setOpacity', (_e, value: number) => {
+  ipcMain.handle("overlay:setOpacity", (_e, value: number) => {
     deps.store.patchOverlay({ opacity: value });
     broadcastState();
   });
 
-  ipcMain.handle('overlay:setClickThrough', (_e, enabled: boolean) => {
+  ipcMain.handle("overlay:setClickThrough", (_e, enabled: boolean) => {
     deps.store.patchOverlay({ clickThrough: enabled });
     deps.getDetached()?.setIgnoreMouseEvents(enabled, { forward: true });
     broadcastState();
   });
 
-  ipcMain.handle(
-    'overlay:setBlendMode',
-    (_e, mode: 'normal' | 'difference') => {
-      deps.store.patchOverlay({ blendMode: mode });
-      broadcastState();
-    }
-  );
+  ipcMain.handle("overlay:setBlendMode", (_e, mode: "normal" | "difference") => {
+    deps.store.patchOverlay({ blendMode: mode });
+    broadcastState();
+  });
 
-  ipcMain.handle('overlay:setVisible', (_e, visible: boolean) => {
+  ipcMain.handle("overlay:setVisible", (_e, visible: boolean) => {
     deps.store.patchOverlay({ visible });
     broadcastState();
   });
 
-  ipcMain.handle('window:setAlwaysOnTop', (_e, enabled: boolean) => {
+  ipcMain.handle("window:setAlwaysOnTop", (_e, enabled: boolean) => {
     deps.store.patchOverlay({ alwaysOnTop: enabled });
-    deps.getDetached()?.setAlwaysOnTop(enabled, 'screen-saver');
+    deps.getDetached()?.setAlwaysOnTop(enabled, "screen-saver");
+    broadcastState();
+  });
+
+  ipcMain.handle("theme:set", (_e, theme: "light" | "dark") => {
+    deps.store.setTheme(theme);
     broadcastState();
   });
 

@@ -5,6 +5,8 @@ export type ProjectRecord = {
   addedAt: string;
 };
 
+export type Theme = "light" | "dark";
+
 export type OverlayState = {
   opacity: number;
   clickThrough: boolean;
@@ -52,6 +54,7 @@ export type AppState = {
   projects: ProjectRecord[];
   selection: ActiveSelection;
   overlay: OverlayState;
+  theme: Theme;
   manifest: ManifestPreview[];
   iframeUrl: string | null;
   detachedOpen: boolean;
@@ -81,6 +84,7 @@ export type IpcInvoke = {
   "overlay:setBlendMode": (mode: "normal" | "difference") => void;
   "overlay:setVisible": (visible: boolean) => void;
   "window:setAlwaysOnTop": (enabled: boolean) => void;
+  "theme:set": (theme: Theme) => void;
   "state:get": () => AppState;
 };
 
