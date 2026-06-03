@@ -53,12 +53,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
       <Titlebar onOpenPalette={() => setPaletteOpen(true)} />
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          state={state}
-          api={api}
-          activePreviewId={preview?.id}
-          onSelectPreview={selectPreview}
-        />
+        <Sidebar state={state} api={api} onSelectPreview={selectPreview} />
 
         {/* Canvas. Plain neutral bg by design — the preset-color tint is
             detached-only (it backs difference-blend pixel comparison there). */}
