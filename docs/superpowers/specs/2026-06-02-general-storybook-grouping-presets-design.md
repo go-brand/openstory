@@ -98,8 +98,10 @@ type Preset = {
   Custom presets merge over built-ins (same name → user wins).
 
 - **Default preset** (when `preset` omitted): a neutral built-in — a sensible
-  default desktop width and a neutral chrome background (configurable via a
-  `default` key in `presets`).
+  default desktop width and a flat neutral chrome background **`#f4f4f5`**
+  (zinc-100), chosen so white components show a visible edge and the canvas
+  reads intentional rather than broken-transparent. Overridable via a `default`
+  key in `presets`. Dark mode / light-dark toggle deferred.
 
 ### Resolution order (per preview, per viewport)
 
@@ -135,10 +137,10 @@ Touch points (from the platform-consumption map):
 ## Sidebar nested tree
 
 `group` paths split on `/` into a tree. Rendering becomes recursive: nested
-collapsible sections, previews as leaves. Ungrouped previews (`group === ""`)
-render at the root level alongside top-level sections. Order: groups first in
-first-seen order, then root-level leaves (or a single agreed order — finalize in
-the plan).
+collapsible sections, previews as leaves. **Order: ungrouped leaves first at the
+root top, then groups in first-seen order.** Rationale: the zero-config "just
+dropped a `Button`" case stays immediately visible; large design systems live in
+the collapsible trees below.
 
 ## Escape hatches (non-MVP, spec'd so we don't lose the capability)
 
@@ -172,6 +174,5 @@ Not built in MVP — listed here so the type/shape is reserved.
 - **Broad mechanical change** across 9 files — but each is a direct field swap
   following the resolved-in-plugin boundary; low conceptual risk.
 - **Sidebar recursion** is the only genuinely new UI logic; isolate + test it.
-- **Default chrome**: social presets had opinionated backgrounds; the neutral
-  default must look intentional, not broken-transparent. Pick a concrete value
-  in the plan.
+- **Default chrome**: resolved — flat `#f4f4f5` (see Default preset). Must look
+  intentional behind both light and white components.
