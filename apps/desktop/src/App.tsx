@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AppState } from "../electron/types";
 import { MainApp } from "./views/main-app";
 import { DetachedPreview } from "./views/detached-preview";
+import { ThemeProvider } from "./components/theme-provider";
 
 const FALLBACK_STATE: AppState = {
   projects: [],
@@ -54,6 +55,13 @@ export function App() {
     };
   }, [api]);
 
-  if (ROLE === "detached") return <DetachedPreview state={state} api={api} />;
-  return <MainApp state={state} api={api} />;
+  return (
+    <ThemeProvider theme={state.theme} api={api}>
+      {ROLE === "detached" ? (
+        <DetachedPreview state={state} api={api} />
+      ) : (
+        <MainApp state={state} api={api} />
+      )}
+    </ThemeProvider>
+  );
 }
