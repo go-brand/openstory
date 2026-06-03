@@ -8,7 +8,7 @@ export type ProjectRecord = {
 export type OverlayState = {
   opacity: number;
   clickThrough: boolean;
-  blendMode: 'normal' | 'difference';
+  blendMode: "normal" | "difference";
   visible: boolean;
   alwaysOnTop: boolean;
 };
@@ -17,24 +17,35 @@ export type ActiveSelection = {
   projectId: string | null;
   previewId: string | null;
   variantId: string | null;
-  viewport: 'desktop' | 'mobile';
+  viewport: "desktop" | "mobile";
   propOverrides: Record<string, unknown>;
 };
 
 export type ManifestControl = {
   name: string;
-  kind: 'text' | 'boolean' | 'number';
+  kind: "text" | "boolean" | "number";
 };
 
 export type ManifestPreview = {
   id: string;
-  platform: string;
+  /** Slash-delimited sidebar path. "" means the sidebar root. */
+  group: string;
+  /** Resolved chrome background for this preview's preset. */
+  background: string;
   variants: Array<{
     id: string;
     label: string;
     props: Record<string, unknown>;
   }>;
   controls: ManifestControl[];
+  // Absolute path of the component source file, resolved by the vite-plugin.
+  // null when the preview's config does not declare a `sourcePath`.
+  sourcePath: string | null;
+};
+
+export type PreviewSource = {
+  path: string;
+  code: string;
 };
 
 export type AppState = {
@@ -45,33 +56,34 @@ export type AppState = {
   iframeUrl: string | null;
   detachedOpen: boolean;
   vite: {
-    status: 'idle' | 'starting' | 'ready' | 'error';
+    status: "idle" | "starting" | "ready" | "error";
     port: number | null;
     error: string | null;
   };
 };
 
 export type IpcInvoke = {
-  'project:add': (path: string) => ProjectRecord;
-  'project:pickFolder': () => string | null;
-  'project:select': (projectId: string) => void;
-  'project:remove': (projectId: string) => void;
-  'preview:set': (input: {
+  "project:add": (path: string) => ProjectRecord;
+  "project:pickFolder": () => string | null;
+  "project:select": (projectId: string) => void;
+  "project:remove": (projectId: string) => void;
+  "preview:set": (input: {
     previewId: string;
     variantId: string;
-    viewport: 'desktop' | 'mobile';
+    viewport: "desktop" | "mobile";
   }) => void;
-  'preview:setProps': (overrides: Record<string, unknown>) => void;
-  'preview:popOut': () => void;
-  'preview:popIn': () => void;
-  'overlay:setOpacity': (value: number) => void;
-  'overlay:setClickThrough': (enabled: boolean) => void;
-  'overlay:setBlendMode': (mode: 'normal' | 'difference') => void;
-  'overlay:setVisible': (visible: boolean) => void;
-  'window:setAlwaysOnTop': (enabled: boolean) => void;
-  'state:get': () => AppState;
+  "preview:setProps": (overrides: Record<string, unknown>) => void;
+  "preview:getSource": (previewId: string) => PreviewSource | null;
+  "preview:popOut": () => void;
+  "preview:popIn": () => void;
+  "overlay:setOpacity": (value: number) => void;
+  "overlay:setClickThrough": (enabled: boolean) => void;
+  "overlay:setBlendMode": (mode: "normal" | "difference") => void;
+  "overlay:setVisible": (visible: boolean) => void;
+  "window:setAlwaysOnTop": (enabled: boolean) => void;
+  "state:get": () => AppState;
 };
 
 export type IpcEvents = {
-  'state:update': (state: AppState) => void;
+  "state:update": (state: AppState) => void;
 };
