@@ -48,7 +48,8 @@ function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallb
     else cb.onToggle(node.id);
   }
 
-  // Section headers are styled distinctly (uppercase, no icon).
+  // Section headers are styled distinctly: uppercase, no kind icon — just the
+  // collapse chevron (sections are collapsible, matching the Storybook reference).
   if (node.kind === "section") {
     return (
       <>
