@@ -128,7 +128,7 @@ export type StoriesDef<TProps> = {
   preset?: string;
   /** Optional explicit id; defaults to the component's displayName/name. */
   id?: string;
-  /** Per-platform viewport overrides. Defaults are applied per platform. */
+  /** Explicit viewport overrides; otherwise derived from the preset. */
   viewports?: Partial<Record<"desktop" | "mobile", Viewport>>;
   /**
    * Path (relative to the project root) of the file shown in the desktop app's
@@ -174,7 +174,8 @@ function isLonghandStory<TProps>(
  * ```tsx
  * export default defineStories({
  *   component: LinkedinPreview,
- *   platform: 'linkedin',
+ *   group: 'LinkedIn',
+ *   preset: 'linkedin',
  *   stories: {
  *     ShortText: { text: 'Hello', author: { ... } },
  *     LongText: { args: { text: '...' }, label: 'Long (show more)' },
