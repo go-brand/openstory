@@ -55,13 +55,13 @@ function segments(group: string): string[] {
     .filter(Boolean);
 }
 
-function componentNode(p: ManifestPreview): ComponentNode | StoryLeaf {
+function componentNode(p: ManifestPreview, idPrefix: string): ComponentNode | StoryLeaf {
   // Single-variant hoist: the component IS its only story (no wrapper, no docs).
   if (p.variants.length <= 1) {
     const v = p.variants[0];
     return {
       kind: "story",
-      id: `story:${p.id}:${v?.id ?? ""}`,
+      id: `${idPrefix}/story:${p.id}:${v?.id ?? ""}`,
       label: humanize(p.id),
       componentId: p.id,
       variantId: v?.id ?? "",
@@ -69,20 +69,20 @@ function componentNode(p: ManifestPreview): ComponentNode | StoryLeaf {
   }
   const docs: DocsLeaf = {
     kind: "docs",
-    id: `docs:${p.id}`,
+    id: `${idPrefix}/docs:${p.id}`,
     label: "Documentation",
     componentId: p.id,
   };
   const stories: StoryLeaf[] = p.variants.map((v) => ({
     kind: "story",
-    id: `story:${p.id}:${v.id}`,
+    id: `${idPrefix}/story:${p.id}:${v.id}`,
     label: v.label,
     componentId: p.id,
     variantId: v.id,
   }));
   return {
     kind: "component",
-    id: `component:${p.id}`,
+    id: `${idPrefix}/component:${p.id}`,
     label: humanize(p.id),
     componentId: p.id,
     children: [docs, ...stories],
@@ -111,7 +111,7 @@ function container(items: Item[], idPrefix: string): TreeNode[] {
   }
   const nodes: TreeNode[] = [];
   for (const p of [...direct].sort((a, b) => a.id.localeCompare(b.id))) {
-    nodes.push(componentNode(p));
+    nodes.push(componentNode(p, idPrefix));
   }
   for (const name of folderOrder) {
     const fid = `${idPrefix}/folder:${name}`;

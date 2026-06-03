@@ -40,7 +40,21 @@ describe("buildTree", () => {
     const comp = tree[0] as Extract<TreeNode, { kind: "component" }>;
     expect(comp.children.map((c) => c.kind)).toEqual(["docs", "story", "story"]);
     expect(comp.children[0]).toMatchObject({ kind: "docs", label: "Documentation" });
-    expect(comp.children[1]).toMatchObject({ kind: "story", variantId: "primary" });
+    expect(comp.children[1]).toMatchObject({
+      kind: "story",
+      variantId: "primary",
+      label: "Primary",
+    });
+  });
+
+  it("section-scopes node ids so the same component id in two sections does not collide", () => {
+    const tree = buildTree([
+      preview({ id: "button", section: "app" }),
+      preview({ id: "button", section: "ui" }),
+    ]);
+    const appLeaf = (tree[0] as Extract<TreeNode, { kind: "section" }>).children[0]!;
+    const uiLeaf = (tree[1] as Extract<TreeNode, { kind: "section" }>).children[0]!;
+    expect(appLeaf.id).not.toBe(uiLeaf.id);
   });
 
   it("nests group segments into folders", () => {
