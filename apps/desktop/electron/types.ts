@@ -19,6 +19,8 @@ export type ActiveSelection = {
   projectId: string | null;
   previewId: string | null;
   variantId: string | null;
+  /** Component id whose Docs node is the active selection, else null. */
+  docsComponentId: string | null;
   viewport: "desktop" | "mobile";
   propOverrides: Record<string, unknown>;
 };
@@ -32,6 +34,8 @@ export type ManifestPreview = {
   id: string;
   /** Slash-delimited sidebar path. "" means the sidebar root. */
   group: string;
+  /** Auto-derived workspace section (package basename) or null. Rendered uppercase. */
+  section: string | null;
   /** Resolved chrome background for this preview's preset. */
   background: string;
   variants: Array<{
@@ -76,6 +80,7 @@ export type IpcInvoke = {
     viewport: "desktop" | "mobile";
   }) => void;
   "preview:setProps": (overrides: Record<string, unknown>) => void;
+  "preview:setDocs": (componentId: string | null) => void;
   "preview:getSource": (previewId: string) => PreviewSource | null;
   "preview:popOut": () => void;
   "preview:popIn": () => void;
