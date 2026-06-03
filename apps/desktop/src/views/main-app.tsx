@@ -8,6 +8,7 @@ import { Sidebar } from "../components/sidebar";
 import { Toolbar, type PanelMode } from "../components/toolbar";
 import { RightPanel } from "../components/right-panel";
 import { CommandPalette } from "../components/command-palette";
+import { DocsStub } from "../components/docs-stub";
 
 export function MainApp({ state, api }: { state: AppState; api: Api }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -32,6 +33,9 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
     state.manifest.find((p) => p.id === state.selection.previewId) ?? state.manifest[0];
   const variant =
     preview?.variants.find((v) => v.id === state.selection.variantId) ?? preview?.variants[0];
+  const docsPreview = state.selection.docsComponentId
+    ? state.manifest.find((p) => p.id === state.selection.docsComponentId)
+    : undefined;
 
   function selectPreview(previewId: string, variantId: string) {
     api?.invoke("preview:set", {
@@ -66,7 +70,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
             panelMode={panelMode}
             setPanelMode={setPanelMode}
           />
-          <div className="flex flex-1 items-center justify-center overflow-auto p-6">
+          <div className="relative flex flex-1 items-center justify-center overflow-auto p-6">
             {state.iframeUrl ? (
               <div className="h-full w-full overflow-hidden rounded-xl border border-input bg-muted shadow-2xl shadow-black/50">
                 <iframe
@@ -78,6 +82,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
             ) : (
               <CanvasEmpty vite={state.vite} />
             )}
+            {docsPreview && <DocsStub componentName={docsPreview.id} />}
           </div>
         </main>
 
