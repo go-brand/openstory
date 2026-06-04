@@ -4,12 +4,14 @@ import type { Plugin, ViteDevServer } from "vite";
 import { buildHarnessEntry, buildHtmlShell } from "./harness-loader.js";
 import { deriveSection } from "./derive-section.js";
 import {
-  deriveControls,
+  mergeControls,
   mergeComponents,
   resolvePresets,
   resolveRender,
+  type ManifestControl,
 } from "@gobrand/openstory-config";
 import type { OpenStoryConfig } from "@gobrand/openstory-config";
+import { extractPropTypes } from "./extract-prop-types.js";
 import { discoverComponents, resolvePatterns } from "./discover.js";
 
 const VIRTUAL_ID = "virtual:openstory-entry";
@@ -82,6 +84,15 @@ export function buildManifest(config: OpenStoryConfig, projectRoot?: string) {
     components: (config.components ?? []).map((p) => {
       const render = resolveRender(p, presets);
       const sourcePath = p.sourcePath && projectRoot ? resolve(projectRoot, p.sourcePath) : null;
+
+      // Type-derived controls (authoritative). Falls back to {} on any miss so
+      // mergeControls degrades gracefully to pure value inference.
+      const typeInfo =
+        sourcePath && projectRoot ? extractPropTypes(sourcePath, p.name ?? p.id, projectRoot) : {};
+      const typeControls: Record<string, ManifestControl> = Object.fromEntries(
+        Object.entries(typeInfo).map(([name, info]) => [name, { name, ...info }]),
+      );
+
       return {
         id: p.id,
         name: p.name ?? p.id,
@@ -93,7 +104,7 @@ export function buildManifest(config: OpenStoryConfig, projectRoot?: string) {
           label: f.label,
           props: f.props,
         })),
-        controls: deriveControls(p.fixtures),
+        controls: mergeControls(p.fixtures, typeControls),
         sourcePath,
       };
     }),

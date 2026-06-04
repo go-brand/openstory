@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineOpenStoryConfig, deriveControls } from "@gobrand/openstory-config";
 import { buildHarnessEntry } from "./harness-loader";
 import { buildManifest } from "./plugin";
@@ -152,5 +154,29 @@ describe("buildManifest", () => {
     // projectRoot = apps/desktop → workspace member basename "desktop".
     const root = new URL("../../../apps/desktop", import.meta.url).pathname;
     expect(buildManifest(config, root).components[0]?.section).toBe("desktop");
+  });
+
+  it("buildManifest derives a select/radio control from prop types", () => {
+    const root = resolve(fileURLToPath(new URL(".", import.meta.url)), "__fixtures__/types");
+    const config = {
+      components: [
+        {
+          id: "button",
+          name: "Button",
+          component: (() => null) as any,
+          sourcePath: "button.tsx",
+          fixtures: [{ id: "p", label: "P", props: { variant: "primary", label: "Hi" } }],
+        },
+      ],
+    };
+    const manifest = buildManifest(config as any, root);
+    const controls = manifest.components[0].controls;
+    expect(controls).toContainEqual({
+      name: "variant",
+      kind: "select",
+      options: ["primary", "secondary", "ghost", "danger", "link", "subtle"],
+    });
+    // `label` is a plain string prop -> text.
+    expect(controls).toContainEqual({ name: "label", kind: "text" });
   });
 });
