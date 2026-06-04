@@ -137,6 +137,19 @@ export function openStory(options: PluginOptions = {}): Plugin {
     }
   }
 
+  // Resolve the story-file glob patterns the harness entry's `import.meta.glob`
+  // discovers. Mirrors the manifest route so the sidebar (Node) and the rendered
+  // components (browser) can't disagree. Falls back to defaults with no config.
+  async function resolveEntryPatterns(): Promise<string[]> {
+    if (!resolvedConfigPath || !devServer) return resolvePatterns(null);
+    try {
+      const mod = await devServer.ssrLoadModule(resolvedConfigPath);
+      return resolvePatterns((mod.default ?? mod) as OpenStoryConfig);
+    } catch {
+      return resolvePatterns(null);
+    }
+  }
+
   return {
     name: "@gobrand/openstory-vite",
     enforce: "pre",
@@ -155,17 +168,12 @@ export function openStory(options: PluginOptions = {}): Plugin {
 
     async load(id) {
       if (id !== RESOLVED_VIRTUAL_ID) return null;
-      if (!resolvedConfigPath) {
-        return [
-          "console.error('[@gobrand/openstory-vite] no openstory.config.ts found')",
-          "const msg = document.createElement('pre')",
-          "msg.style.padding = '16px'",
-          "msg.style.color = '#a00'",
-          "msg.textContent = 'OpenStory: openstory.config.ts not found in project root.'",
-          "document.body.appendChild(msg)",
-        ].join("\n");
-      }
-      return buildHarnessEntry(resolvedConfigPath, await resolveStyles());
+      // Config is optional: zero-config discovery via import.meta.glob is valid.
+      return buildHarnessEntry(
+        resolvedConfigPath,
+        await resolveStyles(),
+        await resolveEntryPatterns(),
+      );
     },
 
     configureServer(server: ViteDevServer) {

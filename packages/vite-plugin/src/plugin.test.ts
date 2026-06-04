@@ -36,6 +36,22 @@ describe("buildHarnessEntry", () => {
     const code = buildHarnessEntry("/abs/openstory.config.ts");
     expect(code).not.toContain(".css");
   });
+
+  it("emits an import.meta.glob over the resolved patterns and merges discovered + config", () => {
+    const code = buildHarnessEntry("/abs/openstory.config.ts", [], ["**/*.stories.{ts,tsx}"]);
+    expect(code).toContain("import.meta.glob");
+    expect(code).toContain("/**/*.stories.{ts,tsx}"); // root-relative form for Vite
+    expect(code).toContain("mergeComponents");
+    expect(code).toContain("isRegisteredComponent");
+    expect(code).toContain("from '/abs/openstory.config.ts'");
+  });
+
+  it("works with no config file (zero-config discovery)", () => {
+    const code = buildHarnessEntry(null, [], ["**/*.stories.{ts,tsx}"]);
+    expect(code).toContain("const userConfig = {}");
+    expect(code).toContain("import.meta.glob");
+    expect(code).not.toContain("openstory.config");
+  });
 });
 
 describe("buildManifest", () => {
