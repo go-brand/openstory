@@ -69,7 +69,7 @@ function readSelectionFromUrl(): ActiveSelection | null {
   return { componentId, storyId, viewport };
 }
 
-function PreviewStage({
+export function PreviewStage({
   config,
   selection,
 }: {
@@ -125,7 +125,13 @@ function FallbackMessage({ text }: { text: string }) {
 // document, so clicking a component shows docs first and the stories appear as
 // you scroll down. Rendered inside the iframe because only the iframe holds the
 // real component modules + providers (the manager has metadata alone).
-function DocsPage({ config, componentId }: { config: OpenStoryConfig; componentId: string }) {
+export function DocsPage({
+  config,
+  componentId,
+}: {
+  config: OpenStoryConfig;
+  componentId: string;
+}) {
   const component = (config.components ?? []).find((p) => p.id === componentId) as
     | RegisteredComponent
     | undefined;
@@ -138,6 +144,11 @@ function DocsPage({ config, componentId }: { config: OpenStoryConfig; componentI
   const Providers = config.providers ?? (({ children }) => <>{children}</>);
   const Component = component.component as React.ComponentType<Record<string, unknown>>;
   const title = component.name ?? component.id;
+  // Each docs canvas card honors the component's `layout`, mirroring how
+  // PreviewStage positions the live render: `padded` (default) keeps the 24px
+  // card inset, `centered` flex-centers the render in the card, `fullscreen`
+  // drops the inset so the render sits flush to the card edge.
+  const layout = component.layout ?? "padded";
 
   return (
     <ViewportContext.Provider value="desktop">
@@ -164,8 +175,12 @@ function DocsPage({ config, componentId }: { config: OpenStoryConfig; componentI
               style={{
                 border: "1px solid #e6e6e6",
                 borderRadius: 8,
-                padding: 24,
+                padding: layout === "fullscreen" ? 0 : 24,
                 background: "#fff",
+                overflow: "hidden",
+                ...(layout === "centered"
+                  ? { display: "flex", alignItems: "center", justifyContent: "center" }
+                  : {}),
               }}
             >
               <Providers>
