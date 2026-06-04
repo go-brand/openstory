@@ -11,6 +11,7 @@ export {
   type Story,
   type Viewport,
 } from "./define.js";
+export { isRegisteredComponent, mergeComponents } from "./discover.js";
 export {
   BUILTIN_PRESETS,
   DEFAULT_BACKGROUND,
