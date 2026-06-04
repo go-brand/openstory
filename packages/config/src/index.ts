@@ -2,6 +2,7 @@ export {
   defineOpenStoryConfig,
   defineStories,
   deriveControls,
+  mergeControls,
   type Fixture,
   type Layout,
   type ManifestControl,

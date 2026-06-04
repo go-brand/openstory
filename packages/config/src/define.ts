@@ -74,6 +74,47 @@ export function deriveControls(fixtures: Fixture[]): ManifestControl[] {
     );
 }
 
+/**
+ * Merge type-derived controls over value-inferred ones. Types are
+ * authoritative (they know an enum from free text); props with no type info
+ * fall back to `deriveControls`. Prop order is first-seen across fixtures,
+ * matching `deriveControls`. With an empty `typeControls`, output is identical
+ * to `deriveControls(fixtures)` — preserving zero-config behavior. Only props
+ * present in the fixtures are emitted; a typed prop absent from every fixture
+ * is dropped (types refine fixture-driven controls, they don't introduce new
+ * ones).
+ */
+export function mergeControls(
+  fixtures: Fixture[],
+  typeControls: Record<string, ManifestControl> = {},
+): ManifestControl[] {
+  const valueDerived = new Map(deriveControls(fixtures).map((c) => [c.name, c]));
+
+  const order: string[] = [];
+  const seen = new Set<string>();
+  for (const fixture of fixtures) {
+    const props = (fixture.props ?? {}) as Record<string, unknown>;
+    for (const name of Object.keys(props)) {
+      if (!seen.has(name)) {
+        seen.add(name);
+        order.push(name);
+      }
+    }
+  }
+
+  const out: ManifestControl[] = [];
+  for (const name of order) {
+    const fromType = typeControls[name];
+    if (fromType) {
+      out.push(fromType);
+      continue;
+    }
+    const fromValue = valueDerived.get(name);
+    if (fromValue) out.push(fromValue);
+  }
+  return out;
+}
+
 export type ComponentDef<TProps = unknown> = {
   id: string;
   /** Slash-delimited sidebar path, e.g. "Design System/Forms/Button". Omit to

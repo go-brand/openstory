@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { defineOpenStoryConfig, defineStories, deriveControls } from "./define";
+import { defineOpenStoryConfig, defineStories, deriveControls, mergeControls } from "./define";
+import type { Fixture, ManifestControl } from "./define";
 
 describe("defineOpenStoryConfig", () => {
   it("returns the config unchanged", () => {
@@ -104,5 +105,41 @@ describe("OpenStoryConfig.stories", () => {
   it("accepts a stories glob-patterns array", () => {
     const config = defineOpenStoryConfig({ stories: ["src/**/*.stories.tsx"], components: [] });
     expect(config.stories).toEqual(["src/**/*.stories.tsx"]);
+  });
+});
+
+describe("mergeControls", () => {
+  const fixtures: Fixture[] = [
+    { id: "a", label: "A", props: { variant: "primary", label: "Hi", count: 1 } },
+    { id: "b", label: "B", props: { variant: "secondary", label: "Yo", count: 2 } },
+  ];
+
+  it("prefers type-derived controls over value-inferred", () => {
+    const types: Record<string, ManifestControl> = {
+      variant: { name: "variant", kind: "radio", options: ["primary", "secondary"] },
+    };
+    const out = mergeControls(fixtures, types);
+    expect(out).toContainEqual({
+      name: "variant",
+      kind: "radio",
+      options: ["primary", "secondary"],
+    });
+    // label/count have no type info -> value fallback (text/number).
+    expect(out).toContainEqual({ name: "label", kind: "text" });
+    expect(out).toContainEqual({ name: "count", kind: "number" });
+  });
+
+  it("preserves first-seen prop order across fixtures", () => {
+    const out = mergeControls(fixtures, {});
+    expect(out.map((c) => c.name)).toEqual(["variant", "label", "count"]);
+  });
+
+  it("with no type info, equals deriveControls output", () => {
+    const out = mergeControls(fixtures, {});
+    expect(out).toEqual([
+      { name: "variant", kind: "text" },
+      { name: "label", kind: "text" },
+      { name: "count", kind: "number" },
+    ]);
   });
 });
