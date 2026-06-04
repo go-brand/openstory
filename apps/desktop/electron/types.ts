@@ -32,6 +32,8 @@ export type ManifestControl = {
 
 export type ManifestComponent = {
   id: string;
+  /** Human display label for the sidebar tree. */
+  name: string;
   /** Slash-delimited sidebar path. "" means the sidebar root. */
   group: string;
   /** Auto-derived workspace section (package basename) or null. Rendered uppercase. */

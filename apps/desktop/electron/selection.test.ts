@@ -5,6 +5,7 @@ import { reconcileSelection } from "./selection";
 function component(over: Partial<ManifestComponent> & { id: string }): ManifestComponent {
   return {
     id: over.id,
+    name: over.name ?? over.id,
     group: over.group ?? "",
     section: over.section ?? null,
     background: "#fff",

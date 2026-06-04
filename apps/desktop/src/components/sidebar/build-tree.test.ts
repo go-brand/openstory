@@ -5,6 +5,7 @@ import { buildTree, flatten, type TreeNode } from "./build-tree";
 function component(over: Partial<ManifestComponent> & { id: string }): ManifestComponent {
   return {
     id: over.id,
+    name: over.name ?? over.id,
     group: over.group ?? "",
     section: over.section ?? null,
     background: "#fff",
@@ -16,7 +17,7 @@ function component(over: Partial<ManifestComponent> & { id: string }): ManifestC
 
 describe("buildTree", () => {
   it("hoists a single-variant component to a story leaf (no component wrapper, no docs)", () => {
-    const tree = buildTree([component({ id: "button" })]);
+    const tree = buildTree([component({ id: "button", name: "Button" })]);
     expect(tree).toHaveLength(1);
     expect(tree[0]).toMatchObject({
       kind: "story",
@@ -24,6 +25,20 @@ describe("buildTree", () => {
       storyId: "default",
       label: "Button",
     });
+  });
+
+  it("labels a component node by its name, not its id", () => {
+    const tree = buildTree([
+      component({
+        id: "ui-button",
+        name: "Button",
+        stories: [
+          { id: "a", label: "A", props: {} },
+          { id: "b", label: "B", props: {} },
+        ],
+      }),
+    ]);
+    expect(tree[0]).toMatchObject({ kind: "component", label: "Button" });
   });
 
   it("expands a multi-variant component to docs + story leaves", () => {
@@ -77,9 +92,9 @@ describe("buildTree", () => {
 
   it("orders direct components alpha, before folders (first-seen)", () => {
     const tree = buildTree([
-      component({ id: "zeta" }),
-      component({ id: "alpha" }),
-      component({ id: "x", group: "Forms" }),
+      component({ id: "zeta", name: "Zeta" }),
+      component({ id: "alpha", name: "Alpha" }),
+      component({ id: "x", name: "X", group: "Forms" }),
     ]);
     expect(tree.map((n) => n.label)).toEqual(["Alpha", "Zeta", "Forms"]);
   });

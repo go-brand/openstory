@@ -39,15 +39,6 @@ export function isContainer(node: TreeNode): node is SectionNode | FolderNode | 
   return node.kind === "section" || node.kind === "folder" || node.kind === "component";
 }
 
-function humanize(id: string): string {
-  return id
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^./, (c) => c.toUpperCase());
-}
-
 function segments(group: string): string[] {
   return group
     .split("/")
@@ -62,7 +53,7 @@ function componentNode(p: ManifestComponent, idPrefix: string): ComponentNode | 
     return {
       kind: "story",
       id: `${idPrefix}/story:${p.id}:${v?.id ?? ""}`,
-      label: humanize(p.id),
+      label: p.name,
       componentId: p.id,
       storyId: v?.id ?? "",
     };
@@ -83,7 +74,7 @@ function componentNode(p: ManifestComponent, idPrefix: string): ComponentNode | 
   return {
     kind: "component",
     id: `${idPrefix}/component:${p.id}`,
-    label: humanize(p.id),
+    label: p.name,
     componentId: p.id,
     children: [docs, ...stories],
   };
