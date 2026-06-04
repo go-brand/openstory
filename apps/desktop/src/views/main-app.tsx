@@ -12,7 +12,7 @@ import { DocsStub } from "../components/docs-stub";
 
 export function MainApp({ state, api }: { state: AppState; api: Api }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  useHarnessBridge(iframeRef, state.selection);
+  useHarnessBridge(iframeRef, state.selection, api);
 
   const [panelMode, setPanelMode] = useState<PanelMode>("inspect");
   const [paletteOpen, setPaletteOpen] = useState(false);

@@ -159,6 +159,18 @@ export function registerIpc(deps: Deps) {
   // path escapes the active project root, the file is missing/oversized, or the
   // read fails. Path comes from the trusted manifest, but is re-checked against
   // the active project root before reading — defense in depth.
+  // The harness re-posts pl:manifest when Vite HMR re-runs import.meta.glob (a
+  // *.stories.tsx was added/removed). Re-fetch the manifest and broadcast so the
+  // sidebar tree updates live without a relaunch. Mirrors the viteHost.subscribe
+  // "ready → fetchManifest → broadcast" path above.
+  ipcMain.handle("preview:refreshManifest", async () => {
+    const status = deps.viteHost.status();
+    if (status.status === "ready" && status.port) {
+      await fetchManifest(status.port);
+      broadcastState();
+    }
+  });
+
   ipcMain.handle("preview:getSource", (_e, componentId: string): PreviewSource | null => {
     const preview = manifest.find((p) => p.id === componentId);
     if (!preview?.sourcePath) return null;

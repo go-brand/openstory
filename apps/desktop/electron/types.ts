@@ -83,6 +83,7 @@ export type IpcInvoke = {
   }) => void;
   "preview:setProps": (overrides: Record<string, unknown>) => void;
   "preview:setDocs": (componentId: string | null) => void;
+  "preview:refreshManifest": () => void;
   "preview:getSource": (componentId: string) => PreviewSource | null;
   "preview:popOut": () => void;
   "preview:popIn": () => void;

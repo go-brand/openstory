@@ -8,7 +8,7 @@ import { Checkbox } from "../components/ui/checkbox";
 
 export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  useHarnessBridge(iframeRef, state.selection);
+  useHarnessBridge(iframeRef, state.selection, api);
 
   const component =
     state.manifest.find((p) => p.id === state.selection.componentId) ?? state.manifest[0];
