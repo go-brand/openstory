@@ -47,7 +47,7 @@ function PreviewStage({
   config: OpenStoryConfig;
   selection: ActiveSelection;
 }) {
-  const component = config.components.find((p) => p.id === selection.componentId) as
+  const component = (config.components ?? []).find((p) => p.id === selection.componentId) as
     | ComponentDef
     | undefined;
   if (!component) return <FallbackMessage text={`Unknown component: ${selection.componentId}`} />;
@@ -112,7 +112,7 @@ function App({ config }: { config: OpenStoryConfig }) {
   useEffect(() => {
     const manifest: ManifestMessage = {
       type: "pl:manifest",
-      components: config.components.map((p) => ({
+      components: (config.components ?? []).map((p) => ({
         id: p.id,
         group: p.group ?? "",
         stories: p.fixtures.map((f) => ({ id: f.id, label: f.label })),
