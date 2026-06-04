@@ -23,8 +23,9 @@ more unique territory (e.g. zero-story component inference) later.
 3. **`openstory.config.ts` is optional**, used only for overrides (`stories` globs,
    `styles`, `presets`, `providers`) and the **`components: [...]` escape hatch**,
    which merges with discovered stories (de-duped by id; explicit wins).
-4. **Discovery runs on both sides from the same patterns** — Node `fast-glob` for
-   the authoritative manifest, Vite `import.meta.glob` for the renderable harness.
+4. **Discovery runs on both sides from the same patterns** — a zero-dependency Node
+   `fs` walk for the authoritative manifest, Vite's compile-time `import.meta.glob`
+   for the renderable harness. No third-party glob package (supply-chain hygiene).
 
 ## Non-goals
 
@@ -38,7 +39,7 @@ more unique territory (e.g. zero-story component inference) later.
 Discovery answers two questions from one set of glob patterns:
 
 - **Node** ("what stories exist?" → sidebar metadata): in the manifest pipeline,
-  `fast-glob` the patterns under the project root → `ssrLoadModule` each match →
+  walk the project root (`fs.readdirSync`, skipping `node_modules`/`dist`/etc) and match the patterns → `ssrLoadModule` each match →
   take `.default` → validate → merge `config.components` → `buildManifest`.
 - **Harness** ("give me the component functions to render"): the plugin generates
   the harness entry with `import.meta.glob([<literal patterns>], { eager: true })`
@@ -65,8 +66,7 @@ export type OpenStoryConfig = {
 - The config file and every field are optional. No file → pure zero-config:
   default glob, no styles override (style auto-detection still runs), no presets.
 - **Default glob:** `["**/*.stories.{ts,tsx}"]`. **Always-excluded:**
-  `node_modules`, `dist`, `build`, `out`, `.git` (passed as `fast-glob` `ignore`
-  and as negative patterns to `import.meta.glob`).
+  `node_modules`, `dist`, `build`, `out`, `.git` (skipped dir names in the `fs` walk; negative patterns to `import.meta.glob`).
 - **Merge/dedupe:** build a map keyed by manifest `id` from discovered stories, then
   apply `config.components` over it (explicit wins); a collision dev-warns with both
   sources.
@@ -81,7 +81,8 @@ export function resolvePatterns(config: OpenStoryConfig | null): string[];
 
 // Glob + load + validate (via shared isRegisteredComponent) + default sourcePath,
 // returning discovered components. `load(absPath)` injects ssrLoadModule (so this
-// stays unit-testable with a fake loader). Uses `tinyglobby` (Vite's globber).
+// stays unit-testable with a fake loader). Zero-dependency: an `fs` walk + a
+// small `globToRegExp` (supports **, *, ?, {a,b}) -- no third-party glob.
 export async function discoverComponents(
   projectRoot: string,
   patterns: string[],
@@ -89,7 +90,8 @@ export async function discoverComponents(
 ): Promise<RegisteredComponent[]>;
 ```
 
-`discoverComponents`: `glob(patterns, { cwd: projectRoot, absolute: true, ignore })`
+`discoverComponents`: walk `projectRoot` (skipping ignored dir names) → filter by
+`globToRegExp(pattern)` over each root-relative POSIX path
 → for each file `m = await load(path)`; `def = m.default`; skip + warn if
 `!isRegisteredComponent(def)`; else default `sourcePath` to the file path when unset
 (id is left as the module declared it — see C); collect.
@@ -122,9 +124,13 @@ separate from **`id`** (unique key):
 
 ```ts
 export function isRegisteredComponent(v: unknown): v is RegisteredComponent {
+  // `component` may be a function OR an object (forwardRef/memo), so check it's
+  // present + non-null rather than a function; `fixtures` is the real discriminator
+  // vs a Storybook Meta. (Lives in @gobrand/openstory-config; see Task plan.)
   return typeof v === "object" && v !== null
-    && "component" in v && typeof (v as any).component === "function"
-    && "fixtures" in v && Array.isArray((v as any).fixtures);
+    && typeof (v as any).id === "string"
+    && "component" in v && (v as any).component != null
+    && Array.isArray((v as any).fixtures);
 }
 ```
 A Storybook CSF default export (a `Meta` object, no `fixtures`) fails → skipped with
@@ -175,7 +181,7 @@ them from the config at generation time.
 |-------|------|--------|
 | Config types | `packages/config/src/define.ts` | `OpenStoryConfig.stories?`; `RegisteredComponent.name`; `defineStories` sets `name` |
 | Shared discovery helpers | `packages/config/src/discover.ts` (new) | `isRegisteredComponent`, `mergeComponents` (pure; used by Node plugin AND browser harness) |
-| Discovery (Node) | `packages/vite-plugin/src/discover.ts` (new) | `resolvePatterns`, `discoverComponents` (glob + load + sourcePath default); adds `tinyglobby` dep |
+| Discovery (Node) | `packages/vite-plugin/src/discover.ts` (new) | `resolvePatterns`, `globToRegExp`, `discoverComponents` (zero-dep `fs` walk + load + sourcePath default) |
 | Manifest | `packages/vite-plugin/src/plugin.ts` | manifest route + `buildManifest` glob-discover + merge; pass patterns to harness entry; emit `name` |
 | Harness | `packages/vite-plugin/src/harness-loader.ts` | generate `import.meta.glob` entry; config optional |
 | Host | `packages/runtime/src/preview-host.tsx` | thread `name` into the `pl:manifest` message |
@@ -203,7 +209,7 @@ them from the config at generation time.
 
 ## Risks
 
-- **Two discovery sites** (Node `tinyglobby` vs Vite `import.meta.glob`) could drift —
+- **Two discovery sites** (Node `fs`-walk matcher vs Vite `import.meta.glob`) could drift —
   mitigated by sharing the validate/default/merge logic (`mergeDiscovered`) and the
   same patterns; tested on both.
 - **`import.meta.glob` needs literal patterns** — the plugin emits them as literals
