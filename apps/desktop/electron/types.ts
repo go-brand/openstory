@@ -27,7 +27,9 @@ export type ActiveSelection = {
 
 export type ManifestControl = {
   name: string;
-  kind: "text" | "boolean" | "number";
+  kind: "text" | "boolean" | "number" | "select" | "radio";
+  /** Allowed values; present only for `select` / `radio`. */
+  options?: string[];
 };
 
 export type ManifestComponent = {

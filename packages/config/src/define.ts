@@ -30,7 +30,9 @@ export type Fixture<TProps = unknown> = {
 
 export type ManifestControl = {
   name: string;
-  kind: "text" | "boolean" | "number";
+  kind: "text" | "boolean" | "number" | "select" | "radio";
+  /** Allowed values; present only for `select` / `radio`. */
+  options?: string[];
 };
 
 function controlKind(value: unknown): ManifestControl["kind"] | "skip" | null {
