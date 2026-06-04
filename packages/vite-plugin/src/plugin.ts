@@ -3,8 +3,14 @@ import { resolve } from "node:path";
 import type { Plugin, ViteDevServer } from "vite";
 import { buildHarnessEntry, buildHtmlShell } from "./harness-loader.js";
 import { deriveSection } from "./derive-section.js";
-import { deriveControls, resolvePresets, resolveRender } from "@gobrand/openstory-config";
+import {
+  deriveControls,
+  mergeComponents,
+  resolvePresets,
+  resolveRender,
+} from "@gobrand/openstory-config";
 import type { OpenStoryConfig } from "@gobrand/openstory-config";
+import { discoverComponents, resolvePatterns } from "./discover.js";
 
 const VIRTUAL_ID = "virtual:openstory-entry";
 const RESOLVED_VIRTUAL_ID = "\0virtual:openstory-entry";
@@ -73,11 +79,12 @@ type PluginOptions = {
 export function buildManifest(config: OpenStoryConfig, projectRoot?: string) {
   const presets = resolvePresets(config.presets);
   return {
-    components: config.components.map((p) => {
+    components: (config.components ?? []).map((p) => {
       const render = resolveRender(p, presets);
       const sourcePath = p.sourcePath && projectRoot ? resolve(projectRoot, p.sourcePath) : null;
       return {
         id: p.id,
+        name: p.name ?? p.id,
         group: p.group ?? "",
         section: deriveSection(sourcePath),
         background: render.background,
@@ -173,15 +180,17 @@ export function openStory(options: PluginOptions = {}): Plugin {
           return;
         }
         if (url === "/manifest.json" || req.url === MANIFEST_ROUTE) {
-          if (!resolvedConfigPath) {
-            res.statusCode = 404;
-            res.end(JSON.stringify({ error: "no config" }));
-            return;
-          }
           try {
-            const mod = await server.ssrLoadModule(resolvedConfigPath);
-            const config = (mod.default ?? mod) as OpenStoryConfig;
-            const manifest = buildManifest(config, projectRoot);
+            const config = resolvedConfigPath
+              ? (((await server.ssrLoadModule(resolvedConfigPath)).default ??
+                  {}) as OpenStoryConfig)
+              : null;
+            const patterns = resolvePatterns(config);
+            const discovered = await discoverComponents(projectRoot, patterns, (p) =>
+              server.ssrLoadModule(p),
+            );
+            const components = mergeComponents(discovered, config?.components ?? []);
+            const manifest = buildManifest({ ...(config ?? {}), components }, projectRoot);
             res.setHeader("content-type", "application/json");
             res.end(JSON.stringify(manifest));
           } catch (err) {

@@ -57,6 +57,7 @@ describe("buildManifest", () => {
     const manifest = buildManifest(config);
     expect(manifest.components[0]).toEqual({
       id: "linkedin",
+      name: "linkedin",
       group: "LinkedIn",
       section: null,
       background: "#f3f2ef",
@@ -115,6 +116,7 @@ describe("buildManifest", () => {
     });
     expect(buildManifest(config).components[0]).toEqual({
       id: "linkedin",
+      name: "linkedin",
       group: "",
       section: null,
       background: "#f4f4f5",
