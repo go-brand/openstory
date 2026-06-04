@@ -79,11 +79,9 @@ New `packages/vite-plugin/src/discover.ts` — pure-ish, Node side:
 // Resolve the effective glob patterns from an (optional) config.
 export function resolvePatterns(config: OpenStoryConfig | null): string[];
 
-// Validate a module's default export is a RegisteredComponent.
-export function isRegisteredComponent(value: unknown): value is RegisteredComponent;
-
-// Glob + load + validate + default sourcePath/id, returning discovered components.
-// `load(absPath)` injects ssrLoadModule (so this stays unit-testable with a fake loader).
+// Glob + load + validate (via shared isRegisteredComponent) + default sourcePath,
+// returning discovered components. `load(absPath)` injects ssrLoadModule (so this
+// stays unit-testable with a fake loader). Uses `tinyglobby` (Vite's globber).
 export async function discoverComponents(
   projectRoot: string,
   patterns: string[],
@@ -91,12 +89,15 @@ export async function discoverComponents(
 ): Promise<RegisteredComponent[]>;
 ```
 
-`discoverComponents`: `fast-glob(patterns, { cwd: projectRoot, absolute: true, ignore })`
+`discoverComponents`: `glob(patterns, { cwd: projectRoot, absolute: true, ignore })`
 → for each file `m = await load(path)`; `def = m.default`; skip + warn if
-`!isRegisteredComponent(def)`; else default `sourcePath` to the file path and `id`
-to a path-derived slug when unset (see C); collect.
+`!isRegisteredComponent(def)`; else default `sourcePath` to the file path when unset
+(id is left as the module declared it — see C); collect.
 
-The manifest route + `buildManifest` call this, then merge `config.components`.
+The manifest route + `buildManifest` call this, then `mergeComponents(discovered,
+config.components)`. `isRegisteredComponent` and `mergeComponents` live in the pure
+`@gobrand/openstory-config` package so the Node plugin and the browser harness share
+one validate + dedupe implementation.
 
 ### C. id / name / sourcePath defaulting
 
@@ -105,15 +106,17 @@ separate from **`id`** (unique key):
 
 - **`name`** = `def.component.displayName ?? def.component.name ?? "Component"`,
   set by `defineStories`. The sidebar tree labels by `name`, not `humanize(id)`.
-- **`id`**: `def.id` if set; else for a **discovered** file, a slug of its path
-  relative to the project root, minus the `.stories` segment
-  (`packages/ui/src/button.stories.tsx` → `packages-ui-src-button`) — stable and
-  unique. Escape-hatch `components` keep `defineStories`' component-name auto-id.
-  (Path-id is applied in `discover.ts`, which knows the file path; `defineStories`
-  itself still produces the component-name id for the escape hatch.)
-- **`sourcePath`**: if unset, default to the story file's own absolute path (Node:
-  glob path; harness: `import.meta.glob` key). Drives section derivation and the
-  Code panel. Author may override to the component file.
+- **`id`** = `def.id` if set, else `kebab(componentName)` — **unchanged from today**,
+  derived from the module so Node and harness always agree (a path-derived id can't:
+  Node has an absolute FS path, the harness an `import.meta.glob` key, and the browser
+  can't reconcile them). A duplicate id across files **dev-warns** ("two components
+  resolve to id X; set an explicit `id`"); the merge keeps the first. Same-named
+  components in different packages need an explicit `id` — exactly as Storybook
+  requires unique `title`s.
+- **`sourcePath`**: if unset, default to the story file's own path — **Node side only**
+  (`discover.ts` has the glob path). It drives section derivation and the Code panel,
+  both Node-only; the harness never reads `sourcePath`, so it isn't defaulted there.
+  Author may override to point at the component file.
 
 ### D. Skip rule
 
@@ -150,27 +153,32 @@ treat `pl:manifest` as a refetch trigger** — on receipt, the desktop re-fetche
 // styles first (unchanged)
 import '<style>'
 import { mountPreviewHost } from '@gobrand/openstory-runtime'
+import { isRegisteredComponent, mergeComponents } from '@gobrand/openstory-config'
 const userConfig = <configPath ? `(await import('<configPath>')).default` : `{}`>
 const modules = import.meta.glob([<...literal patterns>], { eager: true })
-// collect valid defaults, default sourcePath to the module key, merge userConfig.components
-mountPreviewHost(target, mergeDiscovered(userConfig, modules))
+const discovered = Object.values(modules)
+  .map((m) => m.default)
+  .filter(isRegisteredComponent)
+const components = mergeComponents(discovered, userConfig.components ?? [])
+mountPreviewHost(target, { ...userConfig, components })
 ```
 
-`mergeDiscovered` (small runtime helper in `@gobrand/openstory-runtime`) applies the
-same validate + sourcePath-default + id-default + dedupe logic as `discover.ts`, so
-both sides agree. Patterns are emitted as literals (Vite statically analyzes
-`import.meta.glob`); the plugin reads them from the config at generation time.
+The harness imports the shared `isRegisteredComponent` + `mergeComponents` from
+`@gobrand/openstory-config` (same functions `discover.ts` uses), so both sides agree.
+The harness does NOT default `sourcePath` (not needed for rendering). Patterns are
+emitted as literals (Vite statically analyzes `import.meta.glob`); the plugin reads
+them from the config at generation time.
 
 ## Touch-points
 
 | Layer | File | Change |
 |-------|------|--------|
-| Config types | `packages/config/src/define.ts` | `OpenStoryConfig.stories?`; `RegisteredComponent.name`; `defineStories` sets `name`; export `RegisteredComponent` shape |
-| Discovery | `packages/vite-plugin/src/discover.ts` (new) | `resolvePatterns`, `isRegisteredComponent`, `discoverComponents` |
+| Config types | `packages/config/src/define.ts` | `OpenStoryConfig.stories?`; `RegisteredComponent.name`; `defineStories` sets `name` |
+| Shared discovery helpers | `packages/config/src/discover.ts` (new) | `isRegisteredComponent`, `mergeComponents` (pure; used by Node plugin AND browser harness) |
+| Discovery (Node) | `packages/vite-plugin/src/discover.ts` (new) | `resolvePatterns`, `discoverComponents` (glob + load + sourcePath default); adds `tinyglobby` dep |
 | Manifest | `packages/vite-plugin/src/plugin.ts` | manifest route + `buildManifest` glob-discover + merge; pass patterns to harness entry; emit `name` |
 | Harness | `packages/vite-plugin/src/harness-loader.ts` | generate `import.meta.glob` entry; config optional |
-| Merge helper | `packages/runtime/src/discover.ts` (new) or `index.ts` | `mergeDiscovered` shared by the harness |
-| Bridge/host | `packages/runtime/src/{bridge,preview-host}.ts` | thread `name`; harness consumes merged config |
+| Host | `packages/runtime/src/preview-host.tsx` | thread `name` into the `pl:manifest` message |
 | Desktop types | `apps/desktop/electron/types.ts` | `ManifestComponent.name` |
 | Desktop refetch | `apps/desktop/electron/ipc.ts` (+ renderer bridge) | on `pl:manifest`, re-fetch manifest + broadcast |
 | Tree label | `apps/desktop/src/components/sidebar/build-tree.ts` | label by `name` |
@@ -178,12 +186,13 @@ both sides agree. Patterns are emitted as literals (Vite statically analyzes
 
 ## Testing
 
-- **config** (`define.test.ts`): `stories` field present/typed; `defineStories` sets
-  `name` from displayName/name; escape-hatch component shape unchanged.
+- **config** (`define.test.ts` + `discover.test.ts`): `stories` field present/typed;
+  `defineStories` sets `name` from displayName/name; `isRegisteredComponent` accepts a
+  `defineStories` result, rejects a `Meta`-like object; `mergeComponents` dedupes by id
+  (explicit wins), warns on a discovered-vs-discovered dup.
 - **vite-plugin** (`discover.test.ts`): `resolvePatterns` default + override;
-  `isRegisteredComponent` accepts `defineStories` result, rejects a `Meta`-like
-  object; `discoverComponents` with a fake `load` — globs fixture files, skips
-  invalid, defaults sourcePath to file path, path-derives id, honors ignores.
+  `discoverComponents` with a fake `load` — globs fixture files, skips invalid,
+  defaults sourcePath to file path, honors ignores.
 - **vite-plugin** (`plugin.test.ts`): `buildManifest` merges discovered + `components`
   (explicit wins on dup id); emits `name`; sourcePath/section flow intact.
 - **harness-loader** (`plugin.test.ts`): generated entry contains
@@ -194,7 +203,7 @@ both sides agree. Patterns are emitted as literals (Vite statically analyzes
 
 ## Risks
 
-- **Two discovery sites** (Node `fast-glob` vs Vite `import.meta.glob`) could drift —
+- **Two discovery sites** (Node `tinyglobby` vs Vite `import.meta.glob`) could drift —
   mitigated by sharing the validate/default/merge logic (`mergeDiscovered`) and the
   same patterns; tested on both.
 - **`import.meta.glob` needs literal patterns** — the plugin emits them as literals
