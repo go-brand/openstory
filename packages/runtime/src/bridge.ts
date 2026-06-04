@@ -4,6 +4,13 @@ export type RenderMessage = {
   storyId: string;
   viewport: "desktop" | "mobile";
   fixtureOverrides?: Record<string, unknown>;
+  /**
+   * `story` (default) renders the single selected fixture on the canvas; `docs`
+   * renders the component's auto-docs page — title + every story stacked
+   * vertically in one scrollable document, mirroring Storybook's Docs view.
+   * In docs mode `storyId`/`fixtureOverrides` are ignored.
+   */
+  mode?: "story" | "docs";
 };
 
 export type ReadyMessage = {

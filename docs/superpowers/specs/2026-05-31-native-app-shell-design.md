@@ -55,11 +55,12 @@ Under the titlebar, in the main column. Left: one "tab" chip showing the active 
 - `code` mode: source fetched via IPC, rendered in a mono/wrapped `<pre>` with a Copy button. No syntax-highlighting library (YAGNI). Falls back to a generated `<Component {...props} />` JSX snippet when no source resolves.
 
 ### F. Real-source plumbing (only backend work)
-1. `StoriesDef` / `PreviewDef` in `packages/config/src/define.ts` gain optional `sourcePath?: string`.
-2. openstory vite-plugin auto-captures each stories file's path by injecting `import.meta.url` into `defineStories(...)` calls via a targeted transform; `defineStories` accepts an optional leading source-url arg. Explicit `sourcePath` in the def overrides the auto-captured path (e.g. to point at the component `.tsx`).
-3. `buildManifest` adds `sourcePath: string | null` per preview (explicit resolved vs project root → else auto-captured → else null).
-4. New IPC `preview:getSource(previewId)` in `electron/ipc.ts` + `electron/types.ts`: fs-reads the file (guard: path must resolve inside the active project root; size cap e.g. 256 KB) → `{ path: string; code: string } | null`.
-5. Example `examples/linkedin-starter/openstory.config.ts` / stories set `sourcePath` to the component `linkedin.tsx` so the Code panel shows component code.
+Mechanism: **explicit opt-in `sourcePath`** on the preview/stories def. Chosen over auto-capturing the stories file path (via an `import.meta.url` injection transform) because it is lower-risk (no source mutation, no node-in-browser bundling concern) and *more* correct — it points at the component file the user actually wants to see, not the stories wrapper.
+1. `StoriesDef` / `PreviewDef` / `RegisteredPreview` in `packages/config/src/define.ts` gain optional `sourcePath?: string` (relative to the project root). `defineStories` copies it through.
+2. `buildManifest(config, projectRoot?)` in the vite-plugin resolves `sourcePath` against `projectRoot` to an absolute path and adds `sourcePath: string | null` per preview (null when not set).
+3. New IPC `preview:getSource(previewId)` in `electron/ipc.ts` + `electron/types.ts`: looks up the preview's `sourcePath` from the in-memory manifest, fs-reads it (guard: resolved path must sit inside the active project root; size cap 256 KB) → `{ path: string; code: string } | null`.
+4. Example `examples/linkedin-starter/openstory.config.ts` stories set `sourcePath` to the component `linkedin.tsx` so the Code panel shows component code.
+5. Projects that don't set `sourcePath` get `null` → Code panel falls back to the generated `<Component {...props} />` snippet.
 
 ### G. Icons
 Migrate the desktop app from `lucide-react` to `@hugeicons/react` + `@hugeicons/core-free-icons`. Add deps to `apps/desktop/package.json`. Replace each icon usage with `<HugeiconsIcon icon={…Icon} />`. The Button CVA `[&_svg]:size-3.5` selector keeps sizing.

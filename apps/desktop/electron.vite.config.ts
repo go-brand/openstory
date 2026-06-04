@@ -1,17 +1,17 @@
-import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     build: {
       lib: {
-        entry: resolve(__dirname, 'electron/main.ts'),
+        entry: resolve(__dirname, "electron/main.ts"),
       },
     },
   },
@@ -20,39 +20,40 @@ export default defineConfig({
     build: {
       rollupOptions: {
         output: {
-          format: 'cjs',
-          entryFileNames: 'preload.cjs',
+          format: "cjs",
+          entryFileNames: "preload.cjs",
         },
       },
       lib: {
-        entry: resolve(__dirname, 'electron/preload.ts'),
+        entry: resolve(__dirname, "electron/preload.ts"),
       },
     },
   },
   renderer: {
-    root: '.',
+    root: ".",
     // Pre-bundle the renderer's deps up front. Otherwise Vite discovers them
     // lazily (e.g. only once the project/Select path renders), re-optimizes
     // mid-session, and force-reloads the window — which briefly tears down React
     // and surfaces a transient "Invalid hook call" before the reload settles.
     optimizeDeps: {
       include: [
-        'react',
-        'react-dom',
-        'react-dom/client',
-        'class-variance-authority',
-        'tailwind-merge',
-        'lucide-react',
-        '@radix-ui/react-slot',
-        '@radix-ui/react-select',
-        '@radix-ui/react-checkbox',
-        '@radix-ui/react-separator',
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "class-variance-authority",
+        "tailwind-merge",
+        "@hugeicons/react",
+        "@hugeicons/core-free-icons",
+        "@radix-ui/react-slot",
+        "@radix-ui/react-select",
+        "@radix-ui/react-checkbox",
+        "@radix-ui/react-separator",
       ],
     },
     build: {
       rollupOptions: {
         input: {
-          hud: resolve(__dirname, 'index.html'),
+          hud: resolve(__dirname, "index.html"),
         },
       },
     },

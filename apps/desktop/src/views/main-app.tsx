@@ -15,7 +15,6 @@ import {
   type AddonState,
 } from "../lib/preview-view";
 import { CommandPalette } from "../components/command-palette";
-import { DocsStub } from "../components/docs-stub";
 
 export function MainApp({ state, api }: { state: AppState; api: Api }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -46,7 +45,10 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
     state.manifest.find((p) => p.id === state.selection.componentId) ?? state.manifest[0];
   const story =
     component?.stories.find((v) => v.id === state.selection.storyId) ?? component?.stories[0];
-  const docsComponent = state.selection.docsComponentId
+  // Docs mode renders inside the iframe (the host stacks every story under a
+  // title). The manager just suppresses the per-story controls panel.
+  const docsActive = state.selection.docsComponentId !== null;
+  const docsComponent = docsActive
     ? state.manifest.find((p) => p.id === state.selection.docsComponentId)
     : undefined;
 
@@ -113,7 +115,6 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
                 <CanvasEmpty vite={state.vite} />
               </div>
             )}
-            {docsComponent && <DocsStub componentName={docsComponent.id} />}
             {state.iframeUrl && !component && !docsComponent && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-canvas p-6">
                 <CanvasEmpty vite={state.vite} emptyRepo />
@@ -122,9 +123,12 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
           </div>
         </main>
 
+        {/* Keep the panel MOUNTED across docs↔story so it collapses via its own
+            width animation instead of snapping the canvas on mount/unmount. In
+            docs we drive it closed (controls don't apply to the stacked view). */}
         {component && (
           <RightPanel
-            isOpen={sidebarOpen}
+            isOpen={sidebarOpen && !docsActive}
             tab={panelTab}
             onTabChange={setPanelTab}
             state={state}

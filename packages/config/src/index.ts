@@ -3,6 +3,7 @@ export {
   defineStories,
   deriveControls,
   type Fixture,
+  type Layout,
   type ManifestControl,
   type ComponentDef,
   type OpenStoryConfig,

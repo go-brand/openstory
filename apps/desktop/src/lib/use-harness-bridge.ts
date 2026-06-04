@@ -21,7 +21,23 @@ export function useHarnessBridge(
   postRef.current = () => {
     const win = iframeRef.current?.contentWindow;
     const s = latest.current;
-    if (!win || !s.componentId || !s.storyId) return;
+    if (!win) return;
+    // Docs selection wins: render the component's stacked docs page instead of a
+    // single story. `storyId`/overrides are ignored by the host in docs mode.
+    if (s.docsComponentId) {
+      win.postMessage(
+        {
+          type: "pl:render",
+          mode: "docs",
+          componentId: s.docsComponentId,
+          storyId: "",
+          viewport: s.viewport,
+        },
+        "*",
+      );
+      return;
+    }
+    if (!s.componentId || !s.storyId) return;
     win.postMessage(
       {
         type: "pl:render",
@@ -54,10 +70,16 @@ export function useHarnessBridge(
   // contents so this effect only fires on a real override change.
   const propOverridesKey = JSON.stringify(selection.propOverrides);
 
-  // Re-post on any selection/override change.
+  // Re-post on any selection/override change (docs toggle included).
   useEffect(() => {
     postRef.current();
-  }, [selection.componentId, selection.storyId, selection.viewport, propOverridesKey]);
+  }, [
+    selection.componentId,
+    selection.storyId,
+    selection.viewport,
+    selection.docsComponentId,
+    propOverridesKey,
+  ]);
 
   // Re-post addon toggles whenever they change.
   const addonsKey = JSON.stringify(addons);

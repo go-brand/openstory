@@ -7,6 +7,16 @@ export type Viewport = {
   dpr?: number;
 };
 
+/**
+ * How the rendered component is positioned within the preview surface, mirroring
+ * Storybook's `layout` parameter:
+ * - `padded` (default): 1rem of breathing room on every side so the component
+ *   never touches the canvas edges or the toolbar above it.
+ * - `centered`: vertically + horizontally centered in the surface.
+ * - `fullscreen`: flush to the edges, no padding.
+ */
+export type Layout = "padded" | "centered" | "fullscreen";
+
 export type Fixture<TProps = unknown> = {
   id: string;
   label: string;
@@ -69,6 +79,8 @@ export type ComponentDef<TProps = unknown> = {
   group?: string;
   /** Named render preset (viewport + chrome). Omit for the neutral default. */
   preset?: string;
+  /** Positioning of the render within the preview surface. Defaults to `padded`. */
+  layout?: Layout;
   component: ComponentType<TProps>;
   fixtures: Fixture<TProps>[];
   viewports?: Partial<Record<"desktop" | "mobile", Viewport>>;
@@ -90,6 +102,8 @@ export type RegisteredComponent = {
   name?: string;
   group?: string;
   preset?: string;
+  /** Positioning of the render within the preview surface. Defaults to `padded`. */
+  layout?: Layout;
   component: ComponentType<never>;
   fixtures: Fixture<unknown>[];
   viewports?: Partial<Record<"desktop" | "mobile", Viewport>>;
@@ -132,6 +146,8 @@ export type StoriesDef<TProps> = {
   group?: string;
   /** Named render preset (viewport + chrome). Omit for the neutral default. */
   preset?: string;
+  /** Positioning of the render within the preview surface. Defaults to `padded`. */
+  layout?: Layout;
   /** Optional explicit id; defaults to the component's displayName/name. */
   id?: string;
   /** Explicit viewport overrides; otherwise derived from the preset. */
@@ -222,6 +238,7 @@ export function defineStories<TProps>(def: StoriesDef<TProps>): RegisteredCompon
   };
   if (def.group !== undefined) result.group = def.group;
   if (def.preset !== undefined) result.preset = def.preset;
+  if (def.layout !== undefined) result.layout = def.layout;
   if (def.viewports !== undefined) {
     result.viewports = def.viewports;
   }
