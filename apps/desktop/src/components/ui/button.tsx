@@ -8,12 +8,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary:
-          "bg-brand text-primary-foreground shadow-sm shadow-brand/30 hover:bg-brand/90 hover:shadow-md hover:shadow-brand/40",
-        secondary:
-          "bg-foreground/[0.06] text-foreground ring-1 ring-border ring-inset hover:bg-foreground/[0.1] hover:text-foreground",
+        primary: "bg-brand text-primary-foreground hover:bg-brand/90",
+        secondary: "bg-foreground/[0.05] text-foreground hover:bg-foreground/[0.09]",
         ghost: "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground",
-        active: "bg-brand-soft text-brand ring-1 ring-brand/30 ring-inset hover:bg-brand-soft",
+        active: "bg-brand-soft text-brand hover:bg-brand-soft",
       },
       size: {
         sm: "h-7 px-2.5 text-[11px]",
