@@ -104,10 +104,13 @@ export function Toolbar({
               <button
                 key={v}
                 type="button"
+                title={v === "desktop" ? "Desktop" : "Mobile"}
+                aria-label={v === "desktop" ? "Desktop" : "Mobile"}
+                aria-pressed={on}
                 disabled={noPreview}
                 onClick={() => setViewport(v)}
                 className={cn(
-                  "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium transition-colors disabled:opacity-40",
+                  "inline-flex size-7 items-center justify-center rounded-md transition-colors disabled:opacity-40",
                   on
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -117,7 +120,6 @@ export function Toolbar({
                   icon={v === "desktop" ? ComputerIcon : SmartPhone01Icon}
                   className="size-3.5"
                 />
-                {v === "desktop" ? "Desktop" : "Mobile"}
               </button>
             );
           })}
