@@ -2,20 +2,24 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppState, ManifestComponent, PreviewSource } from "../../electron/types";
 import type { Api } from "../lib/api";
 import { Button } from "./ui/button";
-import { HugeiconsIcon, SlidersHorizontalIcon, Copy01Icon } from "../lib/icons";
-import type { PanelMode } from "./toolbar";
+import { HugeiconsIcon, Copy01Icon } from "../lib/icons";
+import { cn } from "../lib/utils";
+
+export type PanelTab = "controls" | "code";
 
 type Story = ManifestComponent["stories"][number] | undefined;
 
 export function RightPanel({
-  mode,
+  tab,
+  onTabChange,
   state,
   api,
   component,
   story,
   onSetControl,
 }: {
-  mode: Exclude<PanelMode, null>;
+  tab: PanelTab;
+  onTabChange: (tab: PanelTab) => void;
   state: AppState;
   api: Api;
   component: ManifestComponent;
@@ -24,7 +28,28 @@ export function RightPanel({
 }) {
   return (
     <aside className="flex w-[320px] flex-col overflow-hidden border-l border-border bg-sidebar">
-      {mode === "code" ? (
+      <div className="flex h-11 shrink-0 items-center gap-4 border-b border-border px-4">
+        {(["controls", "code"] as const).map((t) => {
+          const on = tab === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onTabChange(t)}
+              className={cn(
+                "relative flex h-11 items-center text-[12px] transition-colors",
+                on
+                  ? "font-semibold text-foreground"
+                  : "font-medium text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t === "controls" ? "Controls" : "Code"}
+              {on && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />}
+            </button>
+          );
+        })}
+      </div>
+      {tab === "code" ? (
         <CodePanel state={state} api={api} component={component} story={story} />
       ) : (
         <InspectPanel
@@ -53,11 +78,6 @@ function InspectPanel({
     <div className="flex flex-col gap-7 overflow-y-auto px-5 py-5">
       {component.controls.length > 0 && story ? (
         <section className="flex flex-col gap-3">
-          <SectionHeader
-            icon={<HugeiconsIcon icon={SlidersHorizontalIcon} className="size-3" />}
-            title="Controls"
-            subtitle="Tweak props live"
-          />
           <div className="flex flex-col gap-4">
             {component.controls.map((c) => {
               const value = state.selection.propOverrides[c.name] ?? story.props[c.name];
@@ -170,26 +190,6 @@ function CodePanel({
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-function SectionHeader({
-  icon,
-  title,
-  subtitle,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-1.5 text-[10px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-        <span className="text-muted-foreground">{icon}</span>
-        {title}
-      </div>
-      <span className="text-[11px] text-muted-foreground">{subtitle}</span>
-    </div>
-  );
-}
 
 function relativeName(path: string): string {
   const parts = path.split(/[\\/]/);

@@ -5,17 +5,29 @@ import { useHarnessBridge } from "../lib/use-harness-bridge";
 import { HugeiconsIcon, PackageIcon, Loading03Icon, Alert02Icon } from "../lib/icons";
 import { Titlebar } from "../components/titlebar";
 import { Sidebar } from "../components/sidebar";
-import { Toolbar, type PanelMode } from "../components/toolbar";
-import { RightPanel } from "../components/right-panel";
+import { Toolbar } from "../components/toolbar";
+import { RightPanel, type PanelTab } from "../components/right-panel";
+import {
+  NO_ADDONS,
+  clampZoom,
+  zoomStep,
+  type AddonName,
+  type AddonState,
+} from "../lib/preview-view";
 import { CommandPalette } from "../components/command-palette";
 import { DocsStub } from "../components/docs-stub";
 
 export function MainApp({ state, api }: { state: AppState; api: Api }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  useHarnessBridge(iframeRef, state.selection, api);
-
-  const [panelMode, setPanelMode] = useState<PanelMode>("inspect");
+  const [zoom, setZoom] = useState(1);
+  const [addons, setAddons] = useState<AddonState>(NO_ADDONS);
+  const [panelTab, setPanelTab] = useState<PanelTab>("controls");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const { reload } = useHarnessBridge(iframeRef, state.selection, api, addons);
+
+  function toggleAddon(addon: AddonName) {
+    setAddons((a) => ({ ...a, [addon]: !a[addon] }));
+  }
 
   // ⌘K / Ctrl+K toggles the command palette from anywhere in the window.
   useEffect(() => {
@@ -67,12 +79,24 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
             api={api}
             component={component}
             story={story}
-            panelMode={panelMode}
-            setPanelMode={setPanelMode}
+            zoom={zoom}
+            onZoomIn={() => setZoom((z) => zoomStep(z, 1))}
+            onZoomOut={() => setZoom((z) => zoomStep(z, -1))}
+            onZoomReset={() => setZoom(1)}
+            addons={addons}
+            onToggleAddon={toggleAddon}
+            onReload={reload}
           />
-          <div className="relative flex flex-1 items-center justify-center overflow-auto p-6">
+          <div className="relative flex-1 overflow-auto bg-canvas">
             {state.iframeUrl ? (
-              <div className="h-full w-full overflow-hidden rounded-xl border border-input bg-muted shadow-2xl shadow-black/50">
+              <div
+                className="h-full w-full origin-top-left"
+                style={{
+                  transform: `scale(${clampZoom(zoom)})`,
+                  width: `${100 / clampZoom(zoom)}%`,
+                  height: `${100 / clampZoom(zoom)}%`,
+                }}
+              >
                 <iframe
                   ref={iframeRef}
                   src={state.iframeUrl}
@@ -80,20 +104,23 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
                 />
               </div>
             ) : (
-              <CanvasEmpty vite={state.vite} />
+              <div className="flex h-full w-full items-center justify-center">
+                <CanvasEmpty vite={state.vite} />
+              </div>
             )}
             {docsComponent && <DocsStub componentName={docsComponent.id} />}
             {state.iframeUrl && !component && !docsComponent && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background p-6">
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-canvas p-6">
                 <CanvasEmpty vite={state.vite} emptyRepo />
               </div>
             )}
           </div>
         </main>
 
-        {component && panelMode && (
+        {component && (
           <RightPanel
-            mode={panelMode}
+            tab={panelTab}
+            onTabChange={setPanelTab}
             state={state}
             api={api}
             component={component}
