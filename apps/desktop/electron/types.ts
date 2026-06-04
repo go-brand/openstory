@@ -42,6 +42,10 @@ export type ManifestComponent = {
   section: string | null;
   /** Resolved chrome background for this preview's preset. */
   background: string;
+  /** Positioning of the render within the preview surface. Defaults to `padded`.
+   *  Mirrors config's `Layout` (duplicated here to keep the Electron main process
+   *  free of a `@gobrand/openstory-config` import, same as `ManifestControl`). */
+  layout: "padded" | "centered" | "fullscreen";
   stories: Array<{
     id: string;
     label: string;

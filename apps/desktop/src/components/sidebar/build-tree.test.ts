@@ -9,6 +9,7 @@ function component(over: Partial<ManifestComponent> & { id: string }): ManifestC
     group: over.group ?? "",
     section: over.section ?? null,
     background: "#fff",
+    layout: over.layout ?? "padded",
     stories: over.stories ?? [{ id: "default", label: "Default", props: {} }],
     controls: [],
     sourcePath: null,

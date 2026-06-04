@@ -79,6 +79,7 @@ describe("buildManifest", () => {
       group: "LinkedIn",
       section: null,
       background: "#f3f2ef",
+      layout: "padded",
       stories: [
         { id: "a", label: "A", props: { text: "hi", dark: true } },
         { id: "b", label: "B", props: { text: "yo" } },
@@ -138,10 +139,23 @@ describe("buildManifest", () => {
       group: "",
       section: null,
       background: "#f4f4f5",
+      layout: "padded",
       stories: [],
       controls: [],
       sourcePath: null,
     });
+  });
+
+  it("emits layout — defaulting to padded, passing an explicit value through", () => {
+    const config = defineOpenStoryConfig({
+      components: [
+        { id: "a", component: () => null, fixtures: [] },
+        { id: "b", component: () => null, fixtures: [], layout: "centered" },
+      ],
+    });
+    const [a, b] = buildManifest(config).components;
+    expect(a?.layout).toBe("padded");
+    expect(b?.layout).toBe("centered");
   });
 
   it("derives a section from a monorepo sourcePath", () => {

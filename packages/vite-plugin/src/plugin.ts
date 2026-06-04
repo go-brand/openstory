@@ -99,6 +99,7 @@ export function buildManifest(config: OpenStoryConfig, projectRoot?: string) {
         group: p.group ?? "",
         section: deriveSection(sourcePath),
         background: render.background,
+        layout: p.layout ?? "padded",
         stories: p.fixtures.map((f) => ({
           id: f.id,
           label: f.label,
