@@ -8,6 +8,7 @@ import {
   type Fixture,
 } from "@gobrand/openstory-config";
 import { parseBridgeMessage, type RenderMessage, type ManifestMessage } from "./bridge.js";
+import { applyAddons, type AddonState } from "./addons/index.js";
 
 export type ViewportName = "desktop" | "mobile";
 
@@ -88,9 +89,26 @@ function FallbackMessage({ text }: { text: string }) {
 
 function App({ config }: { config: OpenStoryConfig }) {
   const [selection, setSelection] = useState<ActiveSelection | null>(readSelectionFromUrl);
+  const [addons, setAddons] = useState<AddonState>({
+    outline: false,
+    grid: false,
+    measure: false,
+  });
+  const [remountKey, setRemountKey] = useState(0);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
+      const raw = event.data as { type?: string; addon?: keyof AddonState; enabled?: boolean };
+      if (raw?.type === "os:addon" && raw.addon) {
+        const addon = raw.addon;
+        const enabled = Boolean(raw.enabled);
+        setAddons((a) => ({ ...a, [addon]: enabled }));
+        return;
+      }
+      if (raw?.type === "os:reload") {
+        setRemountKey((k) => k + 1);
+        return;
+      }
       const msg = parseBridgeMessage(event.data);
       if (!msg) return;
       if (msg.type === "pl:render") {
@@ -109,6 +127,11 @@ function App({ config }: { config: OpenStoryConfig }) {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
+  // Reconcile overlays to the toggled state. Setters are idempotent.
+  useEffect(() => {
+    applyAddons(addons);
+  }, [addons]);
+
   useEffect(() => {
     const manifest: ManifestMessage = {
       type: "pl:manifest",
@@ -123,7 +146,7 @@ function App({ config }: { config: OpenStoryConfig }) {
   }, [config]);
 
   if (!selection) return <FallbackMessage text="Waiting for selection..." />;
-  return <PreviewStage config={config} selection={selection} />;
+  return <PreviewStage key={remountKey} config={config} selection={selection} />;
 }
 
 export function mountPreviewHost(target: HTMLElement, config: OpenStoryConfig): void {
