@@ -22,6 +22,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
   const [zoom, setZoom] = useState(1);
   const [addons, setAddons] = useState<AddonState>(NO_ADDONS);
   const [panelTab, setPanelTab] = useState<PanelTab>("controls");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { reload } = useHarnessBridge(iframeRef, state.selection, api, addons);
 
@@ -66,7 +67,11 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
-      <Titlebar onOpenPalette={() => setPaletteOpen(true)} />
+      <Titlebar
+        onOpenPalette={() => setPaletteOpen(true)}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen((o) => !o)}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar state={state} api={api} onSelectStory={selectStory} />
@@ -119,6 +124,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
 
         {component && (
           <RightPanel
+            isOpen={sidebarOpen}
             tab={panelTab}
             onTabChange={setPanelTab}
             state={state}

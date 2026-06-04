@@ -9,7 +9,10 @@ export type PanelTab = "controls" | "code";
 
 type Story = ManifestComponent["stories"][number] | undefined;
 
+const PANEL_WIDTH = 320;
+
 export function RightPanel({
+  isOpen,
   tab,
   onTabChange,
   state,
@@ -18,6 +21,7 @@ export function RightPanel({
   story,
   onSetControl,
 }: {
+  isOpen: boolean;
   tab: PanelTab;
   onTabChange: (tab: PanelTab) => void;
   state: AppState;
@@ -27,38 +31,53 @@ export function RightPanel({
   onSetControl: (name: string, value: unknown) => void;
 }) {
   return (
-    <aside className="flex w-[320px] flex-col overflow-hidden border-l border-border bg-sidebar">
-      <div className="flex h-11 shrink-0 items-center gap-4 border-b border-border px-4">
-        {(["controls", "code"] as const).map((t) => {
-          const on = tab === t;
-          return (
-            <button
-              key={t}
-              type="button"
-              onClick={() => onTabChange(t)}
-              className={cn(
-                "relative flex h-11 items-center text-[12px] transition-colors",
-                on
-                  ? "font-semibold text-foreground"
-                  : "font-medium text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t === "controls" ? "Controls" : "Code"}
-              {on && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />}
-            </button>
-          );
-        })}
-      </div>
-      {tab === "code" ? (
-        <CodePanel state={state} api={api} component={component} story={story} />
-      ) : (
-        <InspectPanel
-          state={state}
-          component={component}
-          story={story}
-          onSetControl={onSetControl}
-        />
+    <aside
+      aria-hidden={!isOpen}
+      className={cn(
+        "relative flex h-full shrink-0 overflow-hidden border-l border-border bg-sidebar",
+        "transition-[width] duration-200 ease-out motion-reduce:transition-none",
+        !isOpen && "border-transparent",
       )}
+      style={{ width: isOpen ? PANEL_WIDTH : 0 }}
+    >
+      {/* Pin content to the panel's full width so it lays out at its final size
+          from the first frame — the aside animates 0 -> width and clips,
+          revealing the content rather than reflowing it. */}
+      <div className="flex h-full flex-col" style={{ width: PANEL_WIDTH, minWidth: PANEL_WIDTH }}>
+        <div className="flex h-11 shrink-0 items-center gap-4 border-b border-border px-4">
+          {(["controls", "code"] as const).map((t) => {
+            const on = tab === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => onTabChange(t)}
+                className={cn(
+                  "relative flex h-11 items-center text-[12px] transition-colors",
+                  on
+                    ? "font-semibold text-foreground"
+                    : "font-medium text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t === "controls" ? "Controls" : "Code"}
+                {on && (
+                  <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {tab === "code" ? (
+          <CodePanel state={state} api={api} component={component} story={story} />
+        ) : (
+          <InspectPanel
+            state={state}
+            component={component}
+            story={story}
+            onSetControl={onSetControl}
+          />
+        )}
+      </div>
     </aside>
   );
 }
