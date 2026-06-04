@@ -85,6 +85,9 @@ export type ComponentDef<TProps = unknown> = {
 // in `components[]`. ComponentType<never> accepts any component (contravariance).
 export type RegisteredComponent = {
   id: string;
+  /** Human display label for the sidebar (decoupled from the unique id).
+   *  Always set by defineStories; optional for raw literals. */
+  name?: string;
   group?: string;
   preset?: string;
   component: ComponentType<never>;
@@ -95,7 +98,10 @@ export type RegisteredComponent = {
 };
 
 export type OpenStoryConfig = {
-  components: RegisteredComponent[];
+  components?: RegisteredComponent[];
+  /** Glob patterns (relative to project root) for auto-discovered story files.
+   *  Omit for the default ["**\/*.stories.{ts,tsx}"]. */
+  stories?: string[];
   providers?: ComponentType<{ children: ReactNode }>;
   styles?: string[];
   /** User-defined render presets, merged over the built-ins. */
@@ -201,13 +207,16 @@ export function defineStories<TProps>(def: StoriesDef<TProps>): RegisteredCompon
     return fixture;
   });
 
-  const componentName = def.component.displayName ?? def.component.name ?? "component";
+  const componentName = def.component.displayName ?? def.component.name ?? "Component";
   // Strip a trailing "Preview" (legacy social-preview components like
-  // `LinkedinPreview` → id "linkedin"); harmless for normally-named components.
-  const autoId = kebabCase(componentName.replace(/Preview$/, "")) || "component";
+  // `LinkedinPreview` → "Linkedin"); harmless for normally-named components.
+  const base = componentName.replace(/Preview$/, "");
+  const name = humanize(base) || "Component";
+  const autoId = kebabCase(base) || "component";
 
   const result: RegisteredComponent = {
     id: def.id ?? autoId,
+    name,
     component: def.component as unknown as ComponentType<never>,
     fixtures,
   };

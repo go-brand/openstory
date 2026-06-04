@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { defineOpenStoryConfig, deriveControls } from "./define";
+import { defineOpenStoryConfig, defineStories, deriveControls } from "./define";
 
 describe("defineOpenStoryConfig", () => {
   it("returns the config unchanged", () => {
@@ -77,5 +77,32 @@ describe("deriveControls", () => {
 
   it("returns an empty array for empty fixtures", () => {
     expect(deriveControls([])).toEqual([]);
+  });
+});
+
+describe("defineStories name", () => {
+  it("derives name from the component, stripping a Preview suffix and humanizing", () => {
+    function LinkedinPreview() {
+      return null;
+    }
+    const reg = defineStories({ component: LinkedinPreview, stories: { A: {} } });
+    expect(reg.name).toBe("Linkedin");
+    expect(reg.id).toBe("linkedin");
+  });
+
+  it("uses the component name verbatim (humanized) when there is no Preview suffix", () => {
+    function Button() {
+      return null;
+    }
+    const reg = defineStories({ component: Button, stories: { A: {} } });
+    expect(reg.name).toBe("Button");
+    expect(reg.id).toBe("button");
+  });
+});
+
+describe("OpenStoryConfig.stories", () => {
+  it("accepts a stories glob-patterns array", () => {
+    const config = defineOpenStoryConfig({ stories: ["src/**/*.stories.tsx"], components: [] });
+    expect(config.stories).toEqual(["src/**/*.stories.tsx"]);
   });
 });
