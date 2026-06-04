@@ -103,7 +103,35 @@ function InspectPanel({
               return (
                 <label key={c.name} className="flex flex-col gap-1.5 text-[11px]">
                   <span className="font-medium text-muted-foreground">{c.name}</span>
-                  {c.kind === "boolean" ? (
+                  {c.kind === "select" ? (
+                    <select
+                      value={typeof value === "string" ? value : ""}
+                      onChange={(e) => onSetControl(c.name, e.target.value)}
+                      className="h-8 rounded-lg border border-border bg-card px-2.5 text-[12px] text-foreground transition-colors focus-visible:border-brand/60 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none"
+                    >
+                      {(c.options ?? []).map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  ) : c.kind === "radio" ? (
+                    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                      {(c.options ?? []).map((opt) => (
+                        <label key={opt} className="flex items-center gap-1.5 text-[12px]">
+                          <input
+                            type="radio"
+                            name={c.name}
+                            value={opt}
+                            checked={value === opt}
+                            onChange={() => onSetControl(c.name, opt)}
+                            className="size-3.5 accent-[var(--color-brand)]"
+                          />
+                          {opt}
+                        </label>
+                      ))}
+                    </div>
+                  ) : c.kind === "boolean" ? (
                     <input
                       type="checkbox"
                       checked={Boolean(value)}
