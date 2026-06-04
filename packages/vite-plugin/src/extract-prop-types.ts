@@ -1,4 +1,5 @@
-import ts from "typescript";
+import type * as TS from "typescript";
+import { createRequire } from "node:module";
 import { statSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -12,14 +13,30 @@ export type PropTypeInfo =
 // Storybook's threshold: <= 5 options render as radio, more as select.
 const RADIO_MAX = 5;
 
+// `typescript` is an OPTIONAL peer dependency. A static `import` would be
+// evaluated at plugin load — before any try/catch — so a consumer without
+// `typescript` installed would crash the whole plugin. Instead we resolve it
+// lazily through createRequire (kept sync) and cache the result, or `null` if
+// it's absent. When null, callers fall back to value-inferred controls.
+let tsCache: typeof TS | null | undefined;
+function loadTs(): typeof TS | null {
+  if (tsCache !== undefined) return tsCache;
+  try {
+    tsCache = createRequire(import.meta.url)("typescript") as typeof TS;
+  } catch {
+    tsCache = null;
+  }
+  return tsCache;
+}
+
 // One ts.Program per project root, reused across components and across
 // buildManifest calls. Rebuilt when the requested source file's mtime is newer
 // than the cached program — catches edits to a component's own props type.
 // (Edits to a separately-imported type file need a manual reload; documented.)
-type Cached = { program: ts.Program; builtAt: number };
+type Cached = { program: TS.Program; builtAt: number };
 const cache = new Map<string, Cached>();
 
-function loadProgram(projectRoot: string): ts.Program | null {
+function loadProgram(ts: typeof TS, projectRoot: string): TS.Program | null {
   const configPath = ts.findConfigFile(projectRoot, ts.sys.fileExists, "tsconfig.json");
   if (!configPath) return null;
   const read = ts.readConfigFile(configPath, ts.sys.readFile);
@@ -28,7 +45,7 @@ function loadProgram(projectRoot: string): ts.Program | null {
   return ts.createProgram({ rootNames: parsed.fileNames, options: parsed.options });
 }
 
-function getProgram(projectRoot: string, sourcePath: string): ts.Program | null {
+function getProgram(ts: typeof TS, projectRoot: string, sourcePath: string): TS.Program | null {
   const hit = cache.get(projectRoot);
   let mtime = 0;
   try {
@@ -37,17 +54,18 @@ function getProgram(projectRoot: string, sourcePath: string): ts.Program | null 
     // File missing — fall through; getSourceFile will return undefined.
   }
   if (hit && mtime <= hit.builtAt) return hit.program;
-  const program = loadProgram(projectRoot);
+  const program = loadProgram(ts, projectRoot);
   if (!program) return null;
   cache.set(projectRoot, { program, builtAt: Date.now() });
   return program;
 }
 
 function pickComponentSymbol(
-  checker: ts.TypeChecker,
-  exports: ts.Symbol[],
+  ts: typeof TS,
+  checker: TS.TypeChecker,
+  exports: TS.Symbol[],
   exportName: string,
-): ts.Symbol | undefined {
+): TS.Symbol | undefined {
   const byName = exports.find((e) => e.getName() === exportName);
   if (byName) return byName;
   const def = exports.find((e) => e.getName() === "default");
@@ -63,13 +81,19 @@ function pickComponentSymbol(
 }
 
 function getPropsType(
-  checker: ts.TypeChecker,
-  sourceFile: ts.SourceFile,
+  ts: typeof TS,
+  checker: TS.TypeChecker,
+  sourceFile: TS.SourceFile,
   exportName: string,
-): ts.Type | undefined {
+): TS.Type | undefined {
   const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
   if (!moduleSymbol) return undefined;
-  const sym = pickComponentSymbol(checker, checker.getExportsOfModule(moduleSymbol), exportName);
+  const sym = pickComponentSymbol(
+    ts,
+    checker,
+    checker.getExportsOfModule(moduleSymbol),
+    exportName,
+  );
   if (!sym) return undefined;
   const resolved = sym.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
   const decl = resolved.valueDeclaration ?? resolved.declarations?.[0];
@@ -84,7 +108,7 @@ function getPropsType(
   return checker.getTypeOfSymbolAtLocation(param, pdecl);
 }
 
-function classify(t: ts.Type): PropTypeInfo | null {
+function classify(ts: typeof TS, t: TS.Type): PropTypeInfo | null {
   if (t.isUnion()) {
     const parts = t.types.filter((m) => !(m.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null)));
     // `boolean` is internally `true | false` — detect before the literal check.
@@ -92,7 +116,7 @@ function classify(t: ts.Type): PropTypeInfo | null {
       return { kind: "boolean" };
     }
     if (parts.length > 0 && parts.every((m) => m.isStringLiteral())) {
-      const options = parts.map((m) => (m as ts.StringLiteralType).value);
+      const options = parts.map((m) => (m as TS.StringLiteralType).value);
       return { kind: options.length <= RADIO_MAX ? "radio" : "select", options };
     }
     return null; // mixed/non-literal union -> value fallback
@@ -105,9 +129,10 @@ function classify(t: ts.Type): PropTypeInfo | null {
 
 /**
  * Extract type-derived control info per prop from a component's source file.
- * Never throws — any failure yields `{}` so callers fall back to value
- * inference. `exportName` is the component's declared/display name; the
- * extractor also tries the default and first-callable export.
+ * Never throws — any failure (including `typescript` not being installed)
+ * yields `{}` so callers fall back to value inference. `exportName` is the
+ * component's declared/display name; the extractor also tries the default and
+ * first-callable export.
  */
 export function extractPropTypes(
   sourcePath: string,
@@ -115,12 +140,14 @@ export function extractPropTypes(
   projectRoot: string,
 ): Record<string, PropTypeInfo> {
   try {
-    const program = getProgram(projectRoot, sourcePath);
+    const ts = loadTs();
+    if (!ts) return {};
+    const program = getProgram(ts, projectRoot, sourcePath);
     if (!program) return {};
     const sourceFile = program.getSourceFile(sourcePath);
     if (!sourceFile) return {};
     const checker = program.getTypeChecker();
-    const propsType = getPropsType(checker, sourceFile, exportName);
+    const propsType = getPropsType(ts, checker, sourceFile, exportName);
     if (!propsType) return {};
 
     const out: Record<string, PropTypeInfo> = {};
@@ -128,7 +155,7 @@ export function extractPropTypes(
       const decl = prop.valueDeclaration ?? prop.declarations?.[0];
       if (!decl) continue;
       const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
-      const info = classify(propType);
+      const info = classify(ts, propType);
       if (info) out[prop.getName()] = info;
     }
     return out;

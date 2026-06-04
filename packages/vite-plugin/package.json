@@ -44,7 +44,13 @@
     "test": "vitest run"
   },
   "peerDependencies": {
+    "typescript": "^5.0.0",
     "vite": "^7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@gobrand/openstory-config": "workspace:^",
