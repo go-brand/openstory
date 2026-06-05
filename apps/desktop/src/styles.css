@@ -158,6 +158,13 @@ body {
   color: var(--foreground);
 }
 
+/* Detached overlay window: keep the body transparent so the desktop / a real
+   site behind the frameless window shows through the canvas. The chrome paints
+   its own translucent background. */
+html.role-detached body {
+  background-color: transparent;
+}
+
 .drag {
   -webkit-app-region: drag;
 }

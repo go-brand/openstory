@@ -37,6 +37,11 @@ function getApi() {
 // at module load rather than on every render.
 const ROLE = new URLSearchParams(window.location.search).get("role") ?? "main";
 
+// The detached overlay must be see-through (it sits over a real site), so drop
+// the opaque body background that the main window relies on. Flagged on <html>
+// at load; styles.css zeroes the body background under this class.
+if (ROLE === "detached") document.documentElement.classList.add("role-detached");
+
 export function App() {
   const api = getApi();
   const [state, setState] = useState<AppState>(FALLBACK_STATE);

@@ -125,12 +125,12 @@ test("⌘K opens the command palette", async () => {
   }
 });
 
-test('pop-out: "Pop out" button opens a second window (detached preview)', async () => {
+test("pop-out: toolbar button opens a second window (detached preview)", async () => {
   const { app, main } = await launchApp();
   try {
-    // "Pop out" is always rendered in the toolbar regardless of project state
-    // (main-app.tsx L146). Use it as both the readiness signal and the trigger.
-    const popOutBtn = main.locator("button", { hasText: "Pop out" });
+    // The icon-only pop-out button is always in the toolbar regardless of project
+    // state; locate it by its accessible name. Use it as readiness + trigger.
+    const popOutBtn = main.getByRole("button", { name: "Open in new window" });
     await expect(popOutBtn).toBeVisible({ timeout: 8_000 });
 
     // Register the listener BEFORE clicking to avoid a timing race.
@@ -141,10 +141,9 @@ test('pop-out: "Pop out" button opens a second window (detached preview)', async
     const detached = await secondWindowPromise;
 
     // Both windows load the same index.html whose <title> is "OpenStory", so
-    // page.title() can't distinguish them. Instead assert on the DOM content
-    // that is unique to the detached renderer (role=detached → DetachedPreview).
-    // detached-preview.tsx renders "OpenStory Preview · drag" in its drag-bar.
-    await expect(detached.locator("text=OpenStory Preview")).toBeVisible({
+    // page.title() can't distinguish them. Assert on DOM unique to the detached
+    // renderer (role=detached → DetachedPreview): its overlay controls.
+    await expect(detached.locator("text=Difference blend")).toBeVisible({
       timeout: 8_000,
     });
 
