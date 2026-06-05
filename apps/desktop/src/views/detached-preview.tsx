@@ -20,7 +20,7 @@ export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
   };
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-transparent text-foreground">
+    <div className="flex h-screen w-screen flex-col overflow-hidden rounded-xl border border-border bg-transparent text-foreground">
       {/* Titlebar — mirrors the main app's wordmark/brand-dot, translucent so the
           overlay reads as floating glass chrome over the site behind it. */}
       <header className="drag relative flex h-11 shrink-0 items-center gap-2 border-b border-border bg-sidebar/80 pr-2 pl-3 backdrop-blur-md">
