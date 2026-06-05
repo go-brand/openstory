@@ -12,6 +12,7 @@ const FALLBACK_STATE: AppState = {
     storyId: null,
     docsComponentId: null,
     viewport: "desktop",
+    layout: null,
     propOverrides: {},
   },
   overlay: {

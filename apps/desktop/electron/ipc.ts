@@ -4,7 +4,7 @@ import { basename, relative, resolve, sep } from "node:path";
 import { readFileSync, statSync } from "node:fs";
 import { AppStore } from "./store";
 import { ViteHost } from "./vite-host";
-import type { AppState, ManifestComponent, PreviewSource } from "./types";
+import type { AppState, Layout, ManifestComponent, PreviewSource } from "./types";
 import { reconcileSelection } from "./selection";
 
 // Hard cap so a stray huge file can't be slurped into the renderer's Code panel.
@@ -138,14 +138,26 @@ export function registerIpc(deps: Deps) {
         viewport: "desktop" | "mobile";
       },
     ) => {
-      // Selecting a story is a clean start: clear overrides and exit any docs view.
-      deps.store.patchSelection({ ...input, propOverrides: {}, docsComponentId: null });
+      // Selecting a story is a clean start: clear overrides + layout override and
+      // exit any docs view.
+      deps.store.patchSelection({
+        ...input,
+        propOverrides: {},
+        layout: null,
+        docsComponentId: null,
+      });
       broadcastState();
     },
   );
 
   ipcMain.handle("preview:setProps", (_e, overrides: Record<string, unknown>) => {
     deps.store.patchSelection({ propOverrides: overrides });
+    broadcastState();
+  });
+
+  // Per-selection layout override; null reverts to the component's declared layout.
+  ipcMain.handle("preview:setLayout", (_e, layout: Layout | null) => {
+    deps.store.patchSelection({ layout });
     broadcastState();
   });
 

@@ -57,6 +57,9 @@ type ActiveSelection = {
   componentId: string;
   storyId: string;
   viewport: "desktop" | "mobile";
+  /** Layout override from the manager toolbar; falls back to the component's
+   *  declared `layout` when absent. */
+  layout?: Layout;
   fixtureOverrides?: Record<string, unknown>;
 };
 
@@ -98,8 +101,9 @@ export function PreviewStage({
   // Constrain the rendered component to the resolved viewport width and center
   // it. This is what makes the desktop/mobile toggle visibly resize the preview:
   // `width` is re-derived from `selection.viewport` on every render message.
-  // The outer layout wrapper supplies the Storybook-style breathing room.
-  const layout = component.layout ?? "padded";
+  // The outer layout wrapper supplies the Storybook-style breathing room. A
+  // toolbar override (selection.layout) wins over the component's declared layout.
+  const layout = selection.layout ?? component.layout ?? "padded";
   return (
     <Providers>
       <ViewportContext.Provider value={selection.viewport}>
@@ -128,9 +132,11 @@ function FallbackMessage({ text }: { text: string }) {
 export function DocsPage({
   config,
   componentId,
+  layoutOverride,
 }: {
   config: OpenStoryConfig;
   componentId: string;
+  layoutOverride?: Layout | undefined;
 }) {
   const component = (config.components ?? []).find((p) => p.id === componentId) as
     | RegisteredComponent
@@ -148,7 +154,7 @@ export function DocsPage({
   // PreviewStage positions the live render: `padded` (default) keeps the 24px
   // card inset, `centered` flex-centers the render in the card, `fullscreen`
   // drops the inset so the render sits flush to the card edge.
-  const layout = component.layout ?? "padded";
+  const layout = layoutOverride ?? component.layout ?? "padded";
 
   return (
     <ViewportContext.Provider value="desktop">
@@ -199,6 +205,7 @@ export function DocsPage({
 function App({ config }: { config: OpenStoryConfig }) {
   const [selection, setSelection] = useState<ActiveSelection | null>(readSelectionFromUrl);
   const [docsComponentId, setDocsComponentId] = useState<string | null>(null);
+  const [docsLayout, setDocsLayout] = useState<Layout | undefined>(undefined);
   const [addons, setAddons] = useState<AddonState>({
     outline: false,
     grid: false,
@@ -225,6 +232,7 @@ function App({ config }: { config: OpenStoryConfig }) {
         const next: RenderMessage = msg;
         if (next.mode === "docs") {
           setDocsComponentId(next.componentId);
+          setDocsLayout(next.layout);
           return;
         }
         setDocsComponentId(null);
@@ -232,6 +240,7 @@ function App({ config }: { config: OpenStoryConfig }) {
           componentId: next.componentId,
           storyId: next.storyId,
           viewport: next.viewport,
+          ...(next.layout !== undefined && { layout: next.layout }),
           ...(next.fixtureOverrides !== undefined && {
             fixtureOverrides: next.fixtureOverrides,
           }),
@@ -266,6 +275,7 @@ function App({ config }: { config: OpenStoryConfig }) {
         key={`docs:${docsComponentId}:${remountKey}`}
         config={config}
         componentId={docsComponentId}
+        layoutOverride={docsLayout}
       />
     );
   }

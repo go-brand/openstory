@@ -49,6 +49,14 @@ describe("PreviewStage layout", () => {
     expect(container.querySelector('div[style*="flex"]')).toBeNull();
     expect(container.querySelector('div[style*="padding"]')).not.toBeNull();
   });
+
+  it("selection.layout override wins over the component's declared layout", () => {
+    // Component declares padded; a toolbar override to centered must take effect.
+    render(
+      <PreviewStage config={config("padded")} selection={{ ...selection, layout: "centered" }} />,
+    );
+    expect(container.querySelector('div[style*="flex"]')).not.toBeNull();
+  });
 });
 
 describe("DocsPage layout", () => {

@@ -3,6 +3,9 @@ export type RenderMessage = {
   componentId: string;
   storyId: string;
   viewport: "desktop" | "mobile";
+  /** Per-selection layout override; absent falls back to the component's
+   *  declared `layout`. Applies to both story and docs render modes. */
+  layout?: "padded" | "centered" | "fullscreen";
   fixtureOverrides?: Record<string, unknown>;
   /**
    * `story` (default) renders the single selected fixture on the canvas; `docs`

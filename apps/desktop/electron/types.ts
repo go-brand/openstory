@@ -7,6 +7,11 @@ export type ProjectRecord = {
 
 export type Theme = "light" | "dark";
 
+/** Positioning of the render within the preview surface. Mirrors config's
+ *  `Layout` (duplicated to keep the Electron main process free of a
+ *  `@gobrand/openstory-config` import, same as `ManifestControl`). */
+export type Layout = "padded" | "centered" | "fullscreen";
+
 export type OverlayState = {
   opacity: number;
   clickThrough: boolean;
@@ -22,6 +27,9 @@ export type ActiveSelection = {
   /** Component id whose Docs node is the active selection, else null. */
   docsComponentId: string | null;
   viewport: "desktop" | "mobile";
+  /** Per-selection layout override; null falls back to the component's declared
+   *  `layout`. Reset to null whenever a new story is selected. */
+  layout: Layout | null;
   propOverrides: Record<string, unknown>;
 };
 
@@ -42,10 +50,8 @@ export type ManifestComponent = {
   section: string | null;
   /** Resolved chrome background for this preview's preset. */
   background: string;
-  /** Positioning of the render within the preview surface. Defaults to `padded`.
-   *  Mirrors config's `Layout` (duplicated here to keep the Electron main process
-   *  free of a `@gobrand/openstory-config` import, same as `ManifestControl`). */
-  layout: "padded" | "centered" | "fullscreen";
+  /** Positioning of the render within the preview surface. Defaults to `padded`. */
+  layout: Layout;
   stories: Array<{
     id: string;
     label: string;
@@ -88,6 +94,7 @@ export type IpcInvoke = {
     viewport: "desktop" | "mobile";
   }) => void;
   "preview:setProps": (overrides: Record<string, unknown>) => void;
+  "preview:setLayout": (layout: Layout | null) => void;
   "preview:setDocs": (componentId: string | null) => void;
   "preview:refreshManifest": () => void;
   "preview:getSource": (componentId: string) => PreviewSource | null;

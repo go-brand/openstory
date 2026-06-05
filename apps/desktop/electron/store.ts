@@ -17,6 +17,7 @@ const defaults: PersistedState = {
     storyId: null,
     docsComponentId: null,
     viewport: "desktop",
+    layout: null,
     propOverrides: {},
   },
   overlay: {

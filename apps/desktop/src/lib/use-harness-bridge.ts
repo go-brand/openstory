@@ -32,6 +32,7 @@ export function useHarnessBridge(
           componentId: s.docsComponentId,
           storyId: "",
           viewport: s.viewport,
+          ...(s.layout && { layout: s.layout }),
         },
         "*",
       );
@@ -44,6 +45,7 @@ export function useHarnessBridge(
         componentId: s.componentId,
         storyId: s.storyId,
         viewport: s.viewport,
+        ...(s.layout && { layout: s.layout }),
         fixtureOverrides: s.propOverrides,
       },
       "*",
@@ -77,6 +79,7 @@ export function useHarnessBridge(
     selection.componentId,
     selection.storyId,
     selection.viewport,
+    selection.layout,
     selection.docsComponentId,
     propOverridesKey,
   ]);
