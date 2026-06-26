@@ -170,7 +170,7 @@ describe("buildManifest", () => {
     expect(buildManifest(config, root).components[0]?.section).toBe("desktop");
   });
 
-  it("buildManifest derives a select/radio control from prop types", () => {
+  it("buildManifest derives a select control from prop types", () => {
     const root = resolve(fileURLToPath(new URL(".", import.meta.url)), "__fixtures__/types");
     const config = {
       components: [

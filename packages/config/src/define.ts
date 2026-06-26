@@ -77,12 +77,13 @@ export function deriveControls(fixtures: Fixture[]): ManifestControl[] {
 /**
  * Merge type-derived controls over value-inferred ones. Types are
  * authoritative (they know an enum from free text); props with no type info
- * fall back to `deriveControls`. Prop order is first-seen across fixtures,
- * matching `deriveControls`. With an empty `typeControls`, output is identical
- * to `deriveControls(fixtures)` — preserving zero-config behavior. Only props
- * present in the fixtures are emitted; a typed prop absent from every fixture
- * is dropped (types refine fixture-driven controls, they don't introduce new
- * ones).
+ * fall back to `deriveControls`. With an empty `typeControls`, output is
+ * identical to `deriveControls(fixtures)` — preserving zero-config behavior.
+ *
+ * Every prop the component's types declare becomes a control, Storybook-style:
+ * fixture props come first in first-seen order (matching `deriveControls`),
+ * then any typed prop absent from every fixture is appended in `typeControls`
+ * order. A typed-only prop starts unset and edits in from its widget.
  */
 export function mergeControls(
   fixtures: Fixture[],
@@ -99,6 +100,14 @@ export function mergeControls(
         seen.add(name);
         order.push(name);
       }
+    }
+  }
+  // Append typed props that no fixture exercises, so the panel exposes the
+  // component's full prop surface rather than only what stories happen to set.
+  for (const name of Object.keys(typeControls)) {
+    if (!seen.has(name)) {
+      seen.add(name);
+      order.push(name);
     }
   }
 

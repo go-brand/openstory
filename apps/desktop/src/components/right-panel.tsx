@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppState, ManifestComponent, PreviewSource } from "../../electron/types";
 import type { Api } from "../lib/api";
 import { Button } from "./ui/button";
+import { Switch } from "./ui/switch";
 import { HugeiconsIcon, Copy01Icon } from "../lib/icons";
 import { cn } from "../lib/utils";
 
@@ -100,10 +101,11 @@ function InspectPanel({
           <div className="flex flex-col gap-4">
             {component.controls.map((c) => {
               const value = state.selection.propOverrides[c.name] ?? story.props[c.name];
+              const defaultOption = story.props[c.name];
               return (
                 <label key={c.name} className="flex flex-col gap-1.5 text-[11px]">
                   <span className="font-medium text-muted-foreground">{c.name}</span>
-                  {c.kind === "select" ? (
+                  {c.kind === "select" || c.kind === "radio" ? (
                     <select
                       value={typeof value === "string" ? value : ""}
                       onChange={(e) => onSetControl(c.name, e.target.value)}
@@ -111,32 +113,15 @@ function InspectPanel({
                     >
                       {(c.options ?? []).map((opt) => (
                         <option key={opt} value={opt}>
-                          {opt}
+                          {opt === defaultOption ? `${opt} (Default)` : opt}
                         </option>
                       ))}
                     </select>
-                  ) : c.kind === "radio" ? (
-                    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                      {(c.options ?? []).map((opt) => (
-                        <label key={opt} className="flex items-center gap-1.5 text-[12px]">
-                          <input
-                            type="radio"
-                            name={c.name}
-                            value={opt}
-                            checked={value === opt}
-                            onChange={() => onSetControl(c.name, opt)}
-                            className="size-3.5 accent-[var(--color-brand)]"
-                          />
-                          {opt}
-                        </label>
-                      ))}
-                    </div>
                   ) : c.kind === "boolean" ? (
-                    <input
-                      type="checkbox"
+                    <Switch
                       checked={Boolean(value)}
-                      onChange={(e) => onSetControl(c.name, e.target.checked)}
-                      className="size-4 accent-[var(--color-brand)]"
+                      onCheckedChange={(checked) => onSetControl(c.name, checked)}
+                      className="self-start"
                     />
                   ) : c.kind === "number" ? (
                     <input

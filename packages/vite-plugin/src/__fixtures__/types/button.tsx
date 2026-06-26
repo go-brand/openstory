@@ -4,8 +4,8 @@ import type { Variant } from "./variants";
 // extractor reads the first call-signature parameter as the props type.
 export function Button(_props: {
   variant: Variant; // imported union, 6 members -> select
-  size: "sm" | "md" | "lg"; // inline union, 3 members -> radio
-  tone?: "a" | "b"; // optional union -> strip undefined -> radio
+  size: "sm" | "md" | "lg"; // inline union -> select
+  tone?: "a" | "b"; // optional union -> strip undefined -> select
   disabled: boolean; // -> boolean
   count: number; // -> number
   label: string; // -> text

@@ -16,11 +16,6 @@ export function Titlebar({
 }) {
   return (
     <header className="drag relative flex h-11 shrink-0 items-center border-b border-border bg-sidebar pr-3 pl-[78px]">
-      <div className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.18em] text-foreground uppercase">
-        <span className="size-2 rounded-full bg-brand shadow-[0_0_12px] shadow-brand/60" />
-        OpenStory
-      </div>
-
       <div className="no-drag absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
         <button
           type="button"

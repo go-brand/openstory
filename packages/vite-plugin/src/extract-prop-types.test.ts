@@ -16,12 +16,12 @@ describe("extractPropTypes", () => {
     });
   });
 
-  it("maps an inline <=5 string union to radio with options", () => {
-    expect(info.size).toEqual({ kind: "radio", options: ["sm", "md", "lg"] });
+  it("maps an inline string union to select with options", () => {
+    expect(info.size).toEqual({ kind: "select", options: ["sm", "md", "lg"] });
   });
 
   it("strips undefined from an optional union", () => {
-    expect(info.tone).toEqual({ kind: "radio", options: ["a", "b"] });
+    expect(info.tone).toEqual({ kind: "select", options: ["a", "b"] });
   });
 
   it("maps primitive props to boolean/number/text", () => {
@@ -36,5 +36,30 @@ describe("extractPropTypes", () => {
 
   it("returns {} when the source file is unknown", () => {
     expect(extractPropTypes(resolve(root, "nope.tsx"), "Nope", root)).toEqual({});
+  });
+
+  describe("inherited React DOM attributes", () => {
+    const native = extractPropTypes(resolve(root, "native-button.tsx"), "NativeButton", root);
+
+    it("keeps the component's own props", () => {
+      expect(native.variant).toEqual({ kind: "select", options: ["primary", "secondary"] });
+      expect(native.size).toEqual({ kind: "select", options: ["sm", "md", "lg"] });
+      expect(native.label).toEqual({ kind: "text" });
+    });
+
+    it("drops props inherited from ButtonHTMLAttributes / HTMLAttributes", () => {
+      for (const leaked of [
+        "type",
+        "disabled",
+        "formNoValidate",
+        "autoFocus",
+        "suppressHydrationWarning",
+        "hidden",
+        "translate",
+        "popover",
+      ]) {
+        expect(native[leaked]).toBeUndefined();
+      }
+    });
   });
 });

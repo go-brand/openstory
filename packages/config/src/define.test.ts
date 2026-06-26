@@ -142,4 +142,17 @@ describe("mergeControls", () => {
       { name: "count", kind: "number" },
     ]);
   });
+
+  it("appends typed props no fixture exercises, after fixture props", () => {
+    const types: Record<string, ManifestControl> = {
+      variant: { name: "variant", kind: "radio", options: ["primary", "secondary"] },
+      size: { name: "size", kind: "select", options: ["sm", "md", "lg"] },
+      disabled: { name: "disabled", kind: "boolean" },
+    };
+    const out = mergeControls(fixtures, types);
+    // fixture props first (first-seen order), then type-only props in type order.
+    expect(out.map((c) => c.name)).toEqual(["variant", "label", "count", "size", "disabled"]);
+    expect(out).toContainEqual({ name: "size", kind: "select", options: ["sm", "md", "lg"] });
+    expect(out).toContainEqual({ name: "disabled", kind: "boolean" });
+  });
 });

@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
 import type { AppState } from "../../electron/types";
 import type { Api } from "../lib/api";
-import { HugeiconsIcon, Search01Icon } from "../lib/icons";
 import { RepoSwitcher } from "./sidebar/repo-switcher";
 import { Tree, type TreeCallbacks } from "./sidebar/tree";
 import { buildTree, flatten, isContainer } from "./sidebar/build-tree";
-import { filterTree } from "./sidebar/search";
 import { useExpanded } from "./sidebar/use-expanded";
 
 export function Sidebar({
@@ -17,15 +15,17 @@ export function Sidebar({
   api: Api;
   onSelectStory: (componentId: string, storyId: string) => void;
 }) {
-  const [query, setQuery] = useState("");
   const [focusedId, setFocusedId] = useState<string | null>(null);
-  const { isExpanded, toggle, setExpanded } = useExpanded(state.selection.projectId);
 
-  const fullTree = useMemo(() => buildTree(state.manifest), [state.manifest]);
-  const { nodes, expand } = useMemo(() => filterTree(fullTree, query), [fullTree, query]);
+  const nodes = useMemo(() => buildTree(state.manifest), [state.manifest]);
+  // First-level containers are expanded by default; everything deeper starts collapsed.
+  const defaultExpanded = useMemo(() => nodes.filter(isContainer).map((n) => n.id), [nodes]);
+  const { isExpanded, toggle, setExpanded } = useExpanded(
+    state.selection.projectId,
+    defaultExpanded,
+  );
 
-  // When searching, force-expand ancestors of matches; otherwise honor stored state.
-  const expanded = (id: string) => (query ? expand.has(id) || isExpanded(id) : isExpanded(id));
+  const expanded = (id: string) => isExpanded(id);
 
   const cb: TreeCallbacks = {
     selection: state.selection,
@@ -75,23 +75,11 @@ export function Sidebar({
     <aside className="flex w-[260px] flex-col border-r border-border bg-sidebar">
       <RepoSwitcher state={state} api={api} />
 
-      <div className="no-drag px-3 pt-2.5 pb-2">
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5">
-          <HugeiconsIcon icon={Search01Icon} className="size-3.5 shrink-0 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Find components…"
-            className="h-8 flex-1 bg-transparent text-[12px] text-foreground placeholder:text-muted-foreground focus:outline-none"
-          />
-        </div>
-      </div>
-
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
       <div
         tabIndex={0}
         onKeyDown={onKeyDown}
-        className="no-drag flex-1 overflow-y-auto px-1.5 pb-3 focus:outline-none"
+        className="no-drag mt-1 flex-1 overflow-y-auto px-1.5 pb-3 focus:outline-none"
       >
         {state.projects.length === 0 ? (
           <p className="px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -99,7 +87,7 @@ export function Sidebar({
           </p>
         ) : nodes.length === 0 ? (
           <p className="px-3 py-2 text-[11px] text-muted-foreground">
-            {query ? "No matches." : "No stories found in openstory.config.ts."}
+            No stories found in openstory.config.ts.
           </p>
         ) : (
           <Tree nodes={nodes} cb={cb} />

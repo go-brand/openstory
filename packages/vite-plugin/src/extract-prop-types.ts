@@ -5,13 +5,10 @@ import { dirname } from "node:path";
 
 /** Type-derived control kind for a single prop. `name` is added by the caller. */
 export type PropTypeInfo =
-  | { kind: "select" | "radio"; options: string[] }
+  | { kind: "select"; options: string[] }
   | { kind: "boolean" }
   | { kind: "number" }
   | { kind: "text" };
-
-// Storybook's threshold: <= 5 options render as radio, more as select.
-const RADIO_MAX = 5;
 
 // `typescript` is an OPTIONAL peer dependency. A static `import` would be
 // evaluated at plugin load — before any try/catch — so a consumer without
@@ -108,6 +105,27 @@ function getPropsType(
   return checker.getTypeOfSymbolAtLocation(param, pdecl);
 }
 
+/**
+ * True when a prop is inherited from React's own DOM typings (`@types/react`):
+ * `HTMLAttributes`, `ButtonHTMLAttributes`, `AriaAttributes`, `DOMAttributes`,
+ * etc. Spreading `ButtonHTMLAttributes<HTMLButtonElement>` into a component's
+ * props otherwise floods the controls panel with `formNoValidate`, `popover`,
+ * `suppressHydrationWarning`… — DOM plumbing nobody wants to tweak as a story
+ * arg. react-docgen does the same node_modules cut; we scope it to `@types/react`
+ * so a prop genuinely declared in another package (e.g. cva's `VariantProps`,
+ * which carries `variant`/`size`) survives. TS normalizes `fileName` to forward
+ * slashes on every platform, so the substring check is portable.
+ */
+function isReactDomProp(prop: TS.Symbol): boolean {
+  for (const decl of prop.declarations ?? []) {
+    const file = decl.getSourceFile().fileName;
+    if (file.includes("/@types/react/") || file.includes("/node_modules/csstype/")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function classify(ts: typeof TS, t: TS.Type): PropTypeInfo | null {
   if (t.isUnion()) {
     const parts = t.types.filter((m) => !(m.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null)));
@@ -117,7 +135,7 @@ function classify(ts: typeof TS, t: TS.Type): PropTypeInfo | null {
     }
     if (parts.length > 0 && parts.every((m) => m.isStringLiteral())) {
       const options = parts.map((m) => (m as TS.StringLiteralType).value);
-      return { kind: options.length <= RADIO_MAX ? "radio" : "select", options };
+      return { kind: "select", options };
     }
     return null; // mixed/non-literal union -> value fallback
   }
@@ -152,6 +170,7 @@ export function extractPropTypes(
 
     const out: Record<string, PropTypeInfo> = {};
     for (const prop of checker.getPropertiesOfType(propsType)) {
+      if (isReactDomProp(prop)) continue; // drop inherited HTML/DOM/aria attributes
       const decl = prop.valueDeclaration ?? prop.declarations?.[0];
       if (!decl) continue;
       const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
