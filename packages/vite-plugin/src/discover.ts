@@ -88,25 +88,28 @@ function walk(dir: string, acc: string[]): void {
   }
 }
 
-// Walk projectRoot, keep files whose root-relative POSIX path matches any pattern,
-// load each via the injected loader, keep valid `defineStories` results (skip the
-// rest with a warning), and default sourcePath to the file. `load` is injected
-// (the plugin passes Vite's ssrLoadModule) so this is unit-testable with a fake.
-export async function discoverComponents(
-  projectRoot: string,
-  patterns: string[],
-  load: (absPath: string) => Promise<unknown>,
-): Promise<RegisteredComponent[]> {
+// Walk projectRoot and return all absolute file paths whose root-relative POSIX
+// path matches at least one of the given glob patterns.
+export function matchFiles(projectRoot: string, patterns: string[]): string[] {
   const matchers = patterns.map(globToRegExp);
   const all: string[] = [];
   walk(projectRoot, all);
-  const files = all.filter((abs) => {
+  return all.filter((abs) => {
     const rel = relative(projectRoot, abs).split(sep).join("/");
     return matchers.some((re) => re.test(rel));
   });
+}
 
+// Load each file via the injected loader, keep valid `defineStories` results
+// (skip the rest with a warning), and default sourcePath to the file path.
+// `load` is injected (the plugin passes Vite's ssrLoadModule) so this is
+// unit-testable with a fake.
+export async function discoverComponentsFrom(
+  storyFiles: string[],
+  load: (absPath: string) => Promise<unknown>,
+): Promise<RegisteredComponent[]> {
   const out: RegisteredComponent[] = [];
-  for (const file of files) {
+  for (const file of storyFiles) {
     let mod: unknown;
     try {
       mod = await load(file);
@@ -122,4 +125,14 @@ export async function discoverComponents(
     out.push(def.sourcePath ? def : { ...def, sourcePath: file });
   }
   return out;
+}
+
+// Thin wrapper kept for backward compatibility — existing tests pass through here.
+export async function discoverComponents(
+  projectRoot: string,
+  patterns: string[],
+  load: (absPath: string) => Promise<unknown>,
+): Promise<RegisteredComponent[]> {
+  const files = matchFiles(projectRoot, patterns).filter((f) => !f.endsWith(".md"));
+  return discoverComponentsFrom(files, load);
 }

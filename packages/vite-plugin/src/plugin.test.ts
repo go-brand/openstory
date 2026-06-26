@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineOpenStoryConfig, deriveControls } from "@gobrand/openstory-config";
-import { buildHarnessEntry } from "./harness-loader";
+import type { ManifestDoc } from "@gobrand/openstory-config";
+import { buildHarnessEntry, stripMarkdownPatterns } from "./harness-loader";
 import { buildManifest } from "./plugin";
 
 describe("buildHarnessEntry", () => {
@@ -120,7 +121,7 @@ describe("buildManifest", () => {
 
   it("returns no components for an empty config", () => {
     const config = defineOpenStoryConfig({ components: [] });
-    expect(buildManifest(config)).toEqual({ components: [] });
+    expect(buildManifest(config)).toEqual({ components: [], docs: [] });
   });
 
   it("emits empty stories and controls for a preview with zero fixtures", () => {
@@ -192,5 +193,38 @@ describe("buildManifest", () => {
     });
     // `label` is a plain string prop -> text.
     expect(controls).toContainEqual({ name: "label", kind: "text" });
+  });
+});
+
+describe("buildManifest docs", () => {
+  it("passes docs through onto the manifest", () => {
+    const docs: ManifestDoc[] = [
+      {
+        id: "notifications",
+        title: "Notifications",
+        group: "Features",
+        section: null,
+        html: "<h1>x</h1>",
+        embeds: [],
+        sourcePath: "/p/N.stories.md",
+      },
+    ];
+    const m = buildManifest({ components: [] }, "/p", docs);
+    expect(m.docs).toEqual(docs);
+  });
+  it("defaults docs to [] when omitted", () => {
+    const m = buildManifest({ components: [] }, "/p");
+    expect(m.docs).toEqual([]);
+  });
+});
+
+describe("stripMarkdownPatterns", () => {
+  it("removes md from a brace alternation", () => {
+    expect(stripMarkdownPatterns(["**/*.stories.{ts,tsx,md}"])).toEqual(["**/*.stories.{ts,tsx}"]);
+  });
+  it("drops a pure .md pattern entirely", () => {
+    expect(stripMarkdownPatterns(["**/*.stories.md", "**/*.stories.tsx"])).toEqual([
+      "**/*.stories.tsx",
+    ]);
   });
 });

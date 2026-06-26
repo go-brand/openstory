@@ -20,6 +20,27 @@ export function buildHtmlShell(): string {
   return HTML_SHELL;
 }
 
+// The React harness must not feed `.md` to import.meta.glob (Vite would try to
+// transform markdown as a module). Remove `md` from `{ts,tsx,md}` alternations
+// and drop any pure-`.md` pattern. The Node manifest walk keeps the wide glob.
+export function stripMarkdownPatterns(patterns: string[]): string[] {
+  return patterns
+    .map((p) =>
+      p.replace(
+        /\{([^}]*)\}/g,
+        (_full, inner: string) =>
+          "{" +
+          inner
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s !== "md")
+            .join(",") +
+          "}",
+      ),
+    )
+    .filter((p) => !/\.md$/.test(p));
+}
+
 export function buildHarnessEntry(
   configPath: string | null,
   styles: string[] = [],
@@ -32,11 +53,14 @@ export function buildHarnessEntry(
   // must be in the harness page's module graph or Tailwind v4 emits no utilities
   // for the components rendered here.
   const styleImports = styles.map((s) => `import '${norm(s)}'`);
+  // Strip .md from patterns: Vite cannot transform markdown as a module.
+  // The Node manifest walk keeps the wide glob; the browser harness is React-only.
+  const reactPatterns = stripMarkdownPatterns(patterns);
   // Vite's import.meta.glob resolves a leading "/" against the project root; the
   // patterns are project-root-relative, so prefix one. Negative patterns exclude
   // build output (Vite already ignores node_modules).
   const globArg = JSON.stringify([
-    ...patterns.map((p) => "/" + p.replace(/^\//, "")),
+    ...reactPatterns.map((p) => "/" + p.replace(/^\//, "")),
     "!/**/dist/**",
     "!/**/build/**",
     "!/**/out/**",

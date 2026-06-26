@@ -9,10 +9,17 @@ import {
   resolvePresets,
   resolveRender,
   type ManifestControl,
+  type ManifestDoc,
 } from "@gobrand/openstory-config";
 import type { OpenStoryConfig } from "@gobrand/openstory-config";
 import { extractPropTypes } from "./extract-prop-types.js";
-import { discoverComponents, resolvePatterns } from "./discover.js";
+import {
+  discoverComponentsFrom,
+  matchFiles,
+  partitionByExtension,
+  resolvePatterns,
+} from "./discover.js";
+import { discoverDocs } from "./discover-docs.js";
 
 const VIRTUAL_ID = "virtual:openstory-entry";
 const RESOLVED_VIRTUAL_ID = "\0virtual:openstory-entry";
@@ -78,7 +85,11 @@ type PluginOptions = {
   configFile?: string;
 };
 
-export function buildManifest(config: OpenStoryConfig, projectRoot?: string) {
+export function buildManifest(
+  config: OpenStoryConfig,
+  projectRoot?: string,
+  docs: ManifestDoc[] = [],
+) {
   const presets = resolvePresets(config.presets);
   return {
     components: (config.components ?? []).map((p) => {
@@ -109,6 +120,7 @@ export function buildManifest(config: OpenStoryConfig, projectRoot?: string) {
         sourcePath,
       };
     }),
+    docs,
   };
 }
 
@@ -206,11 +218,30 @@ export function openStory(options: PluginOptions = {}): Plugin {
                   {}) as OpenStoryConfig)
               : null;
             const patterns = resolvePatterns(config);
-            const discovered = await discoverComponents(projectRoot, patterns, (p) =>
+
+            // One walk + glob match, then split by extension.
+            const matched = matchFiles(projectRoot, patterns);
+            const { storyFiles, docFiles } = partitionByExtension(matched);
+
+            const discovered = await discoverComponentsFrom(storyFiles, (p) =>
               server.ssrLoadModule(p),
             );
             const components = mergeComponents(discovered, config?.components ?? []);
-            const manifest = buildManifest({ ...(config ?? {}), components }, projectRoot);
+            const docs = discoverDocs(docFiles, (abs) => readFileSync(abs, "utf8"));
+
+            // Validate embeds against the assembled story registry; warn on misses.
+            const storyKeys = new Set(
+              components.flatMap((c) => c.fixtures.map((f) => `${c.id}--${f.id}`)),
+            );
+            for (const doc of docs) {
+              for (const id of doc.embeds) {
+                if (!storyKeys.has(id)) {
+                  console.warn(`[openstory] doc ${doc.sourcePath}: embed ${id} matches no story`);
+                }
+              }
+            }
+
+            const manifest = buildManifest({ ...(config ?? {}), components }, projectRoot, docs);
             res.setHeader("content-type", "application/json");
             res.end(JSON.stringify(manifest));
           } catch (err) {
