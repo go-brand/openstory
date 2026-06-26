@@ -31,6 +31,35 @@ export function RightPanel({
   story: Story;
   onSetControl: (name: string, value: unknown) => void;
 }) {
+  // ── Page branch: a feature-doc page has no controls; show only the Code panel.
+  const pageId = state.selection.pageId;
+  if (pageId) {
+    return (
+      <aside
+        aria-hidden={!isOpen}
+        className={cn(
+          "relative flex h-full shrink-0 overflow-hidden border-l border-border bg-sidebar",
+          "transition-[width] duration-200 ease-out motion-reduce:transition-none",
+          !isOpen && "border-transparent",
+        )}
+        style={{ width: isOpen ? PANEL_WIDTH : 0 }}
+      >
+        <div className="flex h-full flex-col" style={{ width: PANEL_WIDTH, minWidth: PANEL_WIDTH }}>
+          <div className="flex h-11 shrink-0 items-center gap-4 border-b border-border px-4">
+            <button
+              type="button"
+              className="relative flex h-11 items-center text-[12px] font-semibold text-foreground"
+            >
+              Code
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />
+            </button>
+          </div>
+          <CodePanel state={state} api={api} id={pageId} />
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside
       aria-hidden={!isOpen}
@@ -69,7 +98,7 @@ export function RightPanel({
           })}
         </div>
         {tab === "code" ? (
-          <CodePanel state={state} api={api} component={component} story={story} />
+          <CodePanel state={state} api={api} id={component.id} story={story} />
         ) : (
           <InspectPanel
             state={state}
@@ -160,13 +189,15 @@ function InspectPanel({
 function CodePanel({
   state,
   api,
-  component,
+  id,
   story,
 }: {
   state: AppState;
   api: Api;
-  component: ManifestComponent;
-  story: Story;
+  /** Source ID passed directly to `preview:getSource`. For components this is
+   *  `component.id`; for feature-doc pages it is `pageId`. */
+  id: string;
+  story?: Story;
 }) {
   const [source, setSource] = useState<PreviewSource | null | "loading">("loading");
   const [copied, setCopied] = useState(false);
@@ -175,20 +206,20 @@ function CodePanel({
     let alive = true;
     setSource("loading");
     api
-      ?.invoke("preview:getSource", component.id)
+      ?.invoke("preview:getSource", id)
       .then((r) => alive && setSource(r))
       .catch(() => alive && setSource(null));
     return () => {
       alive = false;
     };
-  }, [api, component.id]);
+  }, [api, id]);
 
   // Snippet from the live props (preset + overrides) — used when there is no
   // resolvable source file, and shown while the read is in flight.
   const fallback = useMemo(() => {
     const props = { ...(story?.props ?? {}), ...state.selection.propOverrides };
-    return snippet(component.id, props);
-  }, [component.id, story?.props, state.selection.propOverrides]);
+    return snippet(id, props);
+  }, [id, story?.props, state.selection.propOverrides]);
 
   const hasSource = source !== "loading" && source !== null;
   const code = hasSource ? source.code : fallback;

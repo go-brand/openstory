@@ -210,14 +210,17 @@ export function registerIpc(deps: Deps) {
 
   ipcMain.handle("preview:getSource", (_e, componentId: string): PreviewSource | null => {
     const preview = manifest.find((p) => p.id === componentId);
-    if (!preview?.sourcePath) return null;
+    // Fall back to docs when no component matches or the component has no sourcePath.
+    const sourcePath =
+      preview?.sourcePath ?? docs.find((d) => d.id === componentId)?.sourcePath ?? null;
+    if (!sourcePath) return null;
 
     const state = deps.store.state;
     const project = state.projects.find((p) => p.id === state.selection.projectId);
     if (!project) return null;
 
     const root = resolve(project.path);
-    const path = resolve(preview.sourcePath);
+    const path = resolve(sourcePath);
     if (!isInside(root, path)) return null;
 
     try {
