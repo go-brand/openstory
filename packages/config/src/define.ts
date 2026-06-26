@@ -35,6 +35,27 @@ export type ManifestControl = {
   options?: string[];
 };
 
+export type ManifestDoc = {
+  /** Unique key: frontmatter `id`, else kebab of the filename sans ".stories.md". */
+  id: string;
+  /** Display label: frontmatter `title`, else humanized filename. */
+  title: string;
+  /** Slash-delimited sidebar path. "" means the sidebar root. */
+  group: string;
+  /** Auto-derived workspace section (package basename) or null. */
+  section: string | null;
+  /** Markdown body rendered to HTML (Node side), with `:::story` already
+   *  replaced by `<div data-openstory-story="<id>">` placeholders. */
+  html: string;
+  /** Story ids referenced by `:::story` directives, in document order. */
+  embeds: string[];
+  /** Absolute path of the source `.md` file (Code panel + section derivation). */
+  sourcePath: string;
+  /** Optional frontmatter metadata. */
+  status?: "shipped" | "beta" | "planned";
+  owner?: string;
+};
+
 function controlKind(value: unknown): ManifestControl["kind"] | "skip" | null {
   if (value === null || value === undefined) return null; // no kind yet, keep looking
   if (typeof value === "string") return "text";
@@ -218,16 +239,18 @@ export type StoriesDef<TProps> = {
   stories: Record<string, Story<TProps>>;
 };
 
-function humanize(name: string): string {
+export function humanize(name: string): string {
   return name
     .replace(/([A-Z])/g, " $1")
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/^./, (c) => c.toUpperCase());
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
-function kebabCase(name: string): string {
+export function kebabCase(name: string): string {
   return name
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
     .replace(/[_\s]+/g, "-")

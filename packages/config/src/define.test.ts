@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { defineOpenStoryConfig, defineStories, deriveControls, mergeControls } from "./define";
+import {
+  defineOpenStoryConfig,
+  defineStories,
+  deriveControls,
+  mergeControls,
+  humanize,
+  kebabCase,
+  type ManifestDoc,
+} from "./define";
 import type { Fixture, ManifestControl } from "./define";
 
 describe("defineOpenStoryConfig", () => {
@@ -154,5 +162,26 @@ describe("mergeControls", () => {
     expect(out.map((c) => c.name)).toEqual(["variant", "label", "count", "size", "disabled"]);
     expect(out).toContainEqual({ name: "size", kind: "select", options: ["sm", "md", "lg"] });
     expect(out).toContainEqual({ name: "disabled", kind: "boolean" });
+  });
+});
+
+describe("shared text helpers (exported for docs)", () => {
+  it("humanize turns a slug into a title", () => {
+    expect(humanize("notifications-panel")).toBe("Notifications Panel");
+  });
+  it("kebabCase slugs a name", () => {
+    expect(kebabCase("NotificationsPanel")).toBe("notifications-panel");
+  });
+  it("ManifestDoc shape is assignable", () => {
+    const d: ManifestDoc = {
+      id: "notifications",
+      title: "Notifications",
+      group: "Features",
+      section: null,
+      html: "<h1>Notifications</h1>",
+      embeds: ["bell--unread"],
+      sourcePath: "/abs/Notifications.stories.md",
+    };
+    expect(d.embeds).toEqual(["bell--unread"]);
   });
 });
