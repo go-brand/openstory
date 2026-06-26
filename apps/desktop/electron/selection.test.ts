@@ -34,6 +34,7 @@ describe("reconcileSelection", () => {
       storyId: "a",
       propOverrides: {},
       docsComponentId: null,
+      pageId: null,
     });
   });
 
@@ -46,6 +47,7 @@ describe("reconcileSelection", () => {
       storyId: null,
       propOverrides: {},
       docsComponentId: null,
+      pageId: null,
     });
   });
 
@@ -56,6 +58,7 @@ describe("reconcileSelection", () => {
       storyId: null,
       propOverrides: {},
       docsComponentId: null,
+      pageId: null,
     });
   });
 
@@ -68,6 +71,12 @@ describe("reconcileSelection", () => {
       storyId: "primary",
       propOverrides: {},
       docsComponentId: null,
+      pageId: null,
     });
+  });
+
+  it("reset patches clear pageId", () => {
+    const patch = reconcileSelection([], { componentId: "x", storyId: "y" });
+    expect(patch).toMatchObject({ pageId: null });
   });
 });

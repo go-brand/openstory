@@ -16,6 +16,7 @@ const defaults: PersistedState = {
     componentId: null,
     storyId: null,
     docsComponentId: null,
+    pageId: null,
     viewport: "desktop",
     layout: null,
     propOverrides: {},

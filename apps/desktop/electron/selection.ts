@@ -2,7 +2,7 @@ import type { ActiveSelection, ManifestComponent } from "./types";
 
 export type SelectionPatch = Pick<
   ActiveSelection,
-  "componentId" | "storyId" | "propOverrides" | "docsComponentId"
+  "componentId" | "storyId" | "propOverrides" | "docsComponentId" | "pageId"
 >;
 
 // Reconcile the persisted selection against a freshly-loaded manifest.
@@ -29,7 +29,14 @@ export function reconcileSelection(
       storyId: first.stories[0].id,
       propOverrides: {},
       docsComponentId: null,
+      pageId: null,
     };
   }
-  return { componentId: null, storyId: null, propOverrides: {}, docsComponentId: null };
+  return {
+    componentId: null,
+    storyId: null,
+    propOverrides: {},
+    docsComponentId: null,
+    pageId: null,
+  };
 }

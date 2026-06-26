@@ -4,7 +4,7 @@ import { basename, relative, resolve, sep } from "node:path";
 import { readFileSync, statSync } from "node:fs";
 import { AppStore } from "./store";
 import { ViteHost } from "./vite-host";
-import type { AppState, Layout, ManifestComponent, PreviewSource } from "./types";
+import type { AppState, Layout, ManifestComponent, ManifestDoc, PreviewSource } from "./types";
 import { reconcileSelection } from "./selection";
 
 // Hard cap so a stray huge file can't be slurped into the renderer's Code panel.
@@ -36,6 +36,7 @@ function buildAppState(
   store: AppStore,
   viteHost: ViteHost,
   manifest: ManifestComponent[],
+  docs: ManifestDoc[],
   detachedOpen: boolean,
 ): AppState {
   const s = store.state;
@@ -47,6 +48,7 @@ function buildAppState(
     overlay: s.overlay,
     theme: s.theme,
     manifest,
+    docs,
     iframeUrl,
     detachedOpen,
     vite: status,
@@ -55,9 +57,16 @@ function buildAppState(
 
 export function registerIpc(deps: Deps) {
   let manifest: ManifestComponent[] = [];
+  let docs: ManifestDoc[] = [];
 
   function broadcastState() {
-    const state = buildAppState(deps.store, deps.viteHost, manifest, deps.getDetached() !== null);
+    const state = buildAppState(
+      deps.store,
+      deps.viteHost,
+      manifest,
+      docs,
+      deps.getDetached() !== null,
+    );
     deps.getMain()?.webContents.send("state:update", state);
     deps.getDetached()?.webContents.send("state:update", state);
   }
@@ -67,10 +76,12 @@ export function registerIpc(deps: Deps) {
       const res = await fetch(`http://127.0.0.1:${port}/__pl__/manifest.json`);
       if (!res.ok) {
         manifest = [];
+        docs = [];
         return;
       }
-      const body = (await res.json()) as { components: ManifestComponent[] };
+      const body = (await res.json()) as { components: ManifestComponent[]; docs?: ManifestDoc[] };
       manifest = body.components ?? [];
+      docs = body.docs ?? [];
 
       // Reconcile the persisted selection against the new manifest: keep it if
       // still valid, reset to the first preview, or clear it entirely when the
@@ -80,6 +91,7 @@ export function registerIpc(deps: Deps) {
       if (patch) deps.store.patchSelection(patch);
     } catch {
       manifest = [];
+      docs = [];
     }
   }
 
@@ -91,7 +103,7 @@ export function registerIpc(deps: Deps) {
   });
 
   ipcMain.handle("state:get", () =>
-    buildAppState(deps.store, deps.viteHost, manifest, deps.getDetached() !== null),
+    buildAppState(deps.store, deps.viteHost, manifest, docs, deps.getDetached() !== null),
   );
 
   ipcMain.handle("project:pickFolder", async () => {
@@ -139,12 +151,13 @@ export function registerIpc(deps: Deps) {
       },
     ) => {
       // Selecting a story is a clean start: clear overrides + layout override and
-      // exit any docs view.
+      // exit any docs or page view.
       deps.store.patchSelection({
         ...input,
         propOverrides: {},
         layout: null,
         docsComponentId: null,
+        pageId: null,
       });
       broadcastState();
     },
@@ -162,7 +175,19 @@ export function registerIpc(deps: Deps) {
   });
 
   ipcMain.handle("preview:setDocs", (_e, componentId: string | null) => {
-    deps.store.patchSelection({ docsComponentId: componentId });
+    deps.store.patchSelection({ docsComponentId: componentId, pageId: null });
+    broadcastState();
+  });
+
+  ipcMain.handle("preview:setPage", (_e, pageId: string | null) => {
+    deps.store.patchSelection({
+      pageId,
+      componentId: null,
+      storyId: null,
+      docsComponentId: null,
+      propOverrides: {},
+      layout: null,
+    });
     broadcastState();
   });
 
