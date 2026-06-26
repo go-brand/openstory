@@ -576,42 +576,35 @@ git commit -m "feat(vite-plugin): emit docs[] in manifest, validate embeds, keep
 - Consumes: `OpenStoryConfig`/`RegisteredComponent` (for embed lookup), the existing single-fixture render used by `PreviewStage`.
 - Produces: `RenderMessage` with optional `mode:"page"`, `pageHtml?: string`, `pageEmbeds?: string[]`. `DocHost({ html, embeds, components }): JSX.Element`.
 
+**Test approach (read before writing):** runtime tests are PURE unit tests — `preview-host.test.tsx` imports only `vitest` and tests exported functions (`mergeProps`, `layoutStyle`); there is NO `@testing-library/react` dep and NO jsdom vitest environment configured. Do NOT add either. Test the embed-resolution logic by exporting `resolveEmbed` as a pure function and asserting on its return value. The DOM injection + portal hydration of `DocHost` is verified end-to-end by Task 12's manual run, not a unit test.
+
 - [ ] **Step 1: Write the failing test**
 
 Create `packages/runtime/src/doc-host.test.tsx`:
 
 ```tsx
 import { describe, expect, it } from "vitest";
-import { render } from "@testing-library/react";
-import { DocHost } from "./doc-host.js";
+import { resolveEmbed } from "./doc-host.js";
 
 function Bell() {
-  return <span>BELL</span>;
+  return null;
 }
 const components = [
-  { id: "bell", name: "Bell", component: Bell, fixtures: [{ id: "unread", label: "Unread", props: {} }] },
+  { id: "bell", name: "Bell", component: Bell, fixtures: [{ id: "unread", label: "Unread", props: { tone: "warn" } }] },
 ] as never[];
 
-describe("DocHost", () => {
-  it("injects the doc html", () => {
-    const { container } = render(
-      <DocHost html="<h1>Notifications</h1>" embeds={[]} components={components} />,
-    );
-    expect(container.querySelector("h1")?.textContent).toBe("Notifications");
+describe("resolveEmbed", () => {
+  it("resolves a known componentId--storyId to its component + fixture props", () => {
+    const r = resolveEmbed(components, "bell--unread");
+    expect(r?.Comp).toBe(Bell);
+    expect(r?.props).toEqual({ tone: "warn" });
   });
-  it("mounts a known embed into its placeholder", () => {
-    const html = '<div data-openstory-story="bell--unread"></div>';
-    const { container } = render(
-      <DocHost html={html} embeds={["bell--unread"]} components={components} />,
-    );
-    expect(container.textContent).toContain("BELL");
+  it("returns null for an unknown component or story", () => {
+    expect(resolveEmbed(components, "ghost--x")).toBeNull();
+    expect(resolveEmbed(components, "bell--missing")).toBeNull();
   });
-  it("shows a not-found marker for an unknown embed", () => {
-    const html = '<div data-openstory-story="ghost--x"></div>';
-    const { getByText } = render(
-      <DocHost html={html} embeds={["ghost--x"]} components={components} />,
-    );
-    expect(getByText(/story not found: ghost--x/i)).toBeTruthy();
+  it("returns null when the id has no -- separator", () => {
+    expect(resolveEmbed(components, "bell")).toBeNull();
   });
 });
 ```
@@ -619,7 +612,7 @@ describe("DocHost", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @gobrand/openstory-runtime test -- doc-host`
-Expected: FAIL — `./doc-host.js` not found.
+Expected: FAIL — `./doc-host.js` not found / `resolveEmbed` not exported.
 
 - [ ] **Step 3: Implement `bridge.ts` changes**
 
@@ -658,7 +651,7 @@ type EmbedComponent = {
   fixtures: Array<{ id: string; label: string; props: unknown }>;
 };
 
-function resolveEmbed(
+export function resolveEmbed(
   components: EmbedComponent[],
   embedId: string,
 ): { Comp: EmbedComponent["component"]; props: unknown } | null {
