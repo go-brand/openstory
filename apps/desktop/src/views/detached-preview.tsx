@@ -3,12 +3,13 @@ import { HugeiconsIcon, Cursor02Icon, Pin02Icon, ArrowShrink02Icon } from "../li
 import type { AppState } from "../../electron/types";
 import type { Api } from "../lib/api";
 import { useHarnessBridge } from "../lib/use-harness-bridge";
+import { NO_ADDONS } from "../lib/preview-view";
 import { Slider } from "../components/ui/slider";
 import { Checkbox } from "../components/ui/checkbox";
 
 export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  useHarnessBridge(iframeRef, state.selection, api);
+  useHarnessBridge(iframeRef, state.selection, api, NO_ADDONS, state.docs);
 
   // The canvas stays fully transparent so the window can sit over a real site
   // and the component is compared 1:1 against it (opacity ghosts it, difference

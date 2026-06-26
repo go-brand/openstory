@@ -8,12 +8,16 @@ export function useHarnessBridge(
   selection: AppState["selection"],
   api: Api,
   addons: AddonState = NO_ADDONS,
+  docs: AppState["docs"] = [],
 ): { reload: () => void } {
   const latest = useRef(selection);
   latest.current = selection;
 
   const apiRef = useRef(api);
   apiRef.current = api;
+
+  const docsRef = useRef(docs);
+  docsRef.current = docs;
 
   // Callback ref keeps the message-listener effect ([] deps) from capturing a
   // stale `post` closure: it always invokes the latest implementation.
@@ -22,6 +26,25 @@ export function useHarnessBridge(
     const win = iframeRef.current?.contentWindow;
     const s = latest.current;
     if (!win) return;
+    // Page selection: render a standalone feature-docs page (html + embeds).
+    if (s.pageId) {
+      const doc = docsRef.current.find((d) => d.id === s.pageId);
+      if (doc) {
+        win.postMessage(
+          {
+            type: "pl:render",
+            mode: "page",
+            componentId: "",
+            storyId: "",
+            viewport: s.viewport,
+            pageHtml: doc.html,
+            pageEmbeds: doc.embeds,
+          },
+          "*",
+        );
+      }
+      return;
+    }
     // Docs selection wins: render the component's stacked docs page instead of a
     // single story. `storyId`/overrides are ignored by the host in docs mode.
     if (s.docsComponentId) {
@@ -81,6 +104,7 @@ export function useHarnessBridge(
     selection.viewport,
     selection.layout,
     selection.docsComponentId,
+    selection.pageId,
     propOverridesKey,
   ]);
 
