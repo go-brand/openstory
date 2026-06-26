@@ -26,6 +26,9 @@ export type ActiveSelection = {
   storyId: string | null;
   /** Component id whose Docs node is the active selection, else null. */
   docsComponentId: string | null;
+  /** Feature-doc page id whose page is the active selection, else null.
+   *  Distinct from `docsComponentId` (a component's auto-docs). */
+  pageId: string | null;
   viewport: "desktop" | "mobile";
   /** Per-selection layout override; null falls back to the component's declared
    *  `layout`. Reset to null whenever a new story is selected. */
@@ -63,6 +66,18 @@ export type ManifestComponent = {
   sourcePath: string | null;
 };
 
+export type ManifestDoc = {
+  id: string;
+  title: string;
+  group: string;
+  section: string | null;
+  html: string;
+  embeds: string[];
+  sourcePath: string;
+  status?: "shipped" | "beta" | "planned";
+  owner?: string;
+};
+
 export type PreviewSource = {
   path: string;
   code: string;
@@ -74,6 +89,7 @@ export type AppState = {
   overlay: OverlayState;
   theme: Theme;
   manifest: ManifestComponent[];
+  docs: ManifestDoc[];
   iframeUrl: string | null;
   detachedOpen: boolean;
   vite: {
@@ -96,6 +112,7 @@ export type IpcInvoke = {
   "preview:setProps": (overrides: Record<string, unknown>) => void;
   "preview:setLayout": (layout: Layout | null) => void;
   "preview:setDocs": (componentId: string | null) => void;
+  "preview:setPage": (pageId: string | null) => void;
   "preview:refreshManifest": () => void;
   "preview:getSource": (componentId: string) => PreviewSource | null;
   "preview:popOut": () => void;
