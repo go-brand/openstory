@@ -17,7 +17,7 @@ export function Sidebar({
 }) {
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
-  const nodes = useMemo(() => buildTree(state.manifest), [state.manifest]);
+  const nodes = useMemo(() => buildTree(state.manifest, state.docs), [state.manifest, state.docs]);
   // First-level containers are expanded by default; everything deeper starts collapsed.
   const defaultExpanded = useMemo(() => nodes.filter(isContainer).map((n) => n.id), [nodes]);
   const { isExpanded, toggle, setExpanded } = useExpanded(

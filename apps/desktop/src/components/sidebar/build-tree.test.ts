@@ -1,6 +1,33 @@
 import { describe, it, expect } from "vitest";
-import type { ManifestComponent } from "../../../electron/types";
+import type { ManifestComponent, ManifestDoc } from "../../../electron/types";
 import { buildTree, flatten, type TreeNode } from "./build-tree";
+
+const doc = (over: Partial<ManifestDoc> = {}): ManifestDoc => ({
+  id: "notifications",
+  title: "Notifications",
+  group: "Features",
+  section: null,
+  html: "",
+  embeds: [],
+  sourcePath: "/p/N.stories.md",
+  ...over,
+});
+
+it("places a feature doc as a page leaf under its group", () => {
+  const tree = buildTree([], [doc()]);
+  // Features folder → page leaf
+  const features = tree.find((n) => n.kind === "folder" && n.label === "Features");
+  expect(features).toBeTruthy();
+  const leaf = (features as { children: TreeNode[] }).children[0]!;
+  expect(leaf.kind).toBe("page");
+  expect((leaf as { pageId: string }).pageId).toBe("notifications");
+  expect(leaf.label).toBe("Notifications");
+});
+
+it("a group-less doc sits at the root", () => {
+  const tree = buildTree([], [doc({ group: "" })]);
+  expect(tree.some((n) => n.kind === "page")).toBe(true);
+});
 
 function component(over: Partial<ManifestComponent> & { id: string }): ManifestComponent {
   return {

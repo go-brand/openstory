@@ -1,4 +1,4 @@
-import type { ManifestComponent } from "../../../electron/types";
+import type { ManifestComponent, ManifestDoc } from "../../../electron/types";
 
 export type StoryLeaf = {
   kind: "story";
@@ -32,7 +32,14 @@ export type SectionNode = {
   label: string;
   children: TreeNode[];
 };
-export type TreeNode = SectionNode | FolderNode | ComponentNode | StoryLeaf | DocsLeaf;
+export type PageLeaf = {
+  kind: "page";
+  id: string;
+  label: string;
+  pageId: string;
+  status?: "shipped" | "beta" | "planned";
+};
+export type TreeNode = SectionNode | FolderNode | ComponentNode | StoryLeaf | DocsLeaf | PageLeaf;
 
 // Containers can be collapsed; leaves cannot.
 export function isContainer(node: TreeNode): node is SectionNode | FolderNode | ComponentNode {
@@ -80,29 +87,50 @@ function componentNode(p: ManifestComponent, idPrefix: string): ComponentNode | 
   };
 }
 
-type Item = { preview: ManifestComponent; segs: string[] };
+function pageLeaf(d: ManifestDoc, idPrefix: string): PageLeaf {
+  const leaf: PageLeaf = {
+    kind: "page",
+    id: `${idPrefix}/page:${d.id}`,
+    label: d.title,
+    pageId: d.id,
+  };
+  if (d.status) leaf.status = d.status;
+  return leaf;
+}
+
+type Entry = { kind: "component"; value: ManifestComponent } | { kind: "doc"; value: ManifestDoc };
+
+type Item = { entry: Entry; segs: string[] };
 
 // Build folders + components for one container, recursing on remaining segments.
-// Direct (no-more-segments) components render first, alpha; folders follow, first-seen.
+// Direct (no-more-segments) components render first, alpha; page leaves follow, alpha; folders last, first-seen.
 function container(items: Item[], idPrefix: string): TreeNode[] {
-  const direct: ManifestComponent[] = [];
+  const directComponents: ManifestComponent[] = [];
+  const directDocs: ManifestDoc[] = [];
   const folderOrder: string[] = [];
   const folders = new Map<string, Item[]>();
-  for (const { preview, segs } of items) {
+  for (const { entry, segs } of items) {
     if (segs.length === 0) {
-      direct.push(preview);
+      if (entry.kind === "component") {
+        directComponents.push(entry.value);
+      } else {
+        directDocs.push(entry.value);
+      }
     } else {
       const head = segs[0]!;
       if (!folders.has(head)) {
         folders.set(head, []);
         folderOrder.push(head);
       }
-      folders.get(head)!.push({ preview, segs: segs.slice(1) });
+      folders.get(head)!.push({ entry, segs: segs.slice(1) });
     }
   }
   const nodes: TreeNode[] = [];
-  for (const p of [...direct].sort((a, b) => a.id.localeCompare(b.id))) {
+  for (const p of [...directComponents].sort((a, b) => a.id.localeCompare(b.id))) {
     nodes.push(componentNode(p, idPrefix));
+  }
+  for (const d of [...directDocs].sort((a, b) => a.id.localeCompare(b.id))) {
+    nodes.push(pageLeaf(d, idPrefix));
   }
   for (const name of folderOrder) {
     const fid = `${idPrefix}/folder:${name}`;
@@ -117,20 +145,21 @@ function container(items: Item[], idPrefix: string): TreeNode[] {
 }
 
 /** Project the flat manifest into the sidebar tree. */
-export function buildTree(manifest: ManifestComponent[]): TreeNode[] {
+export function buildTree(manifest: ManifestComponent[], docs: ManifestDoc[] = []): TreeNode[] {
   const order: (string | null)[] = [];
-  const bySection = new Map<string | null, ManifestComponent[]>();
-  for (const p of manifest) {
-    const s = p.section ?? null;
-    if (!bySection.has(s)) {
-      bySection.set(s, []);
-      order.push(s);
+  const bySection = new Map<string | null, Entry[]>();
+  const push = (section: string | null, entry: Entry) => {
+    if (!bySection.has(section)) {
+      bySection.set(section, []);
+      order.push(section);
     }
-    bySection.get(s)!.push(p);
-  }
+    bySection.get(section)!.push(entry);
+  };
+  for (const p of manifest) push(p.section ?? null, { kind: "component", value: p });
+  for (const d of docs) push(d.section ?? null, { kind: "doc", value: d });
+  const toItems = (entries: Entry[]): Item[] =>
+    entries.map((entry) => ({ entry, segs: segments(entry.value.group) }));
   const roots: TreeNode[] = [];
-  const toItems = (ps: ManifestComponent[]): Item[] =>
-    ps.map((p) => ({ preview: p, segs: segments(p.group) }));
   // Sectionless bucket renders flat at the root, first.
   if (bySection.has(null)) {
     roots.push(...container(toItems(bySection.get(null)!), "root"));
