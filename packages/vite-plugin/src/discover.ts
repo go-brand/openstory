@@ -3,13 +3,24 @@ import { join, relative, sep } from "node:path";
 import { isRegisteredComponent } from "@gobrand/openstory-config";
 import type { OpenStoryConfig, RegisteredComponent } from "@gobrand/openstory-config";
 
-const DEFAULT_PATTERNS = ["**/*.stories.{ts,tsx}"];
+const DEFAULT_PATTERNS = ["**/*.stories.{ts,tsx,md}"];
 // Directory names never descended into (build output / vcs / deps).
 const IGNORE_DIRS = new Set(["node_modules", "dist", "build", "out", ".git"]);
 
 // Effective glob patterns: the config's `stories` field, or the zero-config default.
 export function resolvePatterns(config: OpenStoryConfig | null): string[] {
   return config?.stories && config.stories.length > 0 ? config.stories : DEFAULT_PATTERNS;
+}
+
+// Split glob-matched files into the React-story path (ssrLoadModule) and the
+// markdown-doc path (read + parse). `.md` cannot be loaded as a module.
+export function partitionByExtension(files: string[]): {
+  storyFiles: string[];
+  docFiles: string[];
+} {
+  const docFiles = files.filter((f) => f.endsWith(".md"));
+  const storyFiles = files.filter((f) => !f.endsWith(".md"));
+  return { storyFiles, docFiles };
 }
 
 function escapeRe(s: string): string {

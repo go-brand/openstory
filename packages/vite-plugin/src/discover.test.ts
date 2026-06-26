@@ -2,12 +2,17 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { resolvePatterns, globToRegExp, discoverComponents } from "./discover";
+import {
+  partitionByExtension,
+  resolvePatterns,
+  globToRegExp,
+  discoverComponents,
+} from "./discover";
 
 describe("resolvePatterns", () => {
-  it("defaults to **/*.stories.{ts,tsx} when no config or no stories field", () => {
-    expect(resolvePatterns(null)).toEqual(["**/*.stories.{ts,tsx}"]);
-    expect(resolvePatterns({ components: [] })).toEqual(["**/*.stories.{ts,tsx}"]);
+  it("defaults to **/*.stories.{ts,tsx,md} when no config or no stories field", () => {
+    expect(resolvePatterns(null)).toEqual(["**/*.stories.{ts,tsx,md}"]);
+    expect(resolvePatterns({ components: [] })).toEqual(["**/*.stories.{ts,tsx,md}"]);
   });
 
   it("uses the config's stories patterns when provided", () => {
@@ -59,5 +64,21 @@ describe("discoverComponents", () => {
     expect(found[0]?.sourcePath).toBe(join(root, "src", "button.stories.tsx"));
     expect(warn).toHaveBeenCalled(); // skipped meta.stories.tsx
     warn.mockRestore();
+  });
+});
+
+describe("doc discovery wiring", () => {
+  it("default patterns now match .md story files", () => {
+    const [pattern] = resolvePatterns(null);
+    expect(pattern).toBe("**/*.stories.{ts,tsx,md}");
+  });
+  it("partitions matched files by extension", () => {
+    const { storyFiles, docFiles } = partitionByExtension([
+      "/p/Button.stories.tsx",
+      "/p/Notifications.stories.md",
+      "/p/Badge.stories.ts",
+    ]);
+    expect(storyFiles).toEqual(["/p/Button.stories.tsx", "/p/Badge.stories.ts"]);
+    expect(docFiles).toEqual(["/p/Notifications.stories.md"]);
   });
 });
