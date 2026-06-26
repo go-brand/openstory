@@ -1,6 +1,6 @@
 {
   "name": "@gobrand/openstory-vite",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Vite plugin that serves the OpenStory preview harness for a project",
   "private": false,
   "publishConfig": {
