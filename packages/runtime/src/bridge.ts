@@ -12,8 +12,12 @@ export type RenderMessage = {
    * renders the component's auto-docs page — title + every story stacked
    * vertically in one scrollable document, mirroring Storybook's Docs view.
    * In docs mode `storyId`/`fixtureOverrides` are ignored.
+   * `page` renders a feature doc: trusted project HTML with embedded stories.
    */
-  mode?: "story" | "docs";
+  mode?: "story" | "docs" | "page";
+  /** Present only in `page` mode: the feature doc's rendered HTML + embed ids. */
+  pageHtml?: string;
+  pageEmbeds?: string[];
 };
 
 export type ReadyMessage = {

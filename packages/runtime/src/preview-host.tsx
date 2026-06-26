@@ -10,6 +10,7 @@ import {
   type RegisteredComponent,
 } from "@gobrand/openstory-config";
 import { parseBridgeMessage, type RenderMessage, type ManifestMessage } from "./bridge.js";
+import { DocHost } from "./doc-host.js";
 import { applyAddons, type AddonState } from "./addons/index.js";
 
 export type ViewportName = "desktop" | "mobile";
@@ -204,6 +205,7 @@ export function DocsPage({
 
 function App({ config }: { config: OpenStoryConfig }) {
   const [selection, setSelection] = useState<ActiveSelection | null>(readSelectionFromUrl);
+  const [page, setPage] = useState<{ html: string; embeds: string[] } | null>(null);
   const [docsComponentId, setDocsComponentId] = useState<string | null>(null);
   const [docsLayout, setDocsLayout] = useState<Layout | undefined>(undefined);
   const [addons, setAddons] = useState<AddonState>({
@@ -230,6 +232,12 @@ function App({ config }: { config: OpenStoryConfig }) {
       if (!msg) return;
       if (msg.type === "pl:render") {
         const next: RenderMessage = msg;
+        if (next.mode === "page") {
+          setPage({ html: next.pageHtml ?? "", embeds: next.pageEmbeds ?? [] });
+          setDocsComponentId(null);
+          return;
+        }
+        setPage(null);
         if (next.mode === "docs") {
           setDocsComponentId(next.componentId);
           setDocsLayout(next.layout);
@@ -269,6 +277,16 @@ function App({ config }: { config: OpenStoryConfig }) {
     window.parent.postMessage({ type: "pl:ready" }, "*");
   }, [config]);
 
+  if (page) {
+    return (
+      <DocHost
+        key={`page:${remountKey}`}
+        html={page.html}
+        embeds={page.embeds}
+        components={config.components ?? []}
+      />
+    );
+  }
   if (docsComponentId) {
     return (
       <DocsPage
