@@ -1156,7 +1156,7 @@ Run the desktop app (per the repo's run skill / `pnpm` dev script), add the exam
 - "Notifications" appears under a **Features** folder in the sidebar.
 - Selecting it renders the prose page with the embedded story **live** inline.
 - The right panel shows the `.md` source and **no controls**.
-- Editing the `.md` (add a line) and saving updates the page without relaunch (HMR → `pl:manifest` → refetch).
+- Editing the `.md` does **NOT** live-update the open page in v1 (known limitation / fast-follow); to see content changes, re-select the page.
 - A deliberately wrong `:::story typo--x` shows the in-page "⚠ story not found" marker and dev-warns in the Vite console — no crash.
 
 - [ ] **Step 3: Commit**

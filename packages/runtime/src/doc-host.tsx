@@ -32,18 +32,20 @@ export function DocHost({
   components: EmbedComponent[];
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  // After the HTML mounts, collect each placeholder node so we can portal into it.
-  const [targets, setTargets] = useState<Map<string, HTMLElement>>(new Map());
+  // After the HTML mounts, collect placeholder nodes in DOM order so duplicates
+  // are preserved (a Map keyed by id collapses two identical :::story directives
+  // onto the last node and produces duplicate React keys).
+  const [targets, setTargets] = useState<Array<{ id: string; el: HTMLElement }>>([]);
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    const map = new Map<string, HTMLElement>();
+    const arr: Array<{ id: string; el: HTMLElement }> = [];
     for (const el of root.querySelectorAll<HTMLElement>("[data-openstory-story]")) {
       const id = el.getAttribute("data-openstory-story");
-      if (id) map.set(id, el);
+      if (id) arr.push({ id, el });
     }
-    setTargets(map);
+    setTargets(arr);
   }, [html]);
 
   return (
@@ -51,9 +53,7 @@ export function DocHost({
       {/* doc HTML comes from a project-local file the developer already trusts
           (same boundary as their own source) — not user-submitted content. */}
       <div ref={rootRef} className="openstory-doc" dangerouslySetInnerHTML={{ __html: html }} />
-      {embeds.map((id) => {
-        const target = targets.get(id);
-        if (!target) return null;
+      {targets.map(({ id, el }, i) => {
         const resolved = resolveEmbed(components, id);
         // Cast to accept arbitrary props at the render site; the actual props
         // come from the fixture definition so they match the component's contract.
@@ -64,8 +64,8 @@ export function DocHost({
           ) : (
             <span className="openstory-embed-missing">⚠ story not found: {id}</span>
           ),
-          target,
-          id,
+          el,
+          `embed-${i}`,
         );
       })}
     </>

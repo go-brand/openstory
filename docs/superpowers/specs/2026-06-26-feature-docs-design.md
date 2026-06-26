@@ -47,6 +47,9 @@ exactly like a story file does today.
 - **Search / full-text index** over docs.
 - **MDX / JSX** in docs. Embeds are the interactivity primitive.
 - **Cross-doc links / backlinks**, doc-to-component "used in" reverse index.
+- **`.md` doc-content hot-reload.** Editing a `*.stories.md` file does not
+  live-update the open page in v1 (see §F Live updates). Re-select the page
+  to pick up changes.
 
 ## Architecture
 
@@ -182,9 +185,15 @@ the doc page itself; each *embed* renders in its component's own resolved render
   the component preview canvas. The right panel shows **no controls** (a doc has
   none); the **Code panel shows the raw `.md` source** (`sourcePath`), mirroring
   how components show their source.
-- **Live updates** — same as stories: editing/adding a `*.stories.md` re-runs
-  discovery and re-posts `pl:manifest`; the desktop refetches `/manifest.json`
-  (the existing refetch-trigger path), so a new doc appears without relaunch.
+- **Live updates** — adding or renaming a `*.stories.md` file triggers a
+  `pl:manifest` re-post (via the Vite watcher), and the desktop refetches
+  `/manifest.json`, so a new doc page appears without relaunch. **Only
+  `*.tsx` component story files trigger a live manifest refresh; editing the
+  `.md` content itself does NOT hot-reload the open page in v1.** The harness
+  `import.meta.glob` literal excludes `.md`, and the desktop re-post effect
+  keys only on `selection.*`, so `.md` content changes are not picked up
+  until the user re-selects the page or a `.tsx`-triggered manifest refresh
+  happens to re-fetch the doc. Doc-content hot-reload is a v1 fast-follow.
 
 ## Authoring contract (the whole thing an agent learns)
 
@@ -209,7 +218,7 @@ Clicking it opens the panel:
 
 - File: `Notifications.stories.md`, anywhere under the project.
 - Everything in frontmatter is optional except nothing (all optional).
-- `:::story <componentId>--<storyId>` on its own line embeds a live story.
+- `:::story <componentId>--<storyId>` on its own line embeds a live story. The directive must be on its own line with a blank line before and after it — it renders as a block-level embed.
 
 ## Touch-points
 
