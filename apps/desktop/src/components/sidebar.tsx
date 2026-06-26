@@ -34,6 +34,7 @@ export function Sidebar({
     onToggle: toggle,
     onSelectStory,
     onSelectDocs: (componentId) => api?.invoke("preview:setDocs", componentId),
+    onSelectPage: (pageId) => api?.invoke("preview:setPage", pageId),
     setFocusedId,
   };
 
@@ -67,6 +68,7 @@ export function Sidebar({
       if (!cur) return;
       if (cur.kind === "story") onSelectStory(cur.componentId, cur.storyId);
       else if (cur.kind === "docs") api?.invoke("preview:setDocs", cur.componentId);
+      else if (cur.kind === "page") api?.invoke("preview:setPage", cur.pageId);
       else toggle(cur.id);
     }
   }

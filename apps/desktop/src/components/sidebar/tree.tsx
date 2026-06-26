@@ -18,6 +18,7 @@ export type TreeCallbacks = {
   onToggle: (id: string) => void;
   onSelectStory: (componentId: string, storyId: string) => void;
   onSelectDocs: (componentId: string) => void;
+  onSelectPage: (pageId: string) => void;
   setFocusedId: (id: string) => void;
 };
 
@@ -32,6 +33,7 @@ function isSelected(node: TreeNode, sel: ActiveSelection): boolean {
     );
   }
   if (node.kind === "docs") return sel.docsComponentId === node.componentId;
+  if (node.kind === "page") return sel.pageId === node.pageId;
   return false;
 }
 
@@ -45,6 +47,7 @@ function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallb
     cb.setFocusedId(node.id);
     if (node.kind === "story") cb.onSelectStory(node.componentId, node.storyId);
     else if (node.kind === "docs") cb.onSelectDocs(node.componentId);
+    else if (node.kind === "page") cb.onSelectPage(node.pageId);
     else cb.onToggle(node.id);
   }
 
@@ -80,7 +83,9 @@ function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallb
         ? DashboardSquare01Icon
         : node.kind === "docs"
           ? File01Icon
-          : Bookmark02Icon;
+          : node.kind === "page"
+            ? File01Icon
+            : Bookmark02Icon;
   const iconColor =
     node.kind === "folder"
       ? "text-violet-500"
@@ -88,7 +93,9 @@ function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallb
         ? "text-brand"
         : node.kind === "docs"
           ? "text-amber-500"
-          : "text-teal-500";
+          : node.kind === "page"
+            ? "text-sky-500"
+            : "text-teal-500";
 
   return (
     <>
@@ -118,6 +125,11 @@ function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallb
           className={cn("size-3.5 shrink-0", selected ? "text-white" : iconColor)}
         />
         <span className="truncate">{node.label}</span>
+        {node.kind === "page" && node.status && (
+          <span className="ml-auto shrink-0 rounded px-1 text-[9px] text-muted-foreground opacity-70">
+            {node.status}
+          </span>
+        )}
       </button>
       {expandable &&
         open &&
