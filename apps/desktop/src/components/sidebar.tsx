@@ -78,7 +78,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="flex w-[260px] flex-col bg-sidebar">
+    <aside className="flex w-[260px] flex-col border-r border-border bg-sidebar">
       <RepoSwitcher state={state} api={api} />
 
       {state.projects.length > 0 && (
