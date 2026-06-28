@@ -10,6 +10,16 @@ import {
 } from "../../lib/icons";
 import { Menu, MenuTrigger, MenuContent, MenuItem, MenuSeparator } from "../ui/menu";
 
+// A 1–2 letter monogram from the project name (word initials, else first chars).
+function monogram(name: string): string {
+  const parts = name
+    .trim()
+    .split(/[\s\-_]+/)
+    .filter(Boolean);
+  if (parts.length >= 2) return (parts[0]![0]! + parts[1]![0]!).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
 export function RepoSwitcher({ state, api }: { state: AppState; api: Api }) {
   const active = state.projects.find((p) => p.id === state.selection.projectId);
 
@@ -25,8 +35,16 @@ export function RepoSwitcher({ state, api }: { state: AppState; api: Api }) {
   return (
     <div className="no-drag px-3 pt-3">
       <Menu>
-        <MenuTrigger className="flex h-9 w-full items-center gap-2 rounded-lg border border-border bg-card px-2.5 text-[12.5px] font-medium text-foreground transition-colors hover:bg-foreground/[0.04] data-[popup-open]:bg-foreground/[0.04]">
-          <HugeiconsIcon icon={Folder01Icon} className="size-3.5 shrink-0 text-brand" />
+        <MenuTrigger className="flex h-11 w-full items-center gap-2.5 rounded-lg px-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-foreground/[0.04] data-[popup-open]:bg-foreground/[0.04]">
+          {active ? (
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-brand/15 text-[11px] font-semibold uppercase text-brand">
+              {monogram(active.name)}
+            </span>
+          ) : (
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/[0.06] text-muted-foreground">
+              <HugeiconsIcon icon={Folder01Icon} className="size-3.5" />
+            </span>
+          )}
           <span className="truncate">{active?.name ?? "No repository"}</span>
           <HugeiconsIcon
             icon={ArrowDown01Icon}

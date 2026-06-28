@@ -12,7 +12,7 @@ export function ModeTabs({ mode, onSelect }: { mode: Mode; onSelect: (m: Mode) =
     <div
       role="tablist"
       aria-label="Sidebar mode"
-      className="no-drag mt-2 flex gap-1 rounded-lg border border-border bg-card p-1"
+      className="no-drag mt-2 flex gap-0.5 rounded-full border border-border bg-foreground/[0.03] p-0.5"
       onKeyDown={(e) => {
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
         e.preventDefault();
@@ -35,9 +35,9 @@ export function ModeTabs({ mode, onSelect }: { mode: Mode; onSelect: (m: Mode) =
             tabIndex={active ? 0 : -1}
             onClick={() => onSelect(t.mode)}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-[11.5px] font-medium transition-colors",
+              "flex flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-1 text-[11.5px] font-medium transition-colors",
               active
-                ? "bg-foreground/[0.06] text-foreground"
+                ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >

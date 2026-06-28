@@ -80,7 +80,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
 
         {/* Canvas. Plain neutral bg by design — the preset-color tint is
             detached-only (it backs difference-blend pixel comparison there). */}
-        <main className="relative flex flex-1 flex-col overflow-hidden bg-background">
+        <main className="relative flex flex-1 flex-col overflow-hidden rounded-tl-2xl border-l border-t border-border bg-background">
           <Toolbar
             state={state}
             api={api}
