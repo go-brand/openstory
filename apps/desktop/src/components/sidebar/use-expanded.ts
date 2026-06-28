@@ -5,54 +5,54 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // nodes default to collapsed. Default-on-first-run: only the first-level
 // containers are expanded (passed in as `defaultExpanded`); everything deeper
 // reads as closed and the user drills in.
-function storageKey(projectId: string | null): string {
-  return `openstory:sidebar:expanded:${projectId ?? "none"}`;
+function storageKey(scope: string | null): string {
+  return `openstory:sidebar:expanded:${scope ?? "none"}`;
 }
 
-export function useExpanded(projectId: string | null, defaultExpanded: string[]) {
+export function useExpanded(scope: string | null, defaultExpanded: string[]) {
   // We store the EXPANDED set (so unknown/new nodes default to collapsed).
   const [expandedSet, setExpandedSet] = useState<Set<string>>(new Set());
-  // Per-project guard: once we have authoritative state (persisted or seeded),
+  // Per-scope guard: once we have authoritative state (persisted or seeded),
   // stop seeding so a user's collapse of a first-level node isn't undone.
-  const initializedProject = useRef<string | null>(null);
+  const initializedScope = useRef<string | null>(null);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(storageKey(projectId));
+      const raw = localStorage.getItem(storageKey(scope));
       if (raw !== null) {
         // Persisted state wins; never seed over it.
         setExpandedSet(new Set(JSON.parse(raw) as string[]));
-        initializedProject.current = projectId;
+        initializedScope.current = scope;
       } else {
         // No persisted state yet — wait for the tree, then seed first-level.
         setExpandedSet(new Set());
-        initializedProject.current = null;
+        initializedScope.current = null;
       }
     } catch {
       setExpandedSet(new Set());
-      initializedProject.current = null;
+      initializedScope.current = null;
     }
-  }, [projectId]);
+  }, [scope]);
 
   // Seed the first-level containers once the tree is known, if nothing persisted.
   useEffect(() => {
-    if (initializedProject.current === projectId) return; // already authoritative
+    if (initializedScope.current === scope) return; // already authoritative
     if (defaultExpanded.length === 0) return; // tree not ready yet
     setExpandedSet(new Set(defaultExpanded));
-    initializedProject.current = projectId;
-  }, [projectId, defaultExpanded]);
+    initializedScope.current = scope;
+  }, [scope, defaultExpanded]);
 
   const persist = useCallback(
     (next: Set<string>) => {
       setExpandedSet(next);
-      initializedProject.current = projectId; // a user action is authoritative
+      initializedScope.current = scope; // a user action is authoritative
       try {
-        localStorage.setItem(storageKey(projectId), JSON.stringify([...next]));
+        localStorage.setItem(storageKey(scope), JSON.stringify([...next]));
       } catch {
         // Non-fatal: expand state just won't persist this session.
       }
     },
-    [projectId],
+    [scope],
   );
 
   const isExpanded = useCallback((id: string) => expandedSet.has(id), [expandedSet]);

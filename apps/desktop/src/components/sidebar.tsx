@@ -25,7 +25,7 @@ export function Sidebar({
   // First-level containers are expanded by default; everything deeper starts collapsed.
   const defaultExpanded = useMemo(() => nodes.filter(isContainer).map((n) => n.id), [nodes]);
   const { isExpanded, toggle, setExpanded } = useExpanded(
-    state.selection.projectId,
+    `${state.selection.projectId}:${state.selection.mode}`,
     defaultExpanded,
   );
 
@@ -103,7 +103,7 @@ export function Sidebar({
         ) : nodes.length === 0 ? (
           <p className="px-3 py-2 text-[11px] text-muted-foreground">
             {state.selection.mode === "docs"
-              ? "Drop a *.stories.md to document a feature."
+              ? "Drop a .stories.md file to document a feature."
               : "No stories found in openstory.config.ts."}
           </p>
         ) : (
