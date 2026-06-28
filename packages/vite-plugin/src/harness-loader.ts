@@ -81,5 +81,13 @@ export function buildHarnessEntry(
     "const target = document.getElementById('root')",
     "if (!target) throw new Error('OpenStory: #root not found')",
     "mountPreviewHost(target, { ...userConfig, components })",
+    // Force the harness document transparent so the manager's themed canvas
+    // (bg-canvas, dark in dark mode) shows behind the preview — otherwise the
+    // consumer app's own `body`/`:root` background (imported above) fills the
+    // iframe (e.g. white in a light-themed app) and the preview never follows
+    // the manager theme. Appended last + !important so it beats consumer CSS.
+    "const __osTransparent = document.createElement('style')",
+    "__osTransparent.textContent = ':root,html,body,#root{background:transparent !important}'",
+    "document.head.appendChild(__osTransparent)",
   ].join("\n");
 }
