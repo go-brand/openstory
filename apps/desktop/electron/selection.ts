@@ -40,3 +40,15 @@ export function reconcileSelection(
     pageId: null,
   };
 }
+
+// Pick the mode to show after a manifest load: flip away from an EMPTY active
+// mode to the populated one, but never override a mode that has content.
+export function defaultMode(
+  current: "design" | "docs",
+  componentCount: number,
+  docCount: number,
+): "design" | "docs" {
+  if (current === "docs" && docCount === 0 && componentCount > 0) return "design";
+  if (current === "design" && componentCount === 0 && docCount > 0) return "docs";
+  return current;
+}

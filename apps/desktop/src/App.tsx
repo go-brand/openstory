@@ -13,6 +13,7 @@ const FALLBACK_STATE: AppState = {
     docsComponentId: null,
     pageId: null,
     viewport: "desktop",
+    mode: "design",
     layout: null,
     propOverrides: {},
   },

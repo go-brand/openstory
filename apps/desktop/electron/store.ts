@@ -18,6 +18,7 @@ const defaults: PersistedState = {
     docsComponentId: null,
     pageId: null,
     viewport: "desktop",
+    mode: "design",
     layout: null,
     propOverrides: {},
   },

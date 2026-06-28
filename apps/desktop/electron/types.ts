@@ -30,6 +30,8 @@ export type ActiveSelection = {
    *  Distinct from `docsComponentId` (a component's auto-docs). */
   pageId: string | null;
   viewport: "desktop" | "mobile";
+  /** Which sidebar tree is active. Design System = components[]; Docs = docs[]. */
+  mode: "design" | "docs";
   /** Per-selection layout override; null falls back to the component's declared
    *  `layout`. Reset to null whenever a new story is selected. */
   layout: Layout | null;
@@ -113,6 +115,7 @@ export type IpcInvoke = {
   "preview:setLayout": (layout: Layout | null) => void;
   "preview:setDocs": (componentId: string | null) => void;
   "preview:setPage": (pageId: string | null) => void;
+  "preview:setMode": (mode: "design" | "docs") => void;
   "preview:refreshManifest": () => void;
   "preview:getSource": (componentId: string) => PreviewSource | null;
   "preview:popOut": () => void;

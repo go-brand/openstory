@@ -5,7 +5,7 @@ import { readFileSync, statSync } from "node:fs";
 import { AppStore } from "./store";
 import { ViteHost } from "./vite-host";
 import type { AppState, Layout, ManifestComponent, ManifestDoc, PreviewSource } from "./types";
-import { reconcileSelection } from "./selection";
+import { reconcileSelection, defaultMode } from "./selection";
 
 // Hard cap so a stray huge file can't be slurped into the renderer's Code panel.
 const MAX_SOURCE_BYTES = 256 * 1024;
@@ -89,6 +89,10 @@ export function registerIpc(deps: Deps) {
       // otherwise the harness would render the previous repo's stale preview.
       const patch = reconcileSelection(manifest, deps.store.state.selection);
       if (patch) deps.store.patchSelection(patch);
+
+      const sel = deps.store.state.selection;
+      const wantMode = defaultMode(sel.mode, manifest.length, docs.length);
+      if (wantMode !== sel.mode) deps.store.patchSelection({ mode: wantMode });
     } catch {
       manifest = [];
       docs = [];
@@ -188,6 +192,11 @@ export function registerIpc(deps: Deps) {
       propOverrides: {},
       layout: null,
     });
+    broadcastState();
+  });
+
+  ipcMain.handle("preview:setMode", (_e, mode: "design" | "docs") => {
+    deps.store.patchSelection({ mode });
     broadcastState();
   });
 

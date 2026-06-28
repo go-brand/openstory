@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ManifestComponent } from "./types";
-import { reconcileSelection } from "./selection";
+import { reconcileSelection, defaultMode } from "./selection";
 
 function component(over: Partial<ManifestComponent> & { id: string }): ManifestComponent {
   return {
@@ -78,5 +78,21 @@ describe("reconcileSelection", () => {
   it("reset patches clear pageId", () => {
     const patch = reconcileSelection([], { componentId: "x", storyId: "y" });
     expect(patch).toMatchObject({ pageId: null });
+  });
+});
+
+describe("defaultMode", () => {
+  it("flips an empty docs mode to design when components exist", () => {
+    expect(defaultMode("docs", 3, 0)).toBe("design");
+  });
+  it("flips an empty design mode to docs when docs exist", () => {
+    expect(defaultMode("design", 0, 2)).toBe("docs");
+  });
+  it("keeps a populated mode", () => {
+    expect(defaultMode("design", 3, 2)).toBe("design");
+    expect(defaultMode("docs", 3, 2)).toBe("docs");
+  });
+  it("keeps the mode when both are empty", () => {
+    expect(defaultMode("design", 0, 0)).toBe("design");
   });
 });
