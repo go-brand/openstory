@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type { AppState } from "../../electron/types";
 import type { Api } from "../lib/api";
 import { RepoSwitcher } from "./sidebar/repo-switcher";
+import { ModeTabs } from "./sidebar/mode-tabs";
 import { Tree, type TreeCallbacks } from "./sidebar/tree";
 import { buildTree, flatten, isContainer } from "./sidebar/build-tree";
 import { useExpanded } from "./sidebar/use-expanded";
@@ -80,6 +81,15 @@ export function Sidebar({
     <aside className="flex w-[260px] flex-col border-r border-border bg-sidebar">
       <RepoSwitcher state={state} api={api} />
 
+      {state.projects.length > 0 && (
+        <div className="no-drag px-3">
+          <ModeTabs
+            mode={state.selection.mode}
+            onSelect={(m) => api?.invoke("preview:setMode", m)}
+          />
+        </div>
+      )}
+
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
       <div
         tabIndex={0}
@@ -92,7 +102,9 @@ export function Sidebar({
           </p>
         ) : nodes.length === 0 ? (
           <p className="px-3 py-2 text-[11px] text-muted-foreground">
-            No stories found in openstory.config.ts.
+            {state.selection.mode === "docs"
+              ? "Drop a *.stories.md to document a feature."
+              : "No stories found in openstory.config.ts."}
           </p>
         ) : (
           <Tree nodes={nodes} cb={cb} />
