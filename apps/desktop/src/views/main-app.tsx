@@ -23,7 +23,14 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
   const [panelTab, setPanelTab] = useState<PanelTab>("controls");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const { reload } = useHarnessBridge(iframeRef, state.selection, api, addons, state.docs);
+  const { reload } = useHarnessBridge(
+    iframeRef,
+    state.selection,
+    api,
+    addons,
+    state.docs,
+    state.theme,
+  );
 
   function toggleAddon(addon: AddonName) {
     setAddons((a) => ({ ...a, [addon]: !a[addon] }));

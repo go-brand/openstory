@@ -10,7 +10,7 @@ import {
   type RegisteredComponent,
 } from "@gobrand/openstory-config";
 import { parseBridgeMessage, type RenderMessage, type ManifestMessage } from "./bridge.js";
-import { DocHost } from "./doc-host.js";
+import { DocHost, DOC_THEME_VARS } from "./doc-host.js";
 import { applyAddons, type AddonState } from "./addons/index.js";
 
 export type ViewportName = "desktop" | "mobile";
@@ -159,6 +159,10 @@ export function DocsPage({
 
   return (
     <ViewportContext.Provider value="desktop">
+      {/* OpenStory chrome, themed by the manager (DOC_THEME_VARS flips on the
+          `.dark` class the os:theme bridge toggles) — not by consumer tokens,
+          so the cards aren't a glaring white block in dark mode. */}
+      <style>{DOC_THEME_VARS}</style>
       <div
         style={{
           maxWidth: 1000,
@@ -166,7 +170,7 @@ export function DocsPage({
           padding: "40px 20px",
           boxSizing: "border-box",
           fontFamily: "-apple-system, BlinkMacSystemFont, system-ui, sans-serif",
-          color: "#1a1a1a",
+          color: "var(--os-doc-fg)",
         }}
       >
         <h1 style={{ fontSize: 30, fontWeight: 700, margin: "0 0 24px" }}>{title}</h1>
@@ -174,16 +178,23 @@ export function DocsPage({
           <section key={fixture.id} style={{ marginBottom: 40 }}>
             <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}>{fixture.label}</h2>
             {fixture.notes ? (
-              <p style={{ fontSize: 14, lineHeight: 1.6, color: "#555", margin: "0 0 12px" }}>
+              <p
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  color: "var(--os-doc-fg-muted)",
+                  margin: "0 0 12px",
+                }}
+              >
                 {fixture.notes}
               </p>
             ) : null}
             <div
               style={{
-                border: "1px solid #e6e6e6",
+                border: "1px solid var(--os-doc-border)",
                 borderRadius: 8,
                 padding: layout === "fullscreen" ? 0 : 24,
-                background: "#fff",
+                background: "var(--os-doc-card)",
                 overflow: "hidden",
                 ...(layout === "centered"
                   ? { display: "flex", alignItems: "center", justifyContent: "center" }
@@ -226,6 +237,17 @@ function App({ config }: { config: OpenStoryConfig }) {
       }
       if (raw?.type === "os:reload") {
         setRemountKey((k) => k + 1);
+        return;
+      }
+      // The manager mirrors its light/dark theme here (the iframe is a separate
+      // document and can't see the manager's `.dark` class). Toggle `.dark` on
+      // this root so the consumer's shadcn tokens — and the DocHost doc surface
+      // (bg-background/text-foreground) — resolve in the manager's theme.
+      if (raw?.type === "os:theme") {
+        document.documentElement.classList.toggle(
+          "dark",
+          (raw as { theme?: string }).theme === "dark",
+        );
         return;
       }
       const msg = parseBridgeMessage(event.data);

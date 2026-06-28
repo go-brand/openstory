@@ -9,7 +9,7 @@ import { Checkbox } from "../components/ui/checkbox";
 
 export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  useHarnessBridge(iframeRef, state.selection, api, NO_ADDONS, state.docs);
+  useHarnessBridge(iframeRef, state.selection, api, NO_ADDONS, state.docs, state.theme);
 
   // The canvas stays fully transparent so the window can sit over a real site
   // and the component is compared 1:1 against it (opacity ghosts it, difference

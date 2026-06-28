@@ -9,9 +9,23 @@ export function useHarnessBridge(
   api: Api,
   addons: AddonState = NO_ADDONS,
   docs: AppState["docs"] = [],
+  theme: AppState["theme"] = "light",
 ): { reload: () => void } {
   const latest = useRef(selection);
   latest.current = selection;
+
+  // The iframe is a separate document, so the manager's `.dark` class never
+  // reaches it. Mirror the manager theme over postMessage; the harness toggles
+  // `.dark` on its own root so the consumer's shadcn tokens (and DocHost's
+  // themed doc surface) resolve in the same theme the manager is showing.
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+  const postThemeRef = useRef<() => void>(() => {});
+  postThemeRef.current = () => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    win.postMessage({ type: "os:theme", theme: themeRef.current }, "*");
+  };
 
   const apiRef = useRef(api);
   apiRef.current = api;
@@ -114,6 +128,11 @@ export function useHarnessBridge(
     postAddonsRef.current();
   }, [addonsKey]);
 
+  // Re-post the theme whenever the manager flips light/dark.
+  useEffect(() => {
+    postThemeRef.current();
+  }, [theme]);
+
   // Re-post when the harness (re)loads and announces readiness.
   useEffect(() => {
     function onMessage(e: MessageEvent) {
@@ -121,6 +140,7 @@ export function useHarnessBridge(
       if (type === "pl:ready") {
         postRef.current();
         postAddonsRef.current();
+        postThemeRef.current();
       }
       // The harness re-posts pl:manifest when Vite HMR re-runs import.meta.glob
       // (a *.stories.tsx was added/removed) — refetch so the sidebar updates live.

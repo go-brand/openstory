@@ -49,13 +49,16 @@ export function DocHost({
   }, [html]);
 
   return (
-    <div className="openstory-doc-surface min-h-full bg-background text-foreground">
-      <style>{DOC_CSS}</style>
+    <div className="openstory-doc-surface min-h-full">
+      <style>{DOC_THEME_VARS + DOC_CSS}</style>
       {/* doc HTML comes from a project-local file the developer already trusts
           (same boundary as their own source) — not user-submitted content.
-          Colors use the consumer's shadcn tokens (bg-background/text-foreground)
-          so prose is readable in any theme; typography is self-contained CSS
-          (currentColor + color-mix) so it needs no Tailwind typography plugin. */}
+          Colors come from OpenStory's OWN doc-chrome theme (DOC_THEME_VARS,
+          keyed off the manager's `.dark` class), NOT the consumer's tokens — a
+          consumer with no shadcn tokens (e.g. a bare Tailwind app) would
+          otherwise render the surface white or the text invisible. Typography
+          is self-contained CSS (currentColor + color-mix) so it needs no
+          Tailwind typography plugin. */}
       <div
         ref={rootRef}
         className="openstory-doc mx-auto max-w-3xl px-8 py-10"
@@ -79,6 +82,28 @@ export function DocHost({
     </div>
   );
 }
+
+// OpenStory's own doc-chrome theme. The manager mirrors its light/dark theme
+// into the harness (it toggles `.dark` on this document's root via the os:theme
+// bridge message), so these vars flip with the manager — independent of whether
+// the consumer app ships shadcn tokens. Shared by DocHost (feature docs) and the
+// auto-docs DocsPage. The doc surface itself stays transparent so the manager's
+// themed canvas shows through; only text/cards/borders are painted.
+export const DOC_THEME_VARS = `
+:root {
+  --os-doc-fg: #1a1a1a;
+  --os-doc-fg-muted: #555555;
+  --os-doc-card: #ffffff;
+  --os-doc-border: #e6e6e6;
+}
+.dark {
+  --os-doc-fg: #e6e6e7;
+  --os-doc-fg-muted: #9a9a9c;
+  --os-doc-card: #1f2021;
+  --os-doc-border: #2e2f31;
+}
+.openstory-doc-surface { color: var(--os-doc-fg); }
+`;
 
 // Self-contained prose typography for rendered Markdown docs. Sizes are relative
 // (em) and accents use `currentColor` + `color-mix`, so the sheet adapts to the
