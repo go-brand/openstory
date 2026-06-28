@@ -98,24 +98,17 @@ function pageLeaf(d: ManifestDoc, idPrefix: string): PageLeaf {
   return leaf;
 }
 
-type Entry = { kind: "component"; value: ManifestComponent } | { kind: "doc"; value: ManifestDoc };
+type Item = { entry: ManifestComponent | ManifestDoc; segs: string[] };
 
-type Item = { entry: Entry; segs: string[] };
-
-// Build folders + components for one container, recursing on remaining segments.
-// Direct (no-more-segments) components render first, alpha; page leaves follow, alpha; folders last, first-seen.
-function container(items: Item[], idPrefix: string): TreeNode[] {
-  const directComponents: ManifestComponent[] = [];
-  const directDocs: ManifestDoc[] = [];
+// Build folders + direct nodes for one container, recursing on remaining segments.
+// Direct nodes render first, alpha by id; folders last, first-seen.
+function container(items: Item[], idPrefix: string, mode: "design" | "docs"): TreeNode[] {
+  const direct: Array<ManifestComponent | ManifestDoc> = [];
   const folderOrder: string[] = [];
   const folders = new Map<string, Item[]>();
   for (const { entry, segs } of items) {
     if (segs.length === 0) {
-      if (entry.kind === "component") {
-        directComponents.push(entry.value);
-      } else {
-        directDocs.push(entry.value);
-      }
+      direct.push(entry);
     } else {
       const head = segs[0]!;
       if (!folders.has(head)) {
@@ -126,11 +119,12 @@ function container(items: Item[], idPrefix: string): TreeNode[] {
     }
   }
   const nodes: TreeNode[] = [];
-  for (const p of [...directComponents].sort((a, b) => a.id.localeCompare(b.id))) {
-    nodes.push(componentNode(p, idPrefix));
-  }
-  for (const d of [...directDocs].sort((a, b) => a.id.localeCompare(b.id))) {
-    nodes.push(pageLeaf(d, idPrefix));
+  for (const e of [...direct].sort((a, b) => a.id.localeCompare(b.id))) {
+    if (mode === "docs") {
+      nodes.push(pageLeaf(e as ManifestDoc, idPrefix));
+    } else {
+      nodes.push(componentNode(e as ManifestComponent, idPrefix));
+    }
   }
   for (const name of folderOrder) {
     const fid = `${idPrefix}/folder:${name}`;
@@ -138,41 +132,45 @@ function container(items: Item[], idPrefix: string): TreeNode[] {
       kind: "folder",
       id: fid,
       label: name,
-      children: container(folders.get(name)!, fid),
+      children: container(folders.get(name)!, fid, mode),
     });
   }
   return nodes;
 }
 
-/** Project the flat manifest into the sidebar tree. */
-export function buildTree(manifest: ManifestComponent[], docs: ManifestDoc[] = []): TreeNode[] {
+/** Project the flat manifest into the sidebar tree for a single mode. */
+export function buildTree(
+  manifest: ManifestComponent[],
+  docs: ManifestDoc[],
+  mode: "design" | "docs",
+): TreeNode[] {
   const order: (string | null)[] = [];
-  const bySection = new Map<string | null, Entry[]>();
-  const push = (section: string | null, entry: Entry) => {
+  const bySection = new Map<string | null, Array<ManifestComponent | ManifestDoc>>();
+  const push = (section: string | null, item: ManifestComponent | ManifestDoc) => {
     if (!bySection.has(section)) {
       bySection.set(section, []);
       order.push(section);
     }
-    bySection.get(section)!.push(entry);
+    bySection.get(section)!.push(item);
   };
-  for (const p of manifest) push(p.section ?? null, { kind: "component", value: p });
-  for (const d of docs) push(d.section ?? null, { kind: "doc", value: d });
-  const toItems = (entries: Entry[]): Item[] =>
-    entries.map((entry) => ({ entry, segs: segments(entry.value.group) }));
+  const items = mode === "design" ? manifest : docs;
+  for (const it of items) push(it.section ?? null, it);
+  const makeNodes = (
+    entries: Array<ManifestComponent | ManifestDoc>,
+    idPrefix: string,
+  ): TreeNode[] =>
+    container(
+      entries.map((e) => ({ entry: e, segs: segments(e.group) })),
+      idPrefix,
+      mode,
+    );
   const roots: TreeNode[] = [];
   // Sectionless bucket renders flat at the root, first.
-  if (bySection.has(null)) {
-    roots.push(...container(toItems(bySection.get(null)!), "root"));
-  }
+  if (bySection.has(null)) roots.push(...makeNodes(bySection.get(null)!, "root"));
   for (const s of order) {
     if (s === null) continue;
     const id = `section:${s}`;
-    roots.push({
-      kind: "section",
-      id,
-      label: s,
-      children: container(toItems(bySection.get(s)!), id),
-    });
+    roots.push({ kind: "section", id, label: s, children: makeNodes(bySection.get(s)!, id) });
   }
   return roots;
 }
