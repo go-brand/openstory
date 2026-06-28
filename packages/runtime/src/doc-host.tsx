@@ -37,9 +37,17 @@ export function DocHost({
   // onto the last node and produces duplicate React keys).
   const [targets, setTargets] = useState<Array<{ id: string; el: HTMLElement }>>([]);
 
+  // Write the doc HTML imperatively (NOT via dangerouslySetInnerHTML) and then
+  // mount the live story embeds into its placeholder nodes via portals. The two
+  // mechanisms must not share a node: if React owns the div's content through
+  // dangerouslySetInnerHTML, it re-applies that innerHTML on the next commit and
+  // wipes whatever the portals injected — the embeds silently vanish. Setting
+  // innerHTML once here hands the subtree to us, so React leaves it (and the
+  // portal children inside it) alone.
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
+    root.innerHTML = html;
     const arr: Array<{ id: string; el: HTMLElement }> = [];
     for (const el of root.querySelectorAll<HTMLElement>("[data-openstory-story]")) {
       const id = el.getAttribute("data-openstory-story");
@@ -58,12 +66,9 @@ export function DocHost({
           consumer with no shadcn tokens (e.g. a bare Tailwind app) would
           otherwise render the surface white or the text invisible. Typography
           is self-contained CSS (currentColor + color-mix) so it needs no
-          Tailwind typography plugin. */}
-      <div
-        ref={rootRef}
-        className="openstory-doc mx-auto max-w-3xl px-8 py-10"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+          Tailwind typography plugin. The inner div's content is populated by the
+          effect above, not by React, so the embed portals survive re-renders. */}
+      <div ref={rootRef} className="openstory-doc mx-auto max-w-3xl px-8 py-10" />
       {targets.map(({ id, el }, i) => {
         const resolved = resolveEmbed(components, id);
         // Cast to accept arbitrary props at the render site; the actual props
