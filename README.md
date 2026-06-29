@@ -1,117 +1,137 @@
 # OpenStory
 
-A desktop overlay for previewing React components live, in isolation, against
-real social-media platform chrome — and comparing them pixel-for-pixel with a
-reference design.
+OpenStory is an open-source tool that reads your codebase via a Vite plugin and
+compiles your **design system and docs** into a desktop app — Storybook without
+the config tax. Point it at any repo.
 
-Point it at any repository, pick a component, and OpenStory renders it inside
-a floating, always-on-top window you can fade, blend, and click through over a
-mockup in Figma, a screenshot, or the real platform.
+Drop `*.stories.{ts,tsx}` next to your components and `*.stories.md` anywhere
+under `src`, add one Vite plugin, and OpenStory boots the project's own dev
+server, discovers everything, and renders your real components — with your CSS,
+your providers, your React — on its own themed canvas. No per-project app to
+build, no Storybook to host, no route to wire up.
 
-## What we want this to be
-
-The goal is a **single desktop app you can aim at _any_ repository** and start
-previewing components in seconds — no per-project app to build, no Storybook to
-host, no route to wire up.
-
-Concretely:
-
-1. **Universal.** Open any folder that has a `openstory.config.ts`. OpenStory
-   boots that project's own Vite dev server, so components render with the
-   project's real aliases, Tailwind config, providers, and styles.
-2. **Live.** Edits hot-reload through the project's normal Vite HMR. What you see
-   is the actual component, not a snapshot.
-3. **Comparison-first.** The preview is a frameless, transparent overlay with
-   opacity, `difference` blend mode, and click-through — built for pixel-diffing
-   a render against a design.
-4. **Platform-accurate.** Previews declare a `platform` (LinkedIn, X, Instagram…)
-   and render at that platform's canonical post width with the right background.
-5. **Low-friction to adopt.** A project opts in with one config file and one Vite
-   plugin. Authoring a preview is Storybook-CSF-like (`defineStories`).
+> Today this is a component workbench plus living docs. Compiling *more* than
+> design systems is on the roadmap.
 
 ## How it works
 
-OpenStory is a Turborepo monorepo. Two halves:
+OpenStory is not a single library. It is a **manager** plus a **harness**, and
+they run in two different places:
+
+- **The manager** is the Electron app — the sidebar, toolbar, controls panel,
+  and the canvas you look at. You run it. It is *not* published and *not*
+  installed into your project.
+- **The harness** is a small React app that runs **inside your own Vite dev
+  server**, in an iframe. It imports your *real* components and renders them with
+  your CSS, your React version, and your providers.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  apps/desktop  (Electron)                                    │
-│                                                              │
-│   main process                     renderer (HUD, React)     │
-│   ├─ ViteHost ──spawns──┐          ├─ project / variant pick  │
-│   ├─ AppStore (persist) │          └─ overlay controls        │
-│   └─ IPC bridge ────────┼──── state:update ──▶                │
-│                         │                                     │
-└─────────────────────────┼────────────────────────────────────┘
-                          │ createServer({ root: <project> })
-                          ▼
-        target repo's Vite dev server (mode: 'openstory')
-        └─ @gobrand/openstory-vite plugin serves:
-             /__pl__/              → harness HTML + entry
-             /__pl__/manifest.json → list of previews + variants
-                          │
-                          ▼  (rendered in an <iframe> in the HUD)
-        @gobrand/openstory-runtime mounts the selected preview
+  Electron MANAGER                         YOUR Vite dev server
+  (chrome you click)                       (openStory() plugin)
+  ┌────────────────────┐   postMessage   ┌─────────────────────────┐
+  │ sidebar / toolbar  │ ◄─────────────► │ harness renders YOUR     │
+  │ <iframe /__pl__/ ──┼─────────────────┼─► components, posts size  │
+  └────────────────────┘                 └─────────────────────────┘
+        not published                       installed as @gobrand/*
 ```
 
-- The **desktop main process** owns no bundler of its own. When you select a
-  project it calls Vite's programmatic `createServer({ root })` against the
-  target repo (`apps/desktop/electron/vite-host.ts`). One project = one Vite
-  server; switching projects tears the old one down first.
-- The server runs in **`mode: 'openstory'`**. The `@gobrand/openstory-vite` plugin
-  injects a harness at `/__pl__/` and a manifest at `/__pl__/manifest.json`. The
-  HUD reads the manifest to populate the preview/variant lists, then loads the
-  harness URL in an `<iframe>`, passing the selection via query params.
-- `@gobrand/openstory-runtime` mounts inside that iframe, looks up the selected preview
-  + variant from the project's config, wraps it in the project's `providers`, and
-  renders it at the platform's viewport width.
-- The HUD (`apps/desktop/src`) is a React app talking to the main process over a
-  typed, context-isolated `contextBridge` (`electron/preload.ts`). All app state
-  (projects, selection, overlay settings, window bounds) lives in the main
-  process and is pushed to the renderer via a single `state:update` event.
+The manager **cannot** import your components directly — they need your bundler,
+your Tailwind, your providers. So the part that renders components has to live in
+your project and run in your Vite. The manager just points an iframe at `/__pl__/`
+and talks over `postMessage`. That single boundary is the reason OpenStory is
+split into the packages below.
 
-### Packages
+### The request flow
 
-| Package                 | Role                                                                   |
-| ----------------------- | --------------------------------------------------------------------- |
-| `apps/desktop`          | The Electron app: HUD UI, IPC, window + Vite lifecycle, persistence.  |
-| `@gobrand/openstory-vite`      | Vite plugin: serves the `/__pl__/` harness + manifest in a project.   |
-| `@gobrand/openstory-runtime`   | The in-iframe harness: mounts the selected preview, the parent bridge.|
-| `@gobrand/openstory-config`    | `defineStories` / `defineOpenStoryConfig` authoring API + types.     |
+1. You add `openStory()` to your `vite.config.ts` and run Vite.
+2. The plugin globs `*.stories.{ts,tsx}` and `*.stories.md`, builds a manifest
+   (components, stories, docs), and serves the harness HTML at `/__pl__/`.
+3. The manager starts your Vite server and loads `/__pl__/` in the canvas iframe.
+4. You click a story. The manager sends a `postMessage` (`pl:render`) with the
+   selection + theme.
+5. The harness renders that component, measures it, and posts its size back
+   (`pl:size`) so the manager can fit the iframe to the component and frame it on
+   OpenStory's own light/dark themed canvas.
+
+## Packages
+
+OpenStory is a Turborepo monorepo. The **manager** (`apps/desktop`, Electron) is
+not published. **Three packages** are, and the split is about **where code runs**,
+not arbitrary modularity:
+
+| Package | Runs in | Job |
+| --- | --- | --- |
+| `@gobrand/openstory-config` | everywhere (Node + browser) | the authoring API (`defineOpenStoryConfig` / `defineStories`) + the component/story types and the viewport presets. **Zero dependencies**, so the Node tooling can import the types without pulling in React. |
+| `@gobrand/openstory-runtime` | the **browser** harness | the React app in the iframe — renders the component, the doc prose, and the size/manifest bridge. |
+| `@gobrand/openstory-vite` | **Node** (your Vite server) | serves the harness, discovers `*.stories.{ts,tsx}` + `*.stories.md`, extracts prop types from TypeScript. |
+
+The hard line is **Node vs Browser**: the Vite plugin and the harness literally
+cannot be one package. `config` stays dependency-free so the Node side imports
+shared types without dragging React along.
+
+## Vocabulary
+
+OpenStory follows Storybook's terms:
+
+- **Component** — one `defineStories(...)` result. Shows up under **Design
+  System** in the sidebar.
+- **Story** — one prop combination of a component (`Primary`, `Disabled`, …).
+- **Design System** — the components + their stories, taken together.
+- **Docs** — `*.stories.md` markdown pages. Show up under **Docs**.
+- **Preset** — a named render setting: canvas width(s) + a background painted
+  behind the component. Core ships only a neutral `default` (600px desktop /
+  360px mobile, background `#f4f4f5`). Projects declare their own presets in
+  `openstory.config.ts`.
 
 ## Using it in a project
 
-A repository opts in with **two things**.
+A repository opts in with **two things**. Stories are auto-discovered from
+`*.stories.{ts,tsx}` and docs from `*.stories.md` — no manual registration.
 
-### 1. A `openstory.config.ts` at the project root
+### 1. Author stories with `defineStories`
+
+Drop a `*.stories.tsx` next to your component. Each key becomes both the story
+id (kebab-cased) and the human label (Title Cased); the value is the props.
 
 ```ts
-import { defineOpenStoryConfig } from '@gobrand/openstory-config';
-import myComponentStories from './src/components/MyComponent.stories';
+// Button.stories.ts
+import { defineStories } from '@gobrand/openstory-config';
+import { Button } from './Button';
 
-export default defineOpenStoryConfig({
-  previews: [myComponentStories],
-  // optional: wrap every preview (theme, query client, i18n, …)
-  // providers: AppProviders,
+export default defineStories({
+  component: Button,
+  // preset is optional, string-named; omit for the neutral default
+  // preset: 'docs',
+  stories: {
+    Primary: { variant: 'primary', children: 'Save' },
+    Disabled: {
+      args: { variant: 'primary', children: 'Save', disabled: true },
+      label: 'Primary (disabled)',
+    },
+  },
 });
 ```
 
-Author previews Storybook-style with `defineStories`:
+A docs page is just a `*.stories.md` with frontmatter (`title`, `group`,
+`status`, `owner`) for the sidebar, plus `:::story <componentId>--<storyId>`
+directives to embed the **real** story live, inline in the prose — edit the story
+and the doc updates with it.
+
+An `openstory.config.ts` at the project root is optional: use it to declare
+shared `providers`, global `styles`, or custom `presets`.
 
 ```ts
-// MyComponent.stories.ts
-import { defineStories } from '@gobrand/openstory-config';
-import { MyComponent } from './MyComponent';
+// openstory.config.ts
+import { defineOpenStoryConfig } from '@gobrand/openstory-config';
 
-export default defineStories({
-  component: MyComponent,
-  platform: 'linkedin',
-  stories: {
-    // key → id (kebab-case) + label (Title Case); value is the props
-    Default: { title: 'Hello', author: { name: 'Ada' } },
-    LongPost: {
-      args: { title: 'A'.repeat(400), author: { name: 'Ada' } },
-      label: 'Long (truncated)',
+export default defineOpenStoryConfig({
+  // wrap every story (theme, query client, i18n, …)
+  // providers: AppProviders,
+  // a named render setting: canvas width(s) + background
+  presets: {
+    docs: {
+      viewport: { desktop: { width: 720 }, mobile: { width: 360 } },
+      chrome: { background: '#ffffff' },
     },
   },
 });
@@ -151,19 +171,8 @@ export default defineConfig(({ mode }) => {
 > also drags in framework-only virtual modules that crash dep-optimization.
 > Reducing this to truly zero-config is the main item on the roadmap.
 
-Then in OpenStory: **Open a project…** → pick the folder. The dropdown lists
-every preview from the config; the variant list comes from each preview's
-stories.
-
-## Keyboard shortcuts (HUD focused)
-
-| Shortcut      | Action                    |
-| ------------- | ------------------------- |
-| `F8` / `⌘⌥T`  | Toggle click-through      |
-| `⌘↑` / `⌘↓`   | Opacity ±10%              |
-| `⌘⇧↑` / `⌘⇧↓` | Opacity ±1%               |
-| `⌘B`          | Toggle `difference` blend |
-| `⌘R`          | Reload the HUD            |
+Then in OpenStory: **Open a project…** → pick the folder. The sidebar fills with
+every discovered component (under **Design System**) and doc (under **Docs**).
 
 ## Development
 
@@ -199,15 +208,18 @@ launched me went away," never a real fault.
 
 ## Status & roadmap
 
-Pre-alpha. Working today: project open/switch, live preview, variant + viewport
-switching, the comparison overlay (opacity / blend / click-through), persisted
-window bounds and selection.
+Pre-alpha. It is a component workbench plus living docs. Working today:
+
+- project open/switch
+- live preview via the project's own Vite HMR — the actual component, not a
+  snapshot
+- story + viewport switching
+- markdown docs with live `:::story` embeds
+- a light/dark themed canvas that fits itself to each component
 
 Next:
 
 - **Reduce integration to zero-config** — auto-detect and neutralize framework
   plugins instead of asking projects to gate them on `mode`.
-- **Reference images** — load a design file / screenshot directly into the
-  overlay to diff against, instead of floating over another app.
 - **Packaged builds** — `electron-builder` is wired (`pnpm --filter
   openstory-desktop package`) but unsigned and untested for distribution.

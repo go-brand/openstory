@@ -68,10 +68,29 @@ shared types without dragging React along.
 ## Live components in docs
 
 Docs aren't screenshots. A `:::story` directive mounts the **real** story inline
-— edit the story and this updates with it. Here is `linkedin--text-short`,
-rendered live in the middle of this page:
+— edit the story and this updates with it. Here is `button--primary`, rendered
+live in the middle of this page:
 
-:::story linkedin--text-short
+:::story button--primary
+
+## Presets
+
+A **preset** is a named render setting: the canvas width(s) a story renders at
+and the background painted behind it. That's the whole concept. OpenStory ships
+exactly one — `default` (600px desktop / 360px mobile, on `#f4f4f5`) — used by
+any story that names no preset. The core is deliberately not tied to any kind of
+component; a project declares the presets it needs in `openstory.config.ts`:
+
+```ts
+presets: {
+  panel: { viewport: { desktop: { width: 420 } }, chrome: { background: "#f4f4f5" } },
+}
+```
+
+A story opts in with `preset: "panel"`. Resolution per story is
+`explicit viewports` > named `preset` > `default`. This starter's `Badge`
+stories use the `panel` preset, which is why they render narrower than the
+`Button` stories on the canvas.
 
 ## Add your own
 

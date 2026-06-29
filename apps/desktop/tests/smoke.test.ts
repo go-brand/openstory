@@ -217,7 +217,7 @@ test("settings menu toggles to dark theme and persists across reload", async () 
 // - Editing a text control fires preview:setProps and the input reflects the
 //   typed value — requires a preview with controls to be loaded.
 //
-// These are covered by manual testing against examples/linkedin-starter.
+// These are covered by manual testing against examples/starter.
 // To enable them in CI: pre-build the example, spawn `vite preview` on a known
 // port, and seed the store via a test-only IPC channel (or electron-store file
 // injection before launch) so project:select can bypass the native folder dialog.

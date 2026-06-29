@@ -270,12 +270,11 @@ function isLonghandStory<TProps>(
  *
  * ```tsx
  * export default defineStories({
- *   component: LinkedinPreview,
- *   group: 'LinkedIn',
- *   preset: 'linkedin',
+ *   component: Button,
+ *   group: 'Design System',
  *   stories: {
- *     ShortText: { text: 'Hello', author: { ... } },
- *     LongText: { args: { text: '...' }, label: 'Long (show more)' },
+ *     Primary: { variant: 'primary', children: 'Save' },
+ *     Danger: { args: { variant: 'danger', children: 'Delete' }, label: 'Destructive' },
  *   },
  * })
  * ```

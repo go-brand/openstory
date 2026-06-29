@@ -4,7 +4,7 @@ import type { Viewport } from "./define.js";
  * A named render preset: the canvas width(s) a preview renders at and the
  * chrome background painted behind it. OpenStory ships only a neutral `default`;
  * projects define their own presets in `openstory.config.ts` (a design-system
- * column width, a social post width, whatever the project needs).
+ * column width, a wide docs page, a narrow panel — whatever the project needs).
  */
 export type Preset = {
   viewport: { desktop: Viewport; mobile?: Viewport };
