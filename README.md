@@ -10,7 +10,7 @@ server, discovers everything, and renders your real components — with your CSS
 your providers, your React — on its own themed canvas. No per-project app to
 build, no Storybook to host, no route to wire up.
 
-> Today this is a component workbench plus living docs. Compiling *more* than
+> Today this is a component workbench plus living docs. Compiling _more_ than
 > design systems is on the roadmap.
 
 ## How it works
@@ -19,10 +19,10 @@ OpenStory is not a single library. It is a **manager** plus a **harness**, and
 they run in two different places:
 
 - **The manager** is the Electron app — the sidebar, toolbar, controls panel,
-  and the canvas you look at. You run it. It is *not* published and *not*
+  and the canvas you look at. You run it. It is _not_ published and _not_
   installed into your project.
 - **The harness** is a small React app that runs **inside your own Vite dev
-  server**, in an iframe. It imports your *real* components and renders them with
+  server**, in an iframe. It imports your _real_ components and renders them with
   your CSS, your React version, and your providers.
 
 ```
@@ -59,11 +59,11 @@ OpenStory is a Turborepo monorepo. The **manager** (`apps/desktop`, Electron) is
 not published. **Three packages** are, and the split is about **where code runs**,
 not arbitrary modularity:
 
-| Package | Runs in | Job |
-| --- | --- | --- |
-| `@gobrand/openstory-config` | everywhere (Node + browser) | the authoring API (`defineOpenStoryConfig` / `defineStories`) + the component/story types and the viewport presets. **Zero dependencies**, so the Node tooling can import the types without pulling in React. |
-| `@gobrand/openstory-runtime` | the **browser** harness | the React app in the iframe — renders the component, the doc prose, and the size/manifest bridge. |
-| `@gobrand/openstory-vite` | **Node** (your Vite server) | serves the harness, discovers `*.stories.{ts,tsx}` + `*.stories.md`, extracts prop types from TypeScript. |
+| Package                      | Runs in                     | Job                                                                                                                                                                                                           |
+| ---------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@gobrand/openstory-config`  | everywhere (Node + browser) | the authoring API (`defineOpenStoryConfig` / `defineStories`) + the component/story types and the viewport presets. **Zero dependencies**, so the Node tooling can import the types without pulling in React. |
+| `@gobrand/openstory-runtime` | the **browser** harness     | the React app in the iframe — renders the component, the doc prose, and the size/manifest bridge.                                                                                                             |
+| `@gobrand/openstory-vite`    | **Node** (your Vite server) | serves the harness, discovers `*.stories.{ts,tsx}` + `*.stories.md`, extracts prop types from TypeScript.                                                                                                     |
 
 The hard line is **Node vs Browser**: the Vite plugin and the harness literally
 cannot be one package. `config` stays dependency-free so the Node side imports
@@ -95,18 +95,18 @@ id (kebab-cased) and the human label (Title Cased); the value is the props.
 
 ```ts
 // Button.stories.ts
-import { defineStories } from '@gobrand/openstory-config';
-import { Button } from './Button';
+import { defineStories } from "@gobrand/openstory-config";
+import { Button } from "./Button";
 
 export default defineStories({
   component: Button,
   // preset is optional, string-named; omit for the neutral default
   // preset: 'docs',
   stories: {
-    Primary: { variant: 'primary', children: 'Save' },
+    Primary: { variant: "primary", children: "Save" },
     Disabled: {
-      args: { variant: 'primary', children: 'Save', disabled: true },
-      label: 'Primary (disabled)',
+      args: { variant: "primary", children: "Save", disabled: true },
+      label: "Primary (disabled)",
     },
   },
 });
@@ -122,7 +122,7 @@ shared `providers`, global `styles`, or custom `presets`.
 
 ```ts
 // openstory.config.ts
-import { defineOpenStoryConfig } from '@gobrand/openstory-config';
+import { defineOpenStoryConfig } from "@gobrand/openstory-config";
 
 export default defineOpenStoryConfig({
   // wrap every story (theme, query client, i18n, …)
@@ -131,7 +131,7 @@ export default defineOpenStoryConfig({
   presets: {
     docs: {
       viewport: { desktop: { width: 720 }, mobile: { width: 360 } },
-      chrome: { background: '#ffffff' },
+      chrome: { background: "#ffffff" },
     },
   },
 });
@@ -146,12 +146,12 @@ will otherwise swallow the `/__pl__/` harness route.
 
 ```ts
 // vite.config.ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { openStory } from '@gobrand/openstory-vite';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { openStory } from "@gobrand/openstory-vite";
 
 export default defineConfig(({ mode }) => {
-  const isOpenStory = mode === 'openstory';
+  const isOpenStory = mode === "openstory";
   return {
     plugins: [
       react(),
@@ -173,6 +173,54 @@ export default defineConfig(({ mode }) => {
 
 Then in OpenStory: **Open a project…** → pick the folder. The sidebar fills with
 every discovered component (under **Design System**) and doc (under **Docs**).
+
+## For agents
+
+OpenStory is drivable headlessly — no Electron, no clicking. Run the project's
+Vite dev server with the `openStory()` plugin and an AI agent gets two surfaces,
+both mounted under `/__pl__/`:
+
+**1. Headless render route** — a versioned, stateless URL contract that renders
+**one** story, identical to what the desktop manager shows (same renderer, two
+triggers):
+
+```
+/__pl__/?component=<id>&story=<id>&viewport=desktop|mobile&theme=light|dark&layout=padded|centered|fullscreen
+```
+
+`component`, `story`, `viewport` are required; `theme` (default `light`) and
+`layout` (defaults to the component's declared layout) are optional. Point a
+browser MCP (Chrome DevTools, Playwright, claude-in-chrome) at the URL and take
+an accessibility-tree snapshot — that's the agent's "eyes" — plus a screenshot to
+verify. The render is the naked component (no OpenStory chrome in the AX tree).
+
+**2. MCP server** — a **read-only** Model Context Protocol server over HTTP at
+`/__pl__/mcp` (mounted in your dev server, like `@storybook/addon-mcp`). Point any
+MCP client at it:
+
+```
+npx mcp-add --type http --url 'http://localhost:5180/__pl__/mcp'   # your port may differ
+```
+
+Six tools, all reading the same manifest the sidebar uses:
+
+| Tool                  | Returns                                                               |
+| --------------------- | --------------------------------------------------------------------- |
+| `list_components`     | every component: id, name, group, section, story ids/labels           |
+| `list_stories`        | one component's stories with props                                    |
+| `get_component_props` | a component's derived controls (its prop API)                         |
+| `get_story_source`    | a component's stories file path + contents                            |
+| `get_changed_stories` | stories whose source changed (git diff; default working tree vs HEAD) |
+| `get_render_url`      | a navigable render URL (structured object) for a story                |
+
+The tight loop: **edit a component → `get_changed_stories` → `get_render_url` →
+browser-MCP snapshot the result.** No re-scanning the whole design system each
+turn.
+
+> Screenshots are an agent's own browser MCP's job — core ships **no Chromium**.
+> A server-side screenshot tool for browser-less agents is a planned opt-in
+> package. The manifest and the render-route query params are versioned by
+> `schemaVersion` (currently `1`).
 
 ## Development
 
@@ -222,4 +270,4 @@ Next:
 - **Reduce integration to zero-config** — auto-detect and neutralize framework
   plugins instead of asking projects to gate them on `mode`.
 - **Packaged builds** — `electron-builder` is wired (`pnpm --filter
-  openstory-desktop package`) but unsigned and untested for distribution.
+openstory-desktop package`) but unsigned and untested for distribution.
