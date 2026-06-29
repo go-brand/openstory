@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
-# Build a macOS .app that launches the OpenStory desktop dev server (pnpm dev).
-# Drag the resulting .app to your Dock; clicking it runs the LOCAL dev build
-# with hot reload. Re-run this script only if paths change — the .app reads
-# live source each launch, so code edits need no rebuild.
+# Build a macOS .app that launches the OpenStory desktop dev server. Clicking it
+# is the equivalent of `pnpm dev` at the repo root (turbo: watch-builds the
+# packages AND launches Electron), so code edits hot-reload with no rebuild.
+#
+# It keeps your opened-projects history (electron-store is untouched) but always
+# starts a CLEAN process tree: on macOS the app stays alive when you close the
+# window, so each launch first kills any prior dev instance from THIS repo —
+# otherwise a relaunch would stack a second server + Electron and serve stale
+# state. Re-run this script only if paths change.
 set -euo pipefail
 
-# Repo root = two levels up from this script (apps/desktop/scripts -> repo).
+# apps/desktop/scripts -> apps/desktop -> repo root.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DESKTOP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$DESKTOP_DIR/../.." && pwd)"
 
 APP_NAME="OpenStory Dev"
 OUT_DIR="${1:-$HOME/Applications}"
@@ -47,7 +53,22 @@ cat > "$APP/Contents/MacOS/launch" <<LAUNCH
 # Logs to /tmp so you can tail them: tail -f /tmp/openstory-dev.log
 exec >> /tmp/openstory-dev.log 2>&1
 echo "=== launch \$(date) ==="
-cd "$DESKTOP_DIR"
+
+# Kill any prior dev instance from THIS repo so the relaunch is clean. macOS does
+# not quit the app when its window closes, so without this a second click would
+# stack another turbo + Vite host + Electron and surface stale state. The match
+# patterns are this repo's node_modules paths only — no editor or unrelated app
+# shares them, so nothing else is touched. Projects history is in electron-store
+# and is left untouched, so your opened projects persist across launches.
+pkill -f "$REPO_ROOT/node_modules/.bin/turbo" 2>/dev/null || true
+pkill -f "$REPO_ROOT/apps/desktop/node_modules/.bin/electron-vite" 2>/dev/null || true
+pkill -f "$REPO_ROOT/apps/desktop/node_modules/electron/" 2>/dev/null || true
+sleep 0.4
+
+# Root \`pnpm dev\` = turbo: watch-build every workspace package (no stale dist)
+# AND launch Electron. Running the desktop package alone would skip the package
+# rebuilds and could serve a stale @gobrand/* build.
+cd "$REPO_ROOT"
 exec "$PNPM_BIN" dev
 LAUNCH
 
