@@ -209,7 +209,5 @@ Next:
   plugins instead of asking projects to gate them on `mode`.
 - **Reference images** — load a design file / screenshot directly into the
   overlay to diff against, instead of floating over another app.
-- **More platform presets** — extend the built-in viewport presets in
-  `@gobrand/openstory-config` beyond LinkedIn.
 - **Packaged builds** — `electron-builder` is wired (`pnpm --filter
   openstory-desktop package`) but unsigned and untested for distribution.
