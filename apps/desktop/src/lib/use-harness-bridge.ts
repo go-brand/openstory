@@ -1,7 +1,15 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AppState } from "../../electron/types";
 import type { Api } from "./api";
 import { ADDONS, NO_ADDONS, type AddonState } from "./preview-view";
+
+/** Size the harness reports for the rendered story (pl:size).
+ *  - `undefined`: no report yet for the current selection (still loading) — the
+ *    manager keeps the iframe hidden so it never flashes full-size then snaps to
+ *    the component size.
+ *  - `"fill"`: the harness asked to fill the canvas (fullscreen layout).
+ *  - `{width,height}`: the component's measured box; the manager sizes to it. */
+export type ContentSize = { width: number; height: number } | "fill" | undefined;
 
 export function useHarnessBridge(
   iframeRef: React.RefObject<HTMLIFrameElement | null>,
@@ -10,9 +18,14 @@ export function useHarnessBridge(
   addons: AddonState = NO_ADDONS,
   docs: AppState["docs"] = [],
   theme: AppState["theme"] = "light",
-): { reload: () => void } {
+): { reload: () => void; contentSize: ContentSize } {
   const latest = useRef(selection);
   latest.current = selection;
+
+  // The harness reports the rendered component's own size so the manager can
+  // size the preview iframe to it (vs stretching it full). Starts `undefined`
+  // (loading) on every selection; a 0×0 report (fullscreen) becomes "fill".
+  const [contentSize, setContentSize] = useState<ContentSize>(undefined);
 
   // The iframe is a separate document, so the manager's `.dark` class never
   // reaches it. Mirror the manager theme over postMessage; the harness toggles
@@ -109,8 +122,12 @@ export function useHarnessBridge(
   // contents so this effect only fires on a real override change.
   const propOverridesKey = JSON.stringify(selection.propOverrides);
 
-  // Re-post on any selection/override change (docs toggle included).
+  // Re-post on any selection/override change (docs toggle included). Clear the
+  // last reported size first so a new selection fills the canvas until its own
+  // pl:size arrives — otherwise the previous story's dimensions would briefly
+  // size the new one.
   useEffect(() => {
+    setContentSize(undefined);
     postRef.current();
   }, [
     selection.componentId,
@@ -145,10 +162,18 @@ export function useHarnessBridge(
       // The harness re-posts pl:manifest when Vite HMR re-runs import.meta.glob
       // (a *.stories.tsx was added/removed) — refetch so the sidebar updates live.
       else if (type === "pl:manifest") apiRef.current?.invoke("preview:refreshManifest");
+      // The harness reports the rendered component's size; 0×0 means "fill the
+      // canvas" (fullscreen layout).
+      else if (type === "pl:size") {
+        const d = e.data as { width?: number; height?: number };
+        const width = Number(d.width) || 0;
+        const height = Number(d.height) || 0;
+        setContentSize(width > 0 && height > 0 ? { width, height } : "fill");
+      }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  return { reload };
+  return { reload, contentSize };
 }

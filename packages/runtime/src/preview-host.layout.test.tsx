@@ -39,23 +39,29 @@ function config(layout?: Layout) {
 const selection = { componentId: "c", storyId: "s", viewport: "desktop" as const };
 
 describe("PreviewStage layout", () => {
-  it("applies centered layout (flex) to the render wrapper", () => {
-    render(<PreviewStage config={config("centered")} selection={selection} />);
-    expect(container.querySelector('div[style*="flex"]')).not.toBeNull();
-  });
-
-  it("defaults to padded — pads the render, no flex — when layout is unset", () => {
+  // Centering moved to the manager (it sizes the iframe to the reported component
+  // box and centers it on the canvas). The harness measuring wrapper just
+  // shrink-wraps the component with breathing room, so padded and centered render
+  // the same inline-block wrapper here.
+  it("padded renders the component in an inline-block measuring wrapper that shrink-wraps it", () => {
     render(<PreviewStage config={config()} selection={selection} />);
-    expect(container.querySelector('div[style*="flex"]')).toBeNull();
-    expect(container.querySelector('div[style*="padding"]')).not.toBeNull();
+    const wrap = container.querySelector('div[style*="inline-block"]') as HTMLElement | null;
+    expect(wrap).not.toBeNull();
+    // No padding here — the manager supplies breathing room around the iframe, so
+    // the reported size is the component box exactly.
+    expect(wrap?.style.padding === "" || wrap?.style.padding === "0px").toBe(true);
   });
 
-  it("selection.layout override wins over the component's declared layout", () => {
-    // Component declares padded; a toolbar override to centered must take effect.
-    render(
-      <PreviewStage config={config("padded")} selection={{ ...selection, layout: "centered" }} />,
-    );
-    expect(container.querySelector('div[style*="flex"]')).not.toBeNull();
+  it("centered also uses the inline-block measuring wrapper (manager does the centering)", () => {
+    render(<PreviewStage config={config("centered")} selection={selection} />);
+    expect(container.querySelector('div[style*="inline-block"]')).not.toBeNull();
+  });
+
+  it("fullscreen fills the surface — no inline-block wrapper, no padding", () => {
+    render(<PreviewStage config={config("fullscreen")} selection={selection} />);
+    expect(container.querySelector('div[style*="inline-block"]')).toBeNull();
+    const wrap = container.querySelector("div") as HTMLElement | null;
+    expect(wrap?.style.padding === "" || wrap?.style.padding === "0px").toBe(true);
   });
 });
 

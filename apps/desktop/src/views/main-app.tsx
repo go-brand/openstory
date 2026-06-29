@@ -23,7 +23,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
   const [panelTab, setPanelTab] = useState<PanelTab>("controls");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const { reload } = useHarnessBridge(
+  const { reload, contentSize } = useHarnessBridge(
     iframeRef,
     state.selection,
     api,
@@ -58,6 +58,14 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
   const docsComponent = docsActive
     ? state.manifest.find((p) => p.id === state.selection.docsComponentId)
     : undefined;
+
+  // Canvas mode. Docs/auto-docs always fill the canvas. A single component story
+  // is sized to the box the harness reports (pl:size): `sized` once it arrives,
+  // `loadingStory` while we wait (keep the iframe hidden so it doesn't flash
+  // full-size and snap), `"fill"` for fullscreen layout.
+  const isDocMode = docsActive || state.selection.pageId !== null;
+  const sized = !isDocMode && contentSize && contentSize !== "fill" ? contentSize : null;
+  const loadingStory = !isDocMode && contentSize === undefined;
 
   function selectStory(componentId: string, storyId: string) {
     api?.invoke("preview:set", {
@@ -103,18 +111,49 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
           />
           <div className="relative flex-1 overflow-auto bg-canvas">
             {state.iframeUrl ? (
+              // One stable iframe element across all modes (a separate element
+              // per branch would remount and reload the harness on every resize).
+              // `sized` → component story: size the iframe to the reported box and
+              // pin it to the TOP of the themed canvas (bg-canvas — OpenStory's
+              // own background — shows AROUND the component; not centered, so it
+              // never drifts as the size resolves). Otherwise fill the canvas
+              // (docs/fullscreen). While a story's size is still loading, the
+              // iframe is rendered but hidden so it never flashes full then snaps.
               <div
-                className="h-full w-full origin-top-left"
-                style={{
-                  transform: `scale(${clampZoom(zoom)})`,
-                  width: `${100 / clampZoom(zoom)}%`,
-                  height: `${100 / clampZoom(zoom)}%`,
-                }}
+                className={
+                  sized
+                    ? "flex min-h-full w-full items-start justify-center p-8"
+                    : "h-full w-full origin-top-left"
+                }
+                style={
+                  sized
+                    ? undefined
+                    : {
+                        transform: `scale(${clampZoom(zoom)})`,
+                        width: `${100 / clampZoom(zoom)}%`,
+                        height: `${100 / clampZoom(zoom)}%`,
+                      }
+                }
               >
                 <iframe
                   ref={iframeRef}
                   src={state.iframeUrl}
-                  className="h-full w-full border-0 bg-transparent"
+                  className="border-0 bg-transparent"
+                  style={
+                    sized
+                      ? {
+                          width: sized.width,
+                          height: sized.height,
+                          flex: "0 0 auto",
+                          transform: `scale(${clampZoom(zoom)})`,
+                          transformOrigin: "top center",
+                        }
+                      : {
+                          width: "100%",
+                          height: "100%",
+                          visibility: loadingStory ? "hidden" : "visible",
+                        }
+                  }
                 />
               </div>
             ) : (

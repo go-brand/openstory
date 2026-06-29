@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   resolvePresets,
@@ -28,30 +28,61 @@ export function useOpenStoryViewport(): ViewportName {
   return useContext(ViewportContext);
 }
 
-// Breathing room around the render, mirroring Storybook's `sb-main-*` classes:
-// `padded` (default) adds 1rem on every side so the component never touches the
-// canvas edges or the toolbar; `centered` also centers it in the surface;
-// `fullscreen` is flush. Applied inside the iframe (the render surface), never
-// in the manager — same split Storybook uses.
-const LAYOUT_PADDING = "1rem";
+// Wraps the rendered story and reports its OWN size to the manager (pl:size) so
+// the manager can size the preview iframe to the component and center it on the
+// OpenStory canvas — instead of stretching the iframe to fill the canvas. This
+// is what lets the manager paint its themed background AROUND the component and
+// keeps OpenStory's chrome independent of whatever CSS the loaded app ships: we
+// only ever render the component, never a full-canvas surface.
+//
+// `padded`/`centered`: an inline-block wrapper shrink-wraps to the component box
+// (plus breathing room) so offsetWidth/Height is the component's real size. The
+// manager does the centering, so both layouts measure the same here.
+// `fullscreen`: the component is meant to fill the canvas, so we post a 0×0
+// sentinel telling the manager to stretch the iframe full instead of fitting.
+function MeasuredStage({
+  layout,
+  width,
+  children,
+}: {
+  layout: Layout;
+  width: number;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
 
-export function layoutStyle(layout: Layout): React.CSSProperties {
-  switch (layout) {
-    case "fullscreen":
-      return {};
-    case "centered":
-      return {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "100vh",
-        padding: LAYOUT_PADDING,
-        boxSizing: "border-box",
-      };
-    case "padded":
-    default:
-      return { padding: LAYOUT_PADDING, boxSizing: "border-box" };
+  useEffect(() => {
+    if (layout === "fullscreen") {
+      window.parent.postMessage({ type: "pl:size", width: 0, height: 0 }, "*");
+      return;
+    }
+    const el = ref.current;
+    if (!el) return;
+    const post = () =>
+      window.parent.postMessage(
+        { type: "pl:size", width: Math.ceil(el.offsetWidth), height: Math.ceil(el.offsetHeight) },
+        "*",
+      );
+    post();
+    // ResizeObserver is universal in browsers but absent in jsdom; the one-shot
+    // post above keeps the harness working without it.
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(post);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [layout, width]);
+
+  if (layout === "fullscreen") {
+    return <div style={{ width: "100%", minHeight: "100vh" }}>{children}</div>;
   }
+  // inline-block shrink-wraps to the component so the reported size IS the
+  // component box (no padding) — the manager supplies breathing room around the
+  // iframe on the canvas, so the iframe matches the component exactly.
+  return (
+    <div ref={ref} style={{ display: "inline-block", verticalAlign: "top" }}>
+      <div style={{ width, maxWidth: "100%" }}>{children}</div>
+    </div>
+  );
 }
 
 type ActiveSelection = {
@@ -108,11 +139,9 @@ export function PreviewStage({
   return (
     <Providers>
       <ViewportContext.Provider value={selection.viewport}>
-        <div style={layoutStyle(layout)}>
-          <div style={{ width, maxWidth: "100%", margin: "0 auto" }}>
-            <Component {...props} />
-          </div>
-        </div>
+        <MeasuredStage layout={layout} width={width}>
+          <Component {...props} />
+        </MeasuredStage>
       </ViewportContext.Provider>
     </Providers>
   );
