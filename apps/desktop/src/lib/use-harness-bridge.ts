@@ -122,13 +122,19 @@ export function useHarnessBridge(
   // contents so this effect only fires on a real override change.
   const propOverridesKey = JSON.stringify(selection.propOverrides);
 
-  // Re-post on any selection/override change (docs toggle included). Clear the
-  // last reported size first so a new selection fills the canvas until its own
-  // pl:size arrives — otherwise the previous story's dimensions would briefly
-  // size the new one.
+  // Re-post on any selection/override change (docs toggle included). Reset the
+  // reported size to `undefined` (loading) so the new selection doesn't inherit
+  // the previous story's dimensions. A fallback timer flips it to "fill" if no
+  // pl:size arrives — so a harness that never reports a size (e.g. an older
+  // published runtime without the size bridge) still shows the preview instead
+  // of staying hidden forever.
   useEffect(() => {
     setContentSize(undefined);
     postRef.current();
+    const t = setTimeout(() => {
+      setContentSize((cur) => (cur === undefined ? "fill" : cur));
+    }, 700);
+    return () => clearTimeout(t);
   }, [
     selection.componentId,
     selection.storyId,
