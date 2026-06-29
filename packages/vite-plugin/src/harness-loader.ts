@@ -5,7 +5,14 @@ const HTML_SHELL = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>OpenStory</title>
     <style>
-      html, body, #root { margin: 0; padding: 0; background: transparent; }
+      /* OpenStory's OWN themed canvas — the background behind every preview comes
+         from here, not from the consumer app loaded into OpenStory. The manager
+         mirrors its light/dark theme by toggling \`.dark\` on this document's root
+         (os:theme bridge message), so --os-canvas flips with the manager. Matches
+         the manager's --canvas tokens (#ffffff / #1b1c1d). */
+      :root { --os-canvas: #ffffff; }
+      .dark { --os-canvas: #1b1c1d; }
+      html, body, #root { margin: 0; padding: 0; }
       body { font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
     </style>
   </head>
@@ -81,13 +88,15 @@ export function buildHarnessEntry(
     "const target = document.getElementById('root')",
     "if (!target) throw new Error('OpenStory: #root not found')",
     "mountPreviewHost(target, { ...userConfig, components })",
-    // Force the harness document transparent so the manager's themed canvas
-    // (bg-canvas, dark in dark mode) shows behind the preview — otherwise the
-    // consumer app's own `body`/`:root` background (imported above) fills the
-    // iframe (e.g. white in a light-themed app) and the preview never follows
-    // the manager theme. Appended last + !important so it beats consumer CSS.
-    "const __osTransparent = document.createElement('style')",
-    "__osTransparent.textContent = ':root,html,body,#root{background:transparent !important}'",
-    "document.head.appendChild(__osTransparent)",
+    // Paint OpenStory's OWN themed canvas (--os-canvas, defined in the HTML shell
+    // and flipped by the `.dark` class the os:theme bridge toggles) behind every
+    // preview. Appended AFTER the consumer's CSS imports above, with !important,
+    // so it beats whatever `body`/`:root` background the consumer app ships — the
+    // canvas always follows the OpenStory manager theme, never the loaded app.
+    // (Replaces the old transparent-harness trick, which depended on the manager
+    // canvas compositing through the iframe and rendered white on some setups.)
+    "const __osCanvas = document.createElement('style')",
+    "__osCanvas.textContent = ':root,html,body,#root{background:var(--os-canvas) !important}'",
+    "document.head.appendChild(__osCanvas)",
   ].join("\n");
 }
