@@ -16,7 +16,6 @@
   "dependencies": {
     "@base-ui/react": "1.5.0",
     "@gobrand/openstory-config": "workspace:*",
-    "@gobrand/openstory-platforms": "workspace:*",
     "@gobrand/openstory-runtime": "workspace:*",
     "@gobrand/openstory-vite": "workspace:*",
     "@hugeicons/core-free-icons": "^4.2.0",

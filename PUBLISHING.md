@@ -7,7 +7,6 @@ Published packages:
 
 - `@gobrand/openstory-config`
 - `@gobrand/openstory-runtime`
-- `@gobrand/openstory-platforms`
 - `@gobrand/openstory-vite`
 
 (`openstory-desktop` and the examples stay private.)

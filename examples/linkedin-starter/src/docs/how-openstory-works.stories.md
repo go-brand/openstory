@@ -57,10 +57,9 @@ The split is about **where code runs**, not arbitrary modularity:
 
 | Package | Runs in | Job |
 | --- | --- | --- |
-| `@gobrand/openstory-config` | everywhere (shared) | the authoring API (`defineOpenStoryConfig`) + the component/story types. Zero dependencies, so the Node tooling can import it without pulling in React. |
+| `@gobrand/openstory-config` | everywhere (shared) | the authoring API (`defineOpenStoryConfig`) + the component/story types and the built-in viewport presets. Zero dependencies, so the Node tooling can import it without pulling in React. |
 | `@gobrand/openstory-runtime` | the **browser** harness | the React app in the iframe — renders the component, the doc prose you're reading, and the size/manifest bridge. |
 | `@gobrand/openstory-vite` | **Node** (your Vite server) | serves the harness, discovers stories + docs, extracts prop types from TypeScript. |
-| `@gobrand/openstory-platforms` | the browser (optional) | prebuilt content (the LinkedIn preview component used on this page). Not infrastructure — skip it if you don't need it. |
 
 The hard line is **Node vs Browser**: the Vite plugin and the harness literally
 cannot be one package. `config` stays dependency-free so the Node side imports

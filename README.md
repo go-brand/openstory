@@ -78,7 +78,6 @@ OpenStory is a Turborepo monorepo. Two halves:
 | `@gobrand/openstory-vite`      | Vite plugin: serves the `/__pl__/` harness + manifest in a project.   |
 | `@gobrand/openstory-runtime`   | The in-iframe harness: mounts the selected preview, the parent bridge.|
 | `@gobrand/openstory-config`    | `defineStories` / `defineOpenStoryConfig` authoring API + types.     |
-| `@gobrand/openstory-platforms` | Canonical per-platform viewport sizes and variant metadata.           |
 
 ## Using it in a project
 
@@ -210,6 +209,7 @@ Next:
   plugins instead of asking projects to gate them on `mode`.
 - **Reference images** — load a design file / screenshot directly into the
   overlay to diff against, instead of floating over another app.
-- **More platforms** — fill out `@gobrand/openstory-platforms` beyond LinkedIn.
+- **More platform presets** — extend the built-in viewport presets in
+  `@gobrand/openstory-config` beyond LinkedIn.
 - **Packaged builds** — `electron-builder` is wired (`pnpm --filter
   openstory-desktop package`) but unsigned and untested for distribution.

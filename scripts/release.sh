@@ -10,7 +10,6 @@ NC='\033[0m'
 PACKAGES=(
   "packages/config"
   "packages/runtime"
-  "packages/platforms"
   "packages/vite-plugin"
 )
 
