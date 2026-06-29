@@ -1,0 +1,30 @@
+name: npm deprecate
+
+# Manual admin tool: deprecate (or un-deprecate) a published package using the
+# CI NPM_TOKEN (granular, bypass-2fa) — interactive `npm deprecate` can't satisfy
+# the registry's token requirement for the @gobrand scope.
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package name (e.g. @gobrand/openstory-platforms)'
+        required: true
+      message:
+        description: 'Deprecation message (empty string un-deprecates)'
+        required: true
+        default: 'removed — folded into @gobrand/openstory-config; do not use'
+
+jobs:
+  deprecate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          registry-url: 'https://registry.npmjs.org'
+      - name: Deprecate
+        run: npm deprecate "$PACKAGE" "$MESSAGE"
+        env:
+          PACKAGE: ${{ github.event.inputs.package }}
+          MESSAGE: ${{ github.event.inputs.message }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
