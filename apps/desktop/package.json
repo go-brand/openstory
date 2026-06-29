@@ -1,7 +1,9 @@
 {
   "name": "openstory-desktop",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.4.0",
+  "description": "OpenStory — a Storybook alternative you point at any repo.",
+  "author": "go-brand <hello@gobrand.app>",
   "type": "module",
   "main": "./out/main/main.js",
   "scripts": {
@@ -40,5 +42,36 @@
     "tailwindcss": "4.1.18",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
+  },
+  "build": {
+    "appId": "app.gobrand.openstory",
+    "productName": "OpenStory",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/esbuild/**",
+      "**/node_modules/@esbuild/**",
+      "**/node_modules/rollup/**",
+      "**/node_modules/@rollup/**",
+      "**/node_modules/fsevents/**"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "scripts/AppIcon.icns",
+      "identity": null,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ]
+    }
   }
 }
