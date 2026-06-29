@@ -92,6 +92,10 @@ export function buildManifest(
 ) {
   const presets = resolvePresets(config.presets);
   return {
+    // Versioned public contract: the manifest shape AND the headless render-route
+    // query params (component/story/viewport/theme/layout) are stable under this
+    // number. Bump on any breaking change to either. See the agent-first spec.
+    schemaVersion: 1 as const,
     components: (config.components ?? []).map((p) => {
       const render = resolveRender(p, presets);
       const sourcePath = p.sourcePath && projectRoot ? resolve(projectRoot, p.sourcePath) : null;

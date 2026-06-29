@@ -128,7 +128,11 @@ describe("buildManifest", () => {
 
   it("returns no components for an empty config", () => {
     const config = defineOpenStoryConfig({ components: [] });
-    expect(buildManifest(config)).toEqual({ components: [], docs: [] });
+    expect(buildManifest(config)).toEqual({ schemaVersion: 1, components: [], docs: [] });
+  });
+
+  it("carries schemaVersion 1", () => {
+    expect(buildManifest(defineOpenStoryConfig({ components: [] })).schemaVersion).toBe(1);
   });
 
   it("emits empty stories and controls for a preview with zero fixtures", () => {
