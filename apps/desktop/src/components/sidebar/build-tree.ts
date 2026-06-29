@@ -1,13 +1,13 @@
 import type { ManifestComponent, ManifestDoc } from "../../../electron/types";
 
-export type StoryLeaf = {
+type StoryLeaf = {
   kind: "story";
   id: string;
   label: string;
   componentId: string;
   storyId: string;
 };
-export type DocsLeaf = {
+type DocsLeaf = {
   kind: "docs";
   id: string;
   label: string;
@@ -32,7 +32,7 @@ export type SectionNode = {
   label: string;
   children: TreeNode[];
 };
-export type PageLeaf = {
+type PageLeaf = {
   kind: "page";
   id: string;
   label: string;

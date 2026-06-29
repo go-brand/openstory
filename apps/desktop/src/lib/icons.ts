@@ -17,7 +17,6 @@ export {
   Folder01Icon,
   FolderAddIcon,
   GridIcon,
-  Layers01Icon,
   LinkSquare02Icon,
   Loading03Icon,
   PackageIcon,

@@ -54,7 +54,6 @@
   },
   "dependencies": {
     "@gobrand/openstory-config": "workspace:^",
-    "@gobrand/openstory-runtime": "workspace:^",
     "marked": "^18.0.5"
   },
   "devDependencies": {

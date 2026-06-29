@@ -38,7 +38,7 @@ export type ActiveSelection = {
   propOverrides: Record<string, unknown>;
 };
 
-export type ManifestControl = {
+type ManifestControl = {
   name: string;
   kind: "text" | "boolean" | "number" | "select" | "radio";
   /** Allowed values; present only for `select` / `radio`. */

@@ -24,7 +24,7 @@ export function Switch({
   );
 }
 
-export function SwitchThumb({ className, ...props }: ComponentProps<typeof SwitchPrimitive.Thumb>) {
+function SwitchThumb({ className, ...props }: ComponentProps<typeof SwitchPrimitive.Thumb>) {
   return (
     <SwitchPrimitive.Thumb
       data-slot="switch-thumb"
