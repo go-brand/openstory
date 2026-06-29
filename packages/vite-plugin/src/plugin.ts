@@ -2,24 +2,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Plugin, ViteDevServer } from "vite";
 import { buildHarnessEntry, buildHtmlShell } from "./harness-loader.js";
-import { deriveSection } from "./derive-section.js";
-import {
-  mergeControls,
-  mergeComponents,
-  resolvePresets,
-  resolveRender,
-  type ManifestControl,
-  type ManifestDoc,
-} from "@gobrand/openstory-config";
 import type { OpenStoryConfig } from "@gobrand/openstory-config";
-import { extractPropTypes } from "./extract-prop-types.js";
-import {
-  discoverComponentsFrom,
-  matchFiles,
-  partitionByExtension,
-  resolvePatterns,
-} from "./discover.js";
-import { discoverDocs } from "./discover-docs.js";
+import { resolvePatterns } from "./discover.js";
+import { assembleManifest } from "./assemble-manifest.js";
+
+// Re-exported so existing importers (and tests) keep `buildManifest` from "./plugin".
+export { buildManifest } from "./assemble-manifest.js";
 
 const VIRTUAL_ID = "virtual:openstory-entry";
 const RESOLVED_VIRTUAL_ID = "\0virtual:openstory-entry";
@@ -84,49 +72,6 @@ function detectStyles(projectRoot: string): string[] {
 type PluginOptions = {
   configFile?: string;
 };
-
-export function buildManifest(
-  config: OpenStoryConfig,
-  projectRoot?: string,
-  docs: ManifestDoc[] = [],
-) {
-  const presets = resolvePresets(config.presets);
-  return {
-    // Versioned public contract: the manifest shape AND the headless render-route
-    // query params (component/story/viewport/theme/layout) are stable under this
-    // number. Bump on any breaking change to either. See the agent-first spec.
-    schemaVersion: 1 as const,
-    components: (config.components ?? []).map((p) => {
-      const render = resolveRender(p, presets);
-      const sourcePath = p.sourcePath && projectRoot ? resolve(projectRoot, p.sourcePath) : null;
-
-      // Type-derived controls (authoritative). Falls back to {} on any miss so
-      // mergeControls degrades gracefully to pure value inference.
-      const typeInfo =
-        sourcePath && projectRoot ? extractPropTypes(sourcePath, p.name ?? p.id, projectRoot) : {};
-      const typeControls: Record<string, ManifestControl> = Object.fromEntries(
-        Object.entries(typeInfo).map(([name, info]) => [name, { name, ...info }]),
-      );
-
-      return {
-        id: p.id,
-        name: p.name ?? p.id,
-        group: p.group ?? "",
-        section: deriveSection(sourcePath),
-        background: render.background,
-        layout: p.layout ?? "padded",
-        stories: p.fixtures.map((f) => ({
-          id: f.id,
-          label: f.label,
-          props: f.props,
-        })),
-        controls: mergeControls(p.fixtures, typeControls),
-        sourcePath,
-      };
-    }),
-    docs,
-  };
-}
 
 function findConfig(root: string): string | null {
   for (const name of CONFIG_CANDIDATES) {
@@ -217,35 +162,12 @@ export function openStory(options: PluginOptions = {}): Plugin {
         }
         if (url === "/manifest.json" || req.url === MANIFEST_ROUTE) {
           try {
-            const config = resolvedConfigPath
-              ? (((await server.ssrLoadModule(resolvedConfigPath)).default ??
-                  {}) as OpenStoryConfig)
-              : null;
-            const patterns = resolvePatterns(config);
-
-            // One walk + glob match, then split by extension.
-            const matched = matchFiles(projectRoot, patterns);
-            const { storyFiles, docFiles } = partitionByExtension(matched);
-
-            const discovered = await discoverComponentsFrom(storyFiles, (p) =>
-              server.ssrLoadModule(p),
-            );
-            const components = mergeComponents(discovered, config?.components ?? []);
-            const docs = discoverDocs(docFiles, (abs) => readFileSync(abs, "utf8"));
-
-            // Validate embeds against the assembled story registry; warn on misses.
-            const storyKeys = new Set(
-              components.flatMap((c) => c.fixtures.map((f) => `${c.id}--${f.id}`)),
-            );
-            for (const doc of docs) {
-              for (const id of doc.embeds) {
-                if (!storyKeys.has(id)) {
-                  console.warn(`[openstory] doc ${doc.sourcePath}: embed ${id} matches no story`);
-                }
-              }
-            }
-
-            const manifest = buildManifest({ ...(config ?? {}), components }, projectRoot, docs);
+            const manifest = await assembleManifest({
+              projectRoot,
+              resolvedConfigPath,
+              ssrLoadModule: (p) => server.ssrLoadModule(p),
+              readFile: (abs) => readFileSync(abs, "utf8"),
+            });
             res.setHeader("content-type", "application/json");
             res.end(JSON.stringify(manifest));
           } catch (err) {
