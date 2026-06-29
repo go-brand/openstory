@@ -1,8 +1,0 @@
-{
-  "extends": "../../tooling/tsconfig/react.json",
-  "compilerOptions": {
-    "noEmit": true,
-    "jsx": "react-jsx"
-  },
-  "include": ["src/**/*", "openstory.config.ts", "vite.config.ts"]
-}

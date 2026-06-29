@@ -246,6 +246,16 @@ split into `main` / `preload` / `renderer`. The renderer is sandboxed
 (`contextIsolation: true`, `sandbox: true`); the only renderer↔main surface is
 the typed `openStory` bridge in `electron/preload.ts`.
 
+### Dogfooding
+
+OpenStory documents its own design system with itself. `apps/desktop` carries a
+plain `vite.config.ts` (separate from the electron-vite build) plus `*.stories.tsx`
+next to its real Base UI primitives and `*.stories.md` docs under `src/docs/`
+(including **How the MCP works**). Run `pnpm dev`, then **Open a project… →
+`apps/desktop`** — the harness renders OpenStory's own components, on its own
+canvas, through OpenStory. The same project also exposes the agent surface
+(`/__pl__/mcp`, `/__pl__/?component=…`).
+
 ### Diagnostics
 
 The main process mirrors Node `process` warnings to

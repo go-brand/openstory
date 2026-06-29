@@ -10,9 +10,12 @@ import { openStory } from "./plugin";
 // request) — which proves the route is mounted, the transport responds, and the
 // server identifies as "openstory". Tool behavior is covered exhaustively by the
 // in-memory round-trip in mcp-server.test.ts.
-const starterRoot = resolve(
-  fileURLToPath(new URL("../../..", import.meta.url)),
-  "examples/starter",
+//
+// Roots at a package-local fixture (not an example app) so this test owns its
+// fixture and stays fast and isolated.
+const fixtureRoot = resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  "__fixtures__/dev-server",
 );
 
 let server: ViteDevServer;
@@ -20,7 +23,7 @@ let baseUrl: string;
 
 beforeAll(async () => {
   server = await createServer({
-    root: starterRoot,
+    root: fixtureRoot,
     configFile: false,
     logLevel: "silent",
     plugins: [openStory()],

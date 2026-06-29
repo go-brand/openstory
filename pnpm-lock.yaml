@@ -48,6 +48,12 @@ importers:
         specifier: 7.3.1
         version: 7.3.1(@types/node@24.10.4)(jiti@2.7.0)(lightningcss@1.30.2)
     devDependencies:
+      '@gobrand/openstory-config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@gobrand/openstory-vite':
+        specifier: workspace:*
+        version: link:../../packages/vite-plugin
       '@playwright/test':
         specifier: 1.49.0
         version: 1.49.0
@@ -90,43 +96,6 @@ importers:
       vitest:
         specifier: 4.0.18
         version: 4.0.18(@types/node@24.10.4)(jiti@2.7.0)(jsdom@29.1.1)(lightningcss@1.30.2)
-
-  examples/starter:
-    dependencies:
-      '@gobrand/openstory-config':
-        specifier: workspace:*
-        version: link:../../packages/config
-      react:
-        specifier: 19.2.3
-        version: 19.2.3
-      react-dom:
-        specifier: 19.2.3
-        version: 19.2.3(react@19.2.3)
-    devDependencies:
-      '@gobrand/openstory-vite':
-        specifier: workspace:*
-        version: link:../../packages/vite-plugin
-      '@tailwindcss/vite':
-        specifier: 4.1.18
-        version: 4.1.18(vite@7.3.1(@types/node@24.10.4)(jiti@2.7.0)(lightningcss@1.30.2))
-      '@types/react':
-        specifier: 19.2.7
-        version: 19.2.7
-      '@types/react-dom':
-        specifier: 19.2.3
-        version: 19.2.3(@types/react@19.2.7)
-      '@vitejs/plugin-react':
-        specifier: 5.0.0
-        version: 5.0.0(vite@7.3.1(@types/node@24.10.4)(jiti@2.7.0)(lightningcss@1.30.2))
-      tailwindcss:
-        specifier: 4.1.18
-        version: 4.1.18
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vite:
-        specifier: 7.3.1
-        version: 7.3.1(@types/node@24.10.4)(jiti@2.7.0)(lightningcss@1.30.2)
 
   packages/config:
     devDependencies:
