@@ -28,6 +28,12 @@ export function changedStories(manifest: Manifest, changedFiles: string[]): Chan
 // failure — not a git repo, git missing, bad ref — degrades to `{ files: null }`
 // so callers fall back gracefully instead of crashing.
 export function gitChangedFiles(projectRoot: string, base?: string): { files: string[] | null } {
+  // `base` is agent-controlled (MCP tool input). execFileSync runs git with no
+  // shell, so there is no shell injection — but a value like `--output=…` would
+  // smuggle a git flag (argv injection). Reject anything starting with `-`. We
+  // cannot use a `--` end-of-options marker here: `git diff -- <x>` treats <x>
+  // as a pathspec, but `base` is a revision, so `--` would change the semantics.
+  if (base !== undefined && base.startsWith("-")) return { files: null };
   try {
     const args = ["diff", "--name-only", ...(base ? [base] : [])];
     const out = execFileSync("git", args, { cwd: projectRoot, encoding: "utf8" });

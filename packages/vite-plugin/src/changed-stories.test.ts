@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changedStories } from "./changed-stories";
+import { changedStories, gitChangedFiles } from "./changed-stories";
 import type { Manifest } from "./assemble-manifest";
 
 const manifest = {
@@ -48,5 +48,15 @@ describe("changedStories", () => {
       components: [{ ...manifest.components[0], sourcePath: null }],
     } as unknown as Manifest;
     expect(changedStories(m, ["/p/src/button.tsx"])).toEqual([]);
+  });
+});
+
+describe("gitChangedFiles flag-injection guard", () => {
+  // `base` is agent-controlled; a value starting with `-` could smuggle a git
+  // flag (argv injection). It must be rejected before reaching execFileSync —
+  // returning files:null without ever invoking git.
+  it("rejects a base that starts with a dash", () => {
+    expect(gitChangedFiles("/p", "--output=/tmp/x")).toEqual({ files: null });
+    expect(gitChangedFiles("/p", "-anything")).toEqual({ files: null });
   });
 });
