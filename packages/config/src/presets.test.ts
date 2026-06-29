@@ -9,16 +9,22 @@ describe("resolvePresets", () => {
   it("merges user presets over built-ins (user wins on name clash)", () => {
     const merged = resolvePresets({
       dashboard: { viewport: { desktop: { width: 1280 } } },
-      linkedin: { viewport: { desktop: { width: 999 } } },
+      default: { viewport: { desktop: { width: 999 } } },
     });
     expect(merged.dashboard?.viewport.desktop.width).toBe(1280);
-    expect(merged.linkedin?.viewport.desktop.width).toBe(999);
-    expect(merged.x).toEqual(BUILTIN_PRESETS.x);
+    expect(merged.default?.viewport.desktop.width).toBe(999);
+  });
+
+  it("ships only a neutral `default` preset — no platform-specific built-ins", () => {
+    expect(Object.keys(BUILTIN_PRESETS)).toEqual(["default"]);
   });
 });
 
 describe("resolveRender", () => {
-  const presets = resolvePresets();
+  // Project-defined presets, the way a consumer declares them in their config.
+  const presets = resolvePresets({
+    column: { viewport: { desktop: { width: 552 } }, chrome: { background: "#f3f2ef" } },
+  });
 
   it("uses the default preset when no preset named", () => {
     const r = resolveRender({}, presets);
@@ -28,14 +34,14 @@ describe("resolveRender", () => {
   });
 
   it("uses a named preset's viewport and background", () => {
-    const r = resolveRender({ preset: "linkedin" }, presets);
+    const r = resolveRender({ preset: "column" }, presets);
     expect(r.viewport.desktop.width).toBe(552);
     expect(r.background).toBe("#f3f2ef");
   });
 
   it("explicit viewports override the preset", () => {
     const r = resolveRender(
-      { preset: "linkedin", viewports: { desktop: { width: 700, dpr: 2 } } },
+      { preset: "column", viewports: { desktop: { width: 700, dpr: 2 } } },
       presets,
     );
     expect(r.viewport.desktop).toEqual({ width: 700, dpr: 2 });

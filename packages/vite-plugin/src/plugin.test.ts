@@ -60,6 +60,13 @@ describe("buildHarnessEntry", () => {
 describe("buildManifest", () => {
   it("emits stories with props and inferred controls", () => {
     const config = defineOpenStoryConfig({
+      // Presets are project-defined (OpenStory ships only `default`).
+      presets: {
+        linkedin: {
+          viewport: { desktop: { width: 552 }, mobile: { width: 360 } },
+          chrome: { background: "#f3f2ef" },
+        },
+      },
       components: [
         {
           id: "linkedin",

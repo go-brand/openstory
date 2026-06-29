@@ -2,8 +2,9 @@ import type { Viewport } from "./define.js";
 
 /**
  * A named render preset: the canvas width(s) a preview renders at and the
- * chrome background painted behind it. Social platforms ship as built-in
- * presets; users add their own in `openstory.config.ts`.
+ * chrome background painted behind it. OpenStory ships only a neutral `default`;
+ * projects define their own presets in `openstory.config.ts` (a design-system
+ * column width, a social post width, whatever the project needs).
  */
 export type Preset = {
   viewport: { desktop: Viewport; mobile?: Viewport };
@@ -15,46 +16,14 @@ export type Preset = {
 export const DEFAULT_BACKGROUND = "#f4f4f5";
 
 /**
- * Built-in presets. `default` is used when a preview names no preset. The eight
- * social presets carry the canonical post widths and background colors that used
- * to live in `DEFAULT_PLATFORM_WIDTHS` (runtime) and `PLATFORM_BG` (desktop).
+ * Built-in presets. Only `default` (used when a preview names no preset) ships
+ * with OpenStory — the core is not tied to any particular kind of component or
+ * platform. Projects add their own presets via `presets` in their config.
  */
 export const BUILTIN_PRESETS: Record<string, Preset> = {
   default: {
     viewport: { desktop: { width: 600 }, mobile: { width: 360 } },
     chrome: { background: DEFAULT_BACKGROUND },
-  },
-  linkedin: {
-    viewport: { desktop: { width: 552 }, mobile: { width: 360 } },
-    chrome: { background: "#f3f2ef" },
-  },
-  x: {
-    viewport: { desktop: { width: 600 }, mobile: { width: 360 } },
-    chrome: { background: "#000000" },
-  },
-  instagram: {
-    viewport: { desktop: { width: 470 }, mobile: { width: 360 } },
-    chrome: { background: "#fafafa" },
-  },
-  tiktok: {
-    viewport: { desktop: { width: 540 }, mobile: { width: 360 } },
-    chrome: { background: "#000000" },
-  },
-  threads: {
-    viewport: { desktop: { width: 600 }, mobile: { width: 360 } },
-    chrome: { background: "#101010" },
-  },
-  facebook: {
-    viewport: { desktop: { width: 524 }, mobile: { width: 360 } },
-    chrome: { background: "#f0f2f5" },
-  },
-  youtube: {
-    viewport: { desktop: { width: 720 }, mobile: { width: 360 } },
-    chrome: { background: "#0f0f0f" },
-  },
-  bluesky: {
-    viewport: { desktop: { width: 600 }, mobile: { width: 360 } },
-    chrome: { background: "#ffffff" },
   },
 };
 
