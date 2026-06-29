@@ -161,54 +161,58 @@ export function DocsPage({
     <ViewportContext.Provider value="desktop">
       {/* OpenStory chrome, themed by the manager (DOC_THEME_VARS flips on the
           `.dark` class the os:theme bridge toggles) — not by consumer tokens,
-          so the cards aren't a glaring white block in dark mode. */}
+          so the cards aren't a glaring white block in dark mode. The outer
+          surface paints the full-width themed background (Storybook's DocsWrapper
+          model); the inner column centers the content. */}
       <style>{DOC_THEME_VARS}</style>
-      <div
-        style={{
-          maxWidth: 1000,
-          margin: "0 auto",
-          padding: "40px 20px",
-          boxSizing: "border-box",
-          fontFamily: "-apple-system, BlinkMacSystemFont, system-ui, sans-serif",
-          color: "var(--os-doc-fg)",
-        }}
-      >
-        <h1 style={{ fontSize: 30, fontWeight: 700, margin: "0 0 24px" }}>{title}</h1>
-        {component.fixtures.map((fixture) => (
-          <section key={fixture.id} style={{ marginBottom: 40 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}>{fixture.label}</h2>
-            {fixture.notes ? (
-              <p
+      <div style={{ minHeight: "100vh", background: "var(--os-doc-bg)" }}>
+        <div
+          style={{
+            maxWidth: 1000,
+            margin: "0 auto",
+            padding: "40px 20px",
+            boxSizing: "border-box",
+            fontFamily: "-apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+            color: "var(--os-doc-fg)",
+          }}
+        >
+          <h1 style={{ fontSize: 30, fontWeight: 700, margin: "0 0 24px" }}>{title}</h1>
+          {component.fixtures.map((fixture) => (
+            <section key={fixture.id} style={{ marginBottom: 40 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}>{fixture.label}</h2>
+              {fixture.notes ? (
+                <p
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    color: "var(--os-doc-fg-muted)",
+                    margin: "0 0 12px",
+                  }}
+                >
+                  {fixture.notes}
+                </p>
+              ) : null}
+              <div
                 style={{
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                  color: "var(--os-doc-fg-muted)",
-                  margin: "0 0 12px",
+                  border: "1px solid var(--os-doc-border)",
+                  borderRadius: 8,
+                  padding: layout === "fullscreen" ? 0 : 24,
+                  background: "var(--os-doc-card)",
+                  overflow: "hidden",
+                  ...(layout === "centered"
+                    ? { display: "flex", alignItems: "center", justifyContent: "center" }
+                    : {}),
                 }}
               >
-                {fixture.notes}
-              </p>
-            ) : null}
-            <div
-              style={{
-                border: "1px solid var(--os-doc-border)",
-                borderRadius: 8,
-                padding: layout === "fullscreen" ? 0 : 24,
-                background: "var(--os-doc-card)",
-                overflow: "hidden",
-                ...(layout === "centered"
-                  ? { display: "flex", alignItems: "center", justifyContent: "center" }
-                  : {}),
-              }}
-            >
-              <Providers>
-                <div style={{ width, maxWidth: "100%", margin: "0 auto" }}>
-                  <Component {...((fixture.props ?? {}) as Record<string, unknown>)} />
-                </div>
-              </Providers>
-            </div>
-          </section>
-        ))}
+                <Providers>
+                  <div style={{ width, maxWidth: "100%", margin: "0 auto" }}>
+                    <Component {...((fixture.props ?? {}) as Record<string, unknown>)} />
+                  </div>
+                </Providers>
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
     </ViewportContext.Provider>
   );
