@@ -3,8 +3,11 @@ import { resolve } from "node:path";
 import type { Plugin, ViteDevServer } from "vite";
 import { buildHarnessEntry, buildHtmlShell } from "./harness-loader.js";
 import type { OpenStoryConfig } from "@gobrand/openstory-config";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { resolvePatterns } from "./discover.js";
 import { assembleManifest } from "./assemble-manifest.js";
+import { createMcpServer } from "./mcp-server.js";
+import { gitChangedFiles } from "./changed-stories.js";
 
 // Re-exported so existing importers (and tests) keep `buildManifest` from "./plugin".
 export { buildManifest } from "./assemble-manifest.js";
@@ -13,6 +16,7 @@ const VIRTUAL_ID = "virtual:openstory-entry";
 const RESOLVED_VIRTUAL_ID = "\0virtual:openstory-entry";
 const ROUTE = "/__pl__";
 const MANIFEST_ROUTE = "/__pl__/manifest.json";
+const MCP_ROUTE = "/__pl__/mcp";
 const CONFIG_CANDIDATES = ["openstory.config.ts", "openstory.config.js"];
 
 // Candidate CSS entry files (relative to projectRoot) probed when the consumer
@@ -173,6 +177,46 @@ export function openStory(options: PluginOptions = {}): Plugin {
           } catch (err) {
             res.statusCode = 500;
             res.end(JSON.stringify({ error: String(err) }));
+          }
+          return;
+        }
+        if (url === "/mcp" || req.url === MCP_ROUTE) {
+          // Read-only MCP server mounted in the project's own dev server (mirrors
+          // @storybook/addon-mcp). Stateless: a fresh server+transport per request
+          // (`sessionIdGenerator: undefined`), so there is no session state to leak
+          // across agents. Tools read the same manifest as the route above.
+          const host = (req.headers.host as string) || "localhost";
+          const mcp = createMcpServer({
+            projectRoot,
+            baseUrl: `http://${host}`,
+            getManifest: () =>
+              assembleManifest({
+                projectRoot,
+                resolvedConfigPath,
+                ssrLoadModule: (p) => server.ssrLoadModule(p),
+                readFile: (abs) => readFileSync(abs, "utf8"),
+              }),
+            gitChangedFiles,
+            readFile: (abs) => readFileSync(abs, "utf8"),
+          });
+          // Omitting sessionIdGenerator IS the stateless mode (no session state
+          // to leak across agents). enableJsonResponse → plain JSON replies, not
+          // SSE, which suits one-shot agent tool calls.
+          const transport = new StreamableHTTPServerTransport({ enableJsonResponse: true });
+          res.on("close", () => {
+            transport.close();
+            mcp.close();
+          });
+          try {
+            // The SDK's Transport type is looser than this repo's
+            // exactOptionalPropertyTypes; the concrete transport is correct at runtime.
+            await mcp.connect(transport as Parameters<typeof mcp.connect>[0]);
+            await transport.handleRequest(req, res);
+          } catch (err) {
+            if (!res.headersSent) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: String(err) }));
+            }
           }
           return;
         }
