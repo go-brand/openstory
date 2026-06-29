@@ -52,14 +52,7 @@
     "files": [
       "out/**/*"
     ],
-    "asar": true,
-    "asarUnpack": [
-      "**/node_modules/esbuild/**",
-      "**/node_modules/@esbuild/**",
-      "**/node_modules/rollup/**",
-      "**/node_modules/@rollup/**",
-      "**/node_modules/fsevents/**"
-    ],
+    "asar": false,
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "scripts/AppIcon.icns",

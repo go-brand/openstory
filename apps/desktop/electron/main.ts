@@ -1,12 +1,12 @@
-import { app, BrowserWindow } from 'electron';
-import { appendFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { AppStore } from './store';
-import { ViteHost } from './vite-host';
-import { createMainWindow } from './windows/main-window';
-import { createDetachedWindow } from './windows/detached-window';
-import { registerIpc } from './ipc';
-import { registerShortcuts } from './shortcuts';
+import { app, BrowserWindow } from "electron";
+import { appendFileSync } from "node:fs";
+import { join } from "node:path";
+import { AppStore } from "./store";
+import { ViteHost } from "./vite-host";
+import { createMainWindow } from "./windows/main-window";
+import { createDetachedWindow } from "./windows/detached-window";
+import { registerIpc } from "./ipc";
+import { registerShortcuts } from "./shortcuts";
 
 // --- Crash hardening -------------------------------------------------------
 // When the launching terminal closes its read end of stdout/stderr, any write
@@ -14,22 +14,22 @@ import { registerShortcuts } from './shortcuts';
 // process. Swallow broken-pipe errors on the std streams and as a backstop;
 // re-throw everything else so real bugs still surface.
 for (const stream of [process.stdout, process.stderr]) {
-  stream.on('error', (err: NodeJS.ErrnoException) => {
-    if (err.code !== 'EPIPE') throw err;
+  stream.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code !== "EPIPE") throw err;
   });
 }
-process.on('uncaughtException', (err: NodeJS.ErrnoException) => {
-  if (err.code !== 'EPIPE') throw err;
+process.on("uncaughtException", (err: NodeJS.ErrnoException) => {
+  if (err.code !== "EPIPE") throw err;
 });
 
 // Mirror process warnings to a log file. stderr is unreliable (it may be a
 // closed pipe), so the default console.warn path can be lost; this gives us a
 // durable record of which warning fired without ever crashing the app.
-process.on('warning', (w) => {
+process.on("warning", (w) => {
   try {
     appendFileSync(
-      join(app.getPath('logs'), 'warnings.log'),
-      `${new Date().toISOString()} [${w.name}] ${w.message}\n${w.stack ?? ''}\n\n`
+      join(app.getPath("logs"), "warnings.log"),
+      `${new Date().toISOString()} [${w.name}] ${w.message}\n${w.stack ?? ""}\n\n`,
     );
   } catch {
     // diagnostics must never become the crash source
@@ -52,12 +52,12 @@ function attachBoundsPersistence(win: BrowserWindow) {
   let timer: NodeJS.Timeout | null = null;
   const save = () => {
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => store.set('hudBounds', win.getBounds()), 250);
+    timer = setTimeout(() => store.set("hudBounds", win.getBounds()), 250);
   };
-  win.on('moved', save);
-  win.on('resized', save);
+  win.on("moved", save);
+  win.on("resized", save);
   // A pending debounce would call getBounds() on a destroyed window (throws).
-  win.on('closed', () => {
+  win.on("closed", () => {
     if (timer) clearTimeout(timer);
   });
 }
@@ -69,12 +69,12 @@ async function createMain() {
   mainWindow = await createMainWindow(hudBounds ? { bounds: hudBounds } : {});
   attachBoundsPersistence(mainWindow);
   if (process.env.ELECTRON_RENDERER_URL) {
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   }
-  mainWindow.webContents.on('preload-error', (_e, preloadPath, err) => {
-    console.error('[main preload-error]', preloadPath, err);
+  mainWindow.webContents.on("preload-error", (_e, preloadPath, err) => {
+    console.error("[main preload-error]", preloadPath, err);
   });
-  mainWindow.on('closed', () => {
+  mainWindow.on("closed", () => {
     mainWindow = null;
   });
   mainWindow.focus();
@@ -94,13 +94,13 @@ async function openDetached() {
   try {
     detachedWindow = await createDetachedWindow({});
     if (store.state.overlay.alwaysOnTop) {
-      detachedWindow.setAlwaysOnTop(true, 'screen-saver');
+      detachedWindow.setAlwaysOnTop(true, "screen-saver");
     }
     // Bind the overlay shortcut layer to this freshly created window. The
     // listener is torn down with the webContents on close, so re-popOut
     // re-binds cleanly without leaking listeners.
     registerShortcuts({ store, broadcastState }, detachedWindow);
-    detachedWindow.on('closed', () => {
+    detachedWindow.on("closed", () => {
       detachedWindow = null;
       broadcastState();
     });
@@ -150,17 +150,17 @@ async function bootstrap() {
 app.whenReady().then(bootstrap);
 
 // macOS: re-open a window when the dock icon is clicked and none are open.
-app.on('activate', () => {
+app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) void createMain();
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
 });
 
 // Ensure the child Vite server is torn down before we exit. Electron does not
 // await async before-quit listeners, so we defer the quit until stop resolves.
-app.on('before-quit', (event) => {
+app.on("before-quit", (event) => {
   if (isQuitting) return;
   event.preventDefault();
   isQuitting = true;

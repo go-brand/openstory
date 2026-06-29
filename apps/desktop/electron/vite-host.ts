@@ -1,16 +1,16 @@
-import { createServer, type ViteDevServer } from 'vite';
+import { createServer, type ViteDevServer } from "vite";
 
 export type ViteHostStatus =
-  | { status: 'idle'; port: null; error: null }
-  | { status: 'starting'; port: null; error: null }
-  | { status: 'ready'; port: number; error: null }
-  | { status: 'error'; port: null; error: string };
+  | { status: "idle"; port: null; error: null }
+  | { status: "starting"; port: null; error: null }
+  | { status: "ready"; port: number; error: null }
+  | { status: "error"; port: null; error: string };
 
 export class ViteHost {
   private server: ViteDevServer | null = null;
   private currentRoot: string | null = null;
   private statusValue: ViteHostStatus = {
-    status: 'idle',
+    status: "idle",
     port: null,
     error: null,
   };
@@ -31,39 +31,38 @@ export class ViteHost {
   }
 
   async start(root: string): Promise<void> {
-    if (this.currentRoot === root && this.statusValue.status === 'ready')
-      return;
+    if (this.currentRoot === root && this.statusValue.status === "ready") return;
     await this.stop();
     this.currentRoot = root;
-    this.emit({ status: 'starting', port: null, error: null });
+    this.emit({ status: "starting", port: null, error: null });
     let server: ViteDevServer | null = null;
     try {
       server = await createServer({
         root,
-        mode: 'openstory',
-        server: { port: 0, host: '127.0.0.1', strictPort: false },
-        appType: 'spa',
+        mode: "openstory",
+        server: { port: 0, host: "127.0.0.1", strictPort: false },
+        appType: "spa",
       });
       await server.listen();
       const address = server.httpServer?.address();
-      if (typeof address !== 'object' || address === null) {
-        throw new Error('Vite server did not return an address');
+      if (typeof address !== "object" || address === null) {
+        throw new Error("Vite server did not return an address");
       }
       this.server = server;
-      this.emit({ status: 'ready', port: address.port, error: null });
+      this.emit({ status: "ready", port: address.port, error: null });
     } catch (err) {
       // listen() can throw after createServer() succeeds; close the orphan so
       // we never leak a server/port that stop() can no longer reach.
       await server?.close().catch(() => {});
       const message = err instanceof Error ? err.message : String(err);
-      this.emit({ status: 'error', port: null, error: message });
+      this.emit({ status: "error", port: null, error: message });
       this.currentRoot = null;
     }
   }
 
   async stop(): Promise<void> {
     if (!this.server) {
-      this.emit({ status: 'idle', port: null, error: null });
+      this.emit({ status: "idle", port: null, error: null });
       return;
     }
     try {
@@ -71,7 +70,7 @@ export class ViteHost {
     } finally {
       this.server = null;
       this.currentRoot = null;
-      this.emit({ status: 'idle', port: null, error: null });
+      this.emit({ status: "idle", port: null, error: null });
     }
   }
 }

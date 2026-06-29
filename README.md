@@ -286,12 +286,15 @@ Next:
 `OpenStory.app` + `.dmg` (arm64) that boots clean. What's left before it's an app
 others can install without friction:
 
-- [x] `electron-builder` config (appId, productName, icon, arm64 dmg, `asarUnpack`
-      for esbuild/rollup so the bundled Vite host runs).
+- [x] `electron-builder` config (appId, productName, icon, arm64 dmg).
 - [x] Packaged build boots (smoke-launched, no crash).
-- [ ] **Runtime verification** — open a real project in the _packaged_ app and
-      confirm the Vite host spawns from inside the asar bundle (esbuild/rollup
-      run, `/__pl__/` serves, a story renders). Only boot is verified so far.
+- [x] **Runtime verification** — opening a real project in the _packaged_ app
+      starts the Vite host and serves `/__pl__/manifest.json`. Required
+      `asar: false`: the bundled Vite spawns the esbuild binary, and a path
+      inside `app.asar` can't be spawned (`spawn ENOTDIR`). esbuild reads
+      `ESBUILD_BINARY_PATH` once at module-init, before our main code runs, so
+      pointing it at an unpacked copy was unreliable; disabling asar (so the
+      binary is a real on-disk file, like the dev app) is the robust fix.
 - [ ] **Code signing** — Apple Developer ID Application cert; set `mac.identity`
       (drop `identity:null`) + hardened runtime + entitlements. Needed or macOS
       Gatekeeper blocks it.
