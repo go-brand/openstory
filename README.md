@@ -279,5 +279,33 @@ Next:
 
 - **Reduce integration to zero-config** — auto-detect and neutralize framework
   plugins instead of asking projects to gate them on `mode`.
-- **Packaged builds** — `electron-builder` is wired (`pnpm --filter
-openstory-desktop package`) but unsigned and untested for distribution.
+
+### Official app launch (distribution checklist)
+
+`pnpm --filter openstory-desktop package` now produces a real, **unsigned**
+`OpenStory.app` + `.dmg` (arm64) that boots clean. What's left before it's an app
+others can install without friction:
+
+- [x] `electron-builder` config (appId, productName, icon, arm64 dmg, `asarUnpack`
+      for esbuild/rollup so the bundled Vite host runs).
+- [x] Packaged build boots (smoke-launched, no crash).
+- [ ] **Runtime verification** — open a real project in the _packaged_ app and
+      confirm the Vite host spawns from inside the asar bundle (esbuild/rollup
+      run, `/__pl__/` serves, a story renders). Only boot is verified so far.
+- [ ] **Code signing** — Apple Developer ID Application cert; set `mac.identity`
+      (drop `identity:null`) + hardened runtime + entitlements. Needed or macOS
+      Gatekeeper blocks it.
+- [ ] **Notarization** — `notarytool` (Apple ID + app-specific password / API key) + staple, so Gatekeeper passes with no warning.
+- [ ] **Universal build** — add `x64` to `mac.target` arch for Intel Macs (arm64
+      only today).
+- [ ] **Auto-update** — `electron-updater` + a publish target (GitHub Releases or
+      S3); generates `latest-mac.yml`.
+- [ ] **Release CI** — build + sign + notarize + publish on a version tag, the way
+      packages publish today (see `scripts/release.sh`). Keep signing secrets in CI.
+- [ ] **Prod vs Dev distinction** — a non-"Dev" icon/name so the installed app and
+      the local `OpenStory Dev` dock launcher are visually distinct.
+- [ ] **Versioning** — drive the app version from the release tag instead of the
+      hardcoded `0.4.0` in `apps/desktop/package.json`.
+
+> The **OpenStory Dev** dock app (built by `apps/desktop/scripts/make-dev-app.sh`)
+> is unrelated to distribution — it just runs `pnpm dev` cleanly for local work.
