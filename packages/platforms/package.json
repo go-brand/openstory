@@ -1,6 +1,6 @@
 {
   "name": "@gobrand/openstory-platforms",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Platform presets (viewports, variants) for OpenStory previews",
   "private": false,
   "publishConfig": {
