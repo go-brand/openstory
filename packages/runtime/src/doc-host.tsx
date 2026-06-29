@@ -141,6 +141,9 @@ const DOC_CSS = `
 .openstory-doc pre code { background: none; padding: 0; }
 .openstory-doc blockquote { margin: 0 0 1em; padding-left: 1em; border-left: 2px solid color-mix(in oklab, currentColor 22%, transparent); opacity: 0.85; }
 .openstory-doc hr { border: 0; border-top: 1px solid color-mix(in oklab, currentColor 15%, transparent); margin: 1.5em 0; }
+.openstory-doc table { width: 100%; border-collapse: collapse; margin: 0 0 1em; font-size: 0.92em; }
+.openstory-doc th, .openstory-doc td { border: 1px solid color-mix(in oklab, currentColor 16%, transparent); padding: 0.5em 0.7em; text-align: left; vertical-align: top; }
+.openstory-doc th { font-weight: 650; background: color-mix(in oklab, currentColor 7%, transparent); }
 .openstory-doc .openstory-embed { margin: 1.25em 0; }
 .openstory-embed-missing { color: #ef4444; font-size: 13px; }
 `;
