@@ -44,10 +44,6 @@ export default defineConfig({
         "tailwind-merge",
         "@hugeicons/react",
         "@hugeicons/core-free-icons",
-        "@radix-ui/react-slot",
-        "@radix-ui/react-select",
-        "@radix-ui/react-checkbox",
-        "@radix-ui/react-separator",
       ],
     },
     build: {

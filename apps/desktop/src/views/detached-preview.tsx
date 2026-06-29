@@ -64,7 +64,9 @@ export function DetachedPreview({ state, api }: { state: AppState; api: Api }) {
             max={1}
             step={0.01}
             value={[state.overlay.opacity]}
-            onValueChange={(v) => api?.invoke("overlay:setOpacity", v[0] ?? 1)}
+            onValueChange={(v) =>
+              api?.invoke("overlay:setOpacity", (Array.isArray(v) ? v[0] : v) ?? 1)
+            }
           />
         </label>
 

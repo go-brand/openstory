@@ -1,4 +1,4 @@
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
+import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
 import type { ComponentProps } from "react";
 import { cn } from "../../lib/utils";
 import { HugeiconsIcon, Tick02Icon } from "../../lib/icons";
@@ -7,7 +7,7 @@ export function Checkbox({ className, ...props }: ComponentProps<typeof Checkbox
   return (
     <CheckboxPrimitive.Root
       className={cn(
-        "peer h-4 w-4 shrink-0 rounded-sm border border-input bg-accent focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:outline-none data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-600",
+        "peer h-4 w-4 shrink-0 rounded-sm border border-input bg-accent focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:outline-none data-[checked]:border-blue-600 data-[checked]:bg-blue-600",
         className,
       )}
       {...props}
