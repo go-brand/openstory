@@ -95,13 +95,34 @@ type ActiveSelection = {
   fixtureOverrides?: Record<string, unknown>;
 };
 
-function readSelectionFromUrl(): ActiveSelection | null {
+const VALID_LAYOUTS: ReadonlySet<string> = new Set(["padded", "centered", "fullscreen"]);
+
+// The headless render contract (versioned by the manifest `schemaVersion`): an
+// agent points its browser MCP at `/__pl__/?component=&story=&viewport=&theme=&
+// layout=` and the harness renders that one story, identical to what the Electron
+// manager shows. `component`/`story`/`viewport` are required; `layout` overrides
+// the component's declared layout when valid; `theme` is applied separately by
+// `applyThemeFromUrl` on mount. Same renderer as the postMessage path — one
+// renderer, two triggers — so an agent's accessibility-tree snapshot can't drift
+// from the human view.
+export function readSelectionFromUrl(): ActiveSelection | null {
   const params = new URLSearchParams(window.location.search);
   const componentId = params.get("component");
   const storyId = params.get("story");
   const viewport = params.get("viewport") as "desktop" | "mobile" | null;
   if (!componentId || !storyId || !viewport) return null;
-  return { componentId, storyId, viewport };
+  const rawLayout = params.get("layout");
+  const layout = rawLayout && VALID_LAYOUTS.has(rawLayout) ? (rawLayout as Layout) : undefined;
+  return { componentId, storyId, viewport, ...(layout && { layout }) };
+}
+
+// Apply the `theme` URL param on a headless boot by toggling `.dark` on the
+// document root — the same class the `os:theme` bridge toggles for the manager.
+// Only `theme=dark` opts in; absent/anything-else stays light. The manager's
+// runtime `os:theme` messages still win after mount.
+export function applyThemeFromUrl(): void {
+  const theme = new URLSearchParams(window.location.search).get("theme");
+  if (theme === "dark") document.documentElement.classList.add("dark");
 }
 
 export function PreviewStage({
@@ -318,6 +339,11 @@ function App({ config }: { config: OpenStoryConfig }) {
   useEffect(() => {
     applyAddons(addons);
   }, [addons]);
+
+  // Headless boot: honor `?theme=` before the manager (if any) connects.
+  useEffect(() => {
+    applyThemeFromUrl();
+  }, []);
 
   useEffect(() => {
     const manifest: ManifestMessage = {
