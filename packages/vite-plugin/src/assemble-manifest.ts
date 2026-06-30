@@ -17,6 +17,7 @@ import {
   resolvePatterns,
 } from "./discover.js";
 import { discoverDocs } from "./discover-docs.js";
+import type { ComponentTarget } from "./resolve-doc-links.js";
 
 // Pure manifest shaping from a resolved config. Lives here (not in plugin.ts) so
 // both the `/manifest.json` route AND the MCP tools can build the same manifest
@@ -93,7 +94,7 @@ export async function assembleManifest(deps: AssembleManifestDeps): Promise<Mani
   const components = mergeComponents(discovered, config?.components ?? []);
   // Map each component's absolute source path → { id, storyIds } so doc links to
   // a component file resolve to its auto-docs (no fragment) or a story (#story).
-  const componentByAbsPath = new Map<string, { id: string; storyIds: Set<string> }>();
+  const componentByAbsPath = new Map<string, ComponentTarget>();
   for (const c of components) {
     if (!c.sourcePath) continue;
     componentByAbsPath.set(resolve(projectRoot, c.sourcePath), {

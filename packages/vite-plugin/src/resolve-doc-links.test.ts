@@ -72,4 +72,12 @@ describe("linkHtml", () => {
       '<span class="openstory-doc-deadlink" title="unresolved link">T</span>',
     );
   });
+  it("emits a custom-scheme anchor for docs (auto-docs)", () => {
+    expect(linkHtml({ kind: "docs", componentId: "button" }, "x", "T")).toBe(
+      '<a href="openstory:docs/button">T</a>',
+    );
+  });
+  it("keeps a passthrough anchor's href as-is", () => {
+    expect(linkHtml({ kind: "passthrough" }, "#section", "T")).toBe('<a href="#section">T</a>');
+  });
 });

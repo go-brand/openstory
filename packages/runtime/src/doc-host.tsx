@@ -76,7 +76,7 @@ export function DocHost({
     // is handled by posting up to the manager; everything else (in-page anchors,
     // inert deadlink spans) falls through to the browser untouched.
     const onClick = (e: MouseEvent) => {
-      const anchor = (e.target as HTMLElement | null)?.closest?.("a");
+      const anchor = (e.target as HTMLElement | null)?.closest("a");
       if (!anchor) return;
       const target = parseNavTarget(anchor.getAttribute("href") ?? "");
       if (!target) return;

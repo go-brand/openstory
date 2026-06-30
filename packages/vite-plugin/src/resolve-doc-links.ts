@@ -33,7 +33,6 @@ export function resolveLink(href: string, ctx: LinkResolveCtx): LinkTarget {
   const hashIdx = href.indexOf("#");
   const pathPart = hashIdx === -1 ? href : href.slice(0, hashIdx);
   const fragment = hashIdx === -1 ? "" : decodeURIComponent(href.slice(hashIdx + 1));
-  if (!pathPart) return { kind: "passthrough" };
 
   const abs = resolve(dirname(ctx.fromPath), pathPart);
 

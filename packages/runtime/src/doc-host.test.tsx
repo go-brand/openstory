@@ -90,7 +90,9 @@ describe("DocHost click interception", () => {
     const spy = vi.spyOn(window, "postMessage");
     mount('<p><a href="openstory:story/button/primary">Go</a></p>');
     const a = container.querySelector("a")!;
-    a.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+    a.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
     expect(spy).toHaveBeenCalledWith(
       { type: "pl:navigate", target: { kind: "story", componentId: "button", storyId: "primary" } },
       "*",
