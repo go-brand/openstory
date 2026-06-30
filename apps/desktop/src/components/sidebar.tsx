@@ -6,6 +6,7 @@ import { ModeTabs } from "./sidebar/mode-tabs";
 import { Tree, type TreeCallbacks } from "./sidebar/tree";
 import { buildTree, flatten, isContainer } from "./sidebar/build-tree";
 import { useExpanded } from "./sidebar/use-expanded";
+import { Loading } from "./loading";
 
 export function Sidebar({
   state,
@@ -100,6 +101,10 @@ export function Sidebar({
           <p className="px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
             Add a repository to load its OpenStory components.
           </p>
+        ) : state.vite.status === "starting" || state.vite.status === "idle" ? (
+          // Project switching: the new manifest hasn't arrived yet, so show a
+          // spinner instead of the previous project's stale tree.
+          <Loading label="Loading project…" className="px-3 py-6" />
         ) : nodes.length === 0 ? (
           <p className="px-3 py-2 text-[11px] text-muted-foreground">
             {state.selection.mode === "docs"

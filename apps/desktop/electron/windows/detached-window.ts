@@ -1,17 +1,16 @@
-import { BrowserWindow } from 'electron';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-import { loadRenderer } from './main-window';
+import { BrowserWindow } from "electron";
+import { join } from "node:path";
+import { loadRenderer } from "./main-window";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// `__dirname` is provided by electron-vite's ESM main output (it injects
+// `const __dirname = import.meta.dirname`), so no manual shim is needed.
 
 export type CreateDetachedOptions = {
   bounds?: { x?: number; y?: number; width?: number; height?: number };
 };
 
 export async function createDetachedWindow(
-  opts: CreateDetachedOptions = {}
+  opts: CreateDetachedOptions = {},
 ): Promise<BrowserWindow> {
   const bounds = opts.bounds ?? {};
   const win = new BrowserWindow({
@@ -19,21 +18,21 @@ export async function createDetachedWindow(
     height: bounds.height ?? 700,
     ...(bounds.x !== undefined && { x: bounds.x }),
     ...(bounds.y !== undefined && { y: bounds.y }),
-    title: 'OpenStory Preview',
+    title: "OpenStory Preview",
     frame: false,
     transparent: true,
     hasShadow: false,
-    backgroundColor: '#00000000',
+    backgroundColor: "#00000000",
     resizable: true,
     minWidth: 280,
     minHeight: 320,
     webPreferences: {
-      preload: join(__dirname, '../preload/preload.cjs'),
+      preload: join(__dirname, "../preload/preload.cjs"),
       contextIsolation: true,
       sandbox: true,
     },
   });
   win.setVisibleOnAllWorkspaces(true);
-  await loadRenderer(win, 'detached');
+  await loadRenderer(win, "detached");
   return win;
 }

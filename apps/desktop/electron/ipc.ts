@@ -140,8 +140,18 @@ export function registerIpc(deps: Deps) {
   ipcMain.handle("project:select", async (_e, id: string) => {
     const project = deps.store.state.projects.find((p) => p.id === id);
     if (!project) return;
+    const switching = deps.store.state.selection.projectId !== id;
     deps.store.patchSelection({ projectId: id });
-    broadcastState();
+    if (switching) {
+      // Drop the previous repo's manifest so the sidebar renders a loading state
+      // rather than the old project's tree while Vite restarts. We deliberately
+      // don't broadcast here: viteHost.start() drives the broadcasts (stop -> idle,
+      // then "starting", then "ready" which fetches the new manifest and
+      // broadcasts it). Eager-broadcasting now would paint the new projectId over
+      // the stale tree.
+      manifest = [];
+      docs = [];
+    }
     await deps.viteHost.start(project.path);
   });
 

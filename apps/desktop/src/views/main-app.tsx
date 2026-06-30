@@ -66,6 +66,11 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
   const isDocMode = docsActive || state.selection.pageId !== null;
   const sized = !isDocMode && contentSize && contentSize !== "fill" ? contentSize : null;
   const loadingStory = !isDocMode && contentSize === undefined;
+  // The canvas toolbar (zoom/addons/layout/viewport) only makes sense when an
+  // actual component story is being previewed. Hide it for docs/pages and for
+  // the empty state — note `component` has a `?? manifest[0]` display fallback,
+  // so gate on the real selection (`componentId`), not the fallback.
+  const isStoryPreview = !isDocMode && state.selection.componentId !== null;
 
   function selectStory(componentId: string, storyId: string) {
     api?.invoke("preview:set", {
@@ -96,19 +101,24 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
         {/* Canvas. Plain neutral bg by design — the preset-color tint is
             detached-only (it backs difference-blend pixel comparison there). */}
         <main className="relative flex flex-1 flex-col overflow-hidden bg-background">
-          <Toolbar
-            state={state}
-            api={api}
-            component={component}
-            story={story}
-            zoom={zoom}
-            onZoomIn={() => setZoom((z) => zoomStep(z, 1))}
-            onZoomOut={() => setZoom((z) => zoomStep(z, -1))}
-            onZoomReset={() => setZoom(1)}
-            addons={addons}
-            onToggleAddon={toggleAddon}
-            onReload={reload}
-          />
+          {/* Toolbar only for an actual component story. Docs/pages are
+              markdown and the empty state has nothing to control — both hide it
+              and let the canvas reclaim the height. */}
+          {isStoryPreview && (
+            <Toolbar
+              state={state}
+              api={api}
+              component={component}
+              story={story}
+              zoom={zoom}
+              onZoomIn={() => setZoom((z) => zoomStep(z, 1))}
+              onZoomOut={() => setZoom((z) => zoomStep(z, -1))}
+              onZoomReset={() => setZoom(1)}
+              addons={addons}
+              onToggleAddon={toggleAddon}
+              onReload={reload}
+            />
+          )}
           <div className="relative flex-1 overflow-auto bg-canvas">
             {state.iframeUrl ? (
               // One stable iframe element across all modes (a separate element
@@ -161,7 +171,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
                 <CanvasEmpty vite={state.vite} />
               </div>
             )}
-            {state.iframeUrl && !component && !docsComponent && (
+            {state.iframeUrl && !component && !docsComponent && state.selection.pageId === null && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-canvas p-6">
                 <CanvasEmpty vite={state.vite} emptyRepo />
               </div>

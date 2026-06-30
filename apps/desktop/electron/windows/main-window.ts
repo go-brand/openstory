@@ -1,9 +1,8 @@
 import { BrowserWindow } from "electron";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// `__dirname` is provided by electron-vite's ESM main output (it injects
+// `const __dirname = import.meta.dirname`), so no manual shim is needed.
 
 export type CreateMainOptions = {
   bounds?: { x?: number; y?: number; width?: number; height?: number };
