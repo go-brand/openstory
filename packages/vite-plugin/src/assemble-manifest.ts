@@ -91,7 +91,17 @@ export async function assembleManifest(deps: AssembleManifestDeps): Promise<Mani
 
   const discovered = await discoverComponentsFrom(storyFiles, (p) => ssrLoadModule(p));
   const components = mergeComponents(discovered, config?.components ?? []);
-  const docs = discoverDocs(docFiles, (abs) => readFile(abs));
+  // Map each component's absolute source path → { id, storyIds } so doc links to
+  // a component file resolve to its auto-docs (no fragment) or a story (#story).
+  const componentByAbsPath = new Map<string, { id: string; storyIds: Set<string> }>();
+  for (const c of components) {
+    if (!c.sourcePath) continue;
+    componentByAbsPath.set(resolve(projectRoot, c.sourcePath), {
+      id: c.id,
+      storyIds: new Set(c.fixtures.map((f) => f.id)),
+    });
+  }
+  const docs = discoverDocs(docFiles, (abs) => readFile(abs), componentByAbsPath);
 
   // Validate embeds against the assembled story registry; warn on misses.
   const storyKeys = new Set(components.flatMap((c) => c.fixtures.map((f) => `${c.id}--${f.id}`)));
