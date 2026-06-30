@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ComponentType } from "react";
+import type { NavigateTarget } from "./bridge.js";
 
 type EmbedComponent = {
   id: string;
@@ -20,6 +21,22 @@ export function resolveEmbed(
   const fixture = comp?.fixtures.find((f) => f.id === storyId);
   if (!comp || !fixture) return null;
   return { Comp: comp.component, props: fixture.props };
+}
+
+// Decode an in-doc anchor href into a navigation target. Internal links carry a
+// build-resolved custom scheme (openstory:page/… | docs/… | story/…); each path
+// segment is encodeURIComponent'd, so splitting on "/" is unambiguous. External
+// http/https/mailto links open in the user's real browser. Anything else (in-page
+// #anchors, unknown schemes) returns null and is left to the browser's default.
+export function parseNavTarget(href: string): NavigateTarget | null {
+  if (/^(?:https?|mailto):/i.test(href)) return { kind: "external", href };
+  if (!href.startsWith("openstory:")) return null;
+  const segs = href.slice("openstory:".length).split("/").map(decodeURIComponent);
+  if (segs[0] === "page" && segs[1]) return { kind: "page", id: segs[1] };
+  if (segs[0] === "docs" && segs[1]) return { kind: "docs", componentId: segs[1] };
+  if (segs[0] === "story" && segs[1] && segs[2])
+    return { kind: "story", componentId: segs[1], storyId: segs[2] };
+  return null;
 }
 
 export function DocHost({
@@ -54,6 +71,20 @@ export function DocHost({
       if (id) arr.push({ id, el });
     }
     setTargets(arr);
+
+    // Intercept clicks on in-doc links. A build-resolved openstory:/external href
+    // is handled by posting up to the manager; everything else (in-page anchors,
+    // inert deadlink spans) falls through to the browser untouched.
+    const onClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement | null)?.closest?.("a");
+      if (!anchor) return;
+      const target = parseNavTarget(anchor.getAttribute("href") ?? "");
+      if (!target) return;
+      e.preventDefault();
+      window.parent?.postMessage({ type: "pl:navigate", target }, "*");
+    };
+    root.addEventListener("click", onClick);
+    return () => root.removeEventListener("click", onClick);
   }, [html]);
 
   return (
@@ -135,6 +166,7 @@ const DOC_CSS = `
 .openstory-doc li { margin: 0.25em 0; }
 .openstory-doc li::marker { color: currentColor; opacity: 0.45; }
 .openstory-doc a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.openstory-doc a.openstory-doc-deadlink, .openstory-doc .openstory-doc-deadlink { color: var(--os-doc-fg-muted); text-decoration: none; cursor: default; }
 .openstory-doc strong { font-weight: 650; }
 .openstory-doc code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; background: color-mix(in oklab, currentColor 12%, transparent); padding: 0.12em 0.35em; border-radius: 0.35em; }
 .openstory-doc pre { background: color-mix(in oklab, currentColor 8%, transparent); padding: 0.9em 1em; border-radius: 0.6em; overflow-x: auto; margin: 0 0 1em; }
