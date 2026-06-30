@@ -117,6 +117,7 @@ export type IpcInvoke = {
   "preview:setPage": (pageId: string | null) => void;
   "preview:setMode": (mode: "design" | "docs") => void;
   "preview:refreshManifest": () => void;
+  "shell:openExternal": (href: string) => void;
   "preview:getSource": (componentId: string) => PreviewSource | null;
   "preview:popOut": () => void;
   "preview:popIn": () => void;

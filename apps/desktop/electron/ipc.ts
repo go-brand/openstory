@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, dialog } from "electron";
+import { ipcMain, BrowserWindow, dialog, shell } from "electron";
 import { randomUUID } from "node:crypto";
 import { basename, relative, resolve, sep } from "node:path";
 import { readFileSync, statSync } from "node:fs";
@@ -6,6 +6,7 @@ import { AppStore } from "./store";
 import { ViteHost } from "./vite-host";
 import type { AppState, Layout, ManifestComponent, ManifestDoc, PreviewSource } from "./types";
 import { reconcileSelection, defaultMode } from "./selection";
+import { allowedExternalUrl } from "./external-url.js";
 
 // Hard cap so a stray huge file can't be slurped into the renderer's Code panel.
 const MAX_SOURCE_BYTES = 256 * 1024;
@@ -162,6 +163,7 @@ export function registerIpc(deps: Deps) {
         layout: null,
         docsComponentId: null,
         pageId: null,
+        mode: "design",
       });
       broadcastState();
     },
@@ -179,7 +181,7 @@ export function registerIpc(deps: Deps) {
   });
 
   ipcMain.handle("preview:setDocs", (_e, componentId: string | null) => {
-    deps.store.patchSelection({ docsComponentId: componentId, pageId: null });
+    deps.store.patchSelection({ docsComponentId: componentId, pageId: null, mode: "design" });
     broadcastState();
   });
 
@@ -191,6 +193,7 @@ export function registerIpc(deps: Deps) {
       docsComponentId: null,
       propOverrides: {},
       layout: null,
+      mode: "docs",
     });
     broadcastState();
   });
@@ -215,6 +218,12 @@ export function registerIpc(deps: Deps) {
       await fetchManifest(status.port);
       broadcastState();
     }
+  });
+
+  ipcMain.handle("shell:openExternal", (_e, href: string) => {
+    const url = allowedExternalUrl(href);
+    if (url) void shell.openExternal(url);
+    else console.warn(`[openstory] blocked openExternal: ${href}`);
   });
 
   ipcMain.handle("preview:getSource", (_e, componentId: string): PreviewSource | null => {
