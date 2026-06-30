@@ -48,6 +48,32 @@ Honest limits this spec accepts on purpose:
 3. **Deep semantic drift is best-effort.** Structural/reference drift — the bulk
    of the pain — is handled well.
 
+## Cost / token economics
+
+v1 is cheap by construction, and **precision is the cost-control mechanism**:
+
+1. **Detection is deterministic — zero LLM tokens.** `detectAffectedDocs` is plain
+   code over the manifest + git. Figuring out *which* docs are stale costs nothing;
+   contrast "ask an LLM what's stale," which must scan everything.
+2. **Context is scoped, not the repo.** The only tokens spent are when the agent
+   reads `get_doc_sync_context` (one affected doc's source + the *changed
+   components'* diffs + their current API) and writes the edit. A precise affected
+   list keeps this small; a flood would be the expense, which is exactly why
+   detection precision matters.
+3. **Boundary cadence, not per-step.** The agent runs this once per completion
+   boundary on the cumulative diff — not on every commit — so the same work isn't
+   re-reasoned ten times.
+4. **No extra LLM infra in v1.** The in-session agent does the writing; OpenStory
+   makes no separate Claude call. The marginal cost rides on the coding session
+   that is already happening.
+
+The known noisy signal (`embed-component-changed` firing on a no-API-change
+refactor) costs the agent a *cheap* glance at a small diff to decide "no edit
+needed," not a rewrite — and the deferred public-API-diff tightening removes even
+that. Real per-run API cost only appears with the **deferred** headless triggers
+(pre-commit/PR running Claude itself); those must be gated (only on API-affecting
+changes) and batched, and that belongs in the trigger spec, not here.
+
 ## Decisions (settled in brainstorm)
 
 1. **v1 surface = MCP, consumed by the in-session coding agent.** The engine is
