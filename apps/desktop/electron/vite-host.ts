@@ -37,6 +37,13 @@ export class ViteHost {
     this.emit({ status: "starting", port: null, error: null });
     let server: ViteDevServer | null = null;
     try {
+      // Run the embedded Vite with the project as the working directory, exactly
+      // like the `vite` CLI does. Vite and some framework plugins read
+      // cwd-relative paths (e.g. `./package.json`); when the app is launched from
+      // Finder/Dock the process cwd is `/`, so without this they fail with
+      // "ENOENT: open './package.json'". `root` alone isn't enough — cwd must
+      // match too.
+      process.chdir(root);
       server = await createServer({
         root,
         mode: "openstory",
