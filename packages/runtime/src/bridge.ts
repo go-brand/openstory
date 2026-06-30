@@ -39,13 +39,33 @@ export type SizeMessage = {
   height: number;
 };
 
-export type BridgeMessage = RenderMessage | ReadyMessage | ManifestMessage | SizeMessage;
+/** Where a clicked in-doc link should navigate. Posted by DocHost (runtime) to
+ *  the manager via `pl:navigate`; the manager maps each kind to a selection IPC.
+ *  `external` opens in the user's real browser. */
+export type NavigateTarget =
+  | { kind: "page"; id: string }
+  | { kind: "docs"; componentId: string }
+  | { kind: "story"; componentId: string; storyId: string }
+  | { kind: "external"; href: string };
+
+export type NavigateMessage = {
+  type: "pl:navigate";
+  target: NavigateTarget;
+};
+
+export type BridgeMessage =
+  | RenderMessage
+  | ReadyMessage
+  | ManifestMessage
+  | SizeMessage
+  | NavigateMessage;
 
 const KNOWN_TYPES = new Set<BridgeMessage["type"]>([
   "pl:render",
   "pl:ready",
   "pl:manifest",
   "pl:size",
+  "pl:navigate",
 ]);
 
 export function parseBridgeMessage(input: unknown): BridgeMessage | null {

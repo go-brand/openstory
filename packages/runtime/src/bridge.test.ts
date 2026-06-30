@@ -1,25 +1,34 @@
-import { describe, it, expect } from 'vitest';
-import { parseBridgeMessage, type BridgeMessage } from './bridge';
+import { describe, it, expect } from "vitest";
+import { parseBridgeMessage, type BridgeMessage } from "./bridge";
 
-describe('parseBridgeMessage', () => {
-  it('accepts a valid pl:render message', () => {
+describe("parseBridgeMessage", () => {
+  it("accepts a valid pl:render message", () => {
     const msg = {
-      type: 'pl:render',
-      componentId: 'linkedin',
-      storyId: 'text-short',
-      viewport: 'desktop',
+      type: "pl:render",
+      componentId: "linkedin",
+      storyId: "text-short",
+      viewport: "desktop",
     } as const;
 
     const result = parseBridgeMessage(msg);
-    expect(result?.type).toBe('pl:render');
+    expect(result?.type).toBe("pl:render");
   });
 
-  it('rejects unknown types', () => {
-    expect(parseBridgeMessage({ type: 'pl:unknown' })).toBeNull();
+  it("rejects unknown types", () => {
+    expect(parseBridgeMessage({ type: "pl:unknown" })).toBeNull();
   });
 
-  it('rejects non-objects', () => {
-    expect(parseBridgeMessage('not-an-object')).toBeNull();
+  it("rejects non-objects", () => {
+    expect(parseBridgeMessage("not-an-object")).toBeNull();
     expect(parseBridgeMessage(null)).toBeNull();
+  });
+
+  it("accepts a valid pl:navigate message", () => {
+    const msg = {
+      type: "pl:navigate",
+      target: { kind: "page", id: "design-system" },
+    } as const;
+    const result = parseBridgeMessage(msg);
+    expect(result?.type).toBe("pl:navigate");
   });
 });
