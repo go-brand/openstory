@@ -3,6 +3,43 @@ import type { AppState } from "../../electron/types";
 import type { Api } from "./api";
 import { ADDONS, NO_ADDONS, type AddonState } from "./preview-view";
 
+// Mirrors @gobrand/openstory-runtime's NavigateTarget. Duplicated (not imported)
+// because the desktop does not depend on the runtime package — same boundary
+// rationale as `Layout` in electron/types.ts. The message arrives as plain JSON,
+// so structural typing is sufficient.
+export type NavigateTarget =
+  | { kind: "page"; id: string }
+  | { kind: "docs"; componentId: string }
+  | { kind: "story"; componentId: string; storyId: string }
+  | { kind: "external"; href: string };
+
+// Map a clicked in-doc link to the manager's existing selection IPC. A `story`
+// preserves the user's current viewport; `external` opens in the real browser.
+export function dispatchNavigate(
+  api: NonNullable<Api>,
+  target: NavigateTarget,
+  viewport: "desktop" | "mobile",
+): void {
+  switch (target.kind) {
+    case "page":
+      api.invoke("preview:setPage", target.id);
+      break;
+    case "docs":
+      api.invoke("preview:setDocs", target.componentId);
+      break;
+    case "story":
+      api.invoke("preview:set", {
+        componentId: target.componentId,
+        storyId: target.storyId,
+        viewport,
+      });
+      break;
+    case "external":
+      api.invoke("shell:openExternal", target.href);
+      break;
+  }
+}
+
 /** Size the harness reports for the rendered story (pl:size).
  *  - `undefined`: no report yet for the current selection (still loading) — the
  *    manager keeps the iframe hidden so it never flashes full-size then snaps to
@@ -175,6 +212,15 @@ export function useHarnessBridge(
         const width = Number(d.width) || 0;
         const height = Number(d.height) || 0;
         setContentSize(width > 0 && height > 0 ? { width, height } : "fill");
+      } else if (type === "pl:navigate") {
+        const api = apiRef.current;
+        if (api) {
+          dispatchNavigate(
+            api,
+            (e.data as { target: NavigateTarget }).target,
+            latest.current.viewport,
+          );
+        }
       }
     }
     window.addEventListener("message", onMessage);
