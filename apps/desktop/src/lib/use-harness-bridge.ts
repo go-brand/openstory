@@ -213,6 +213,11 @@ export function useHarnessBridge(
         const height = Number(d.height) || 0;
         setContentSize(width > 0 && height > 0 ? { width, height } : "fill");
       } else if (type === "pl:navigate") {
+        // Only the preview iframe may drive navigation: pl:navigate can open the
+        // user's real browser (shell:openExternal) and change the selection, so
+        // ignore messages from any other window. Defense-in-depth — the main
+        // process additionally scheme-guards shell:openExternal.
+        if (e.source !== iframeRef.current?.contentWindow) return;
         const api = apiRef.current;
         if (api) {
           dispatchNavigate(
