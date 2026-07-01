@@ -119,3 +119,62 @@ export function detectAffectedDocs(manifest: Manifest, changedFiles: string[]): 
   }
   return out;
 }
+
+export type ChangedComponentContext = {
+  componentId: string;
+  gitDiff: string;
+  manifestEntry: Manifest["components"][number];
+};
+
+export type DocSyncContext = {
+  docId: string;
+  sourcePath: string;
+  docSource: string;
+  reasons: AffectedReason[];
+  changedComponents: ChangedComponentContext[];
+};
+
+// Assemble everything the agent needs to reconcile ONE affected doc in one shot:
+// its current source, and per distinct changed component (from embed/link reasons
+// only — a broken-embed's fix is the deterministic suggestion, not a diff) that
+// component's git diff + current manifest entry (the new prop/story API).
+export function buildDocSyncContext(
+  manifest: Manifest,
+  affected: AffectedDoc,
+  deps: { readFile: (abs: string) => string; gitDiffFile: (abs: string, base?: string) => string },
+  base?: string,
+): DocSyncContext {
+  let docSource = "";
+  try {
+    docSource = deps.readFile(affected.sourcePath);
+  } catch {
+    docSource = "";
+  }
+
+  const componentIds: string[] = [];
+  for (const r of affected.reasons) {
+    if (r.kind === "embed-component-changed" || r.kind === "link-target-changed") {
+      if (!componentIds.includes(r.componentId)) componentIds.push(r.componentId);
+    }
+  }
+
+  const byId = new Map(manifest.components.map((c) => [c.id, c]));
+  const changedComponents: ChangedComponentContext[] = [];
+  for (const id of componentIds) {
+    const comp = byId.get(id);
+    if (!comp || !comp.sourcePath) continue;
+    changedComponents.push({
+      componentId: id,
+      gitDiff: deps.gitDiffFile(comp.sourcePath, base),
+      manifestEntry: comp,
+    });
+  }
+
+  return {
+    docId: affected.docId,
+    sourcePath: affected.sourcePath,
+    docSource,
+    reasons: affected.reasons,
+    changedComponents,
+  };
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectAffectedDocs } from "./doc-sync";
+import { detectAffectedDocs, buildDocSyncContext } from "./doc-sync";
 import type { Manifest } from "./assemble-manifest";
 
 const manifest = {
@@ -114,5 +114,60 @@ describe("detectAffectedDocs", () => {
   it("returns no entry for a doc with no reasons", () => {
     const r = detectAffectedDocs(manifest, ["/p/unrelated.ts"]);
     expect(r.map((d) => d.docId)).toEqual(["broken"]); // only the always-broken doc
+  });
+});
+
+describe("buildDocSyncContext", () => {
+  const affectedButtons = {
+    docId: "buttons",
+    sourcePath: "/p/buttons.stories.md",
+    reasons: [
+      { kind: "embed-component-changed", componentId: "button", storyId: "primary" },
+      { kind: "link-target-changed", targetKind: "docs", componentId: "button" },
+    ],
+  } as const;
+
+  const deps = {
+    readFile: (abs: string) => `# Buttons doc at ${abs}`,
+    gitDiffFile: (abs: string) => `diff --git a${abs} b${abs}\n+changed`,
+  };
+
+  it("assembles doc source + one entry per distinct changed component", () => {
+    const ctx = buildDocSyncContext(manifest, affectedButtons, deps);
+    expect(ctx.docId).toBe("buttons");
+    expect(ctx.docSource).toBe("# Buttons doc at /p/buttons.stories.md");
+    expect(ctx.changedComponents).toHaveLength(1); // button appears in two reasons -> deduped
+    expect(ctx.changedComponents[0].componentId).toBe("button");
+    expect(ctx.changedComponents[0].gitDiff).toContain("+changed");
+    expect(ctx.changedComponents[0].manifestEntry.id).toBe("button");
+  });
+
+  it("degrades docSource to empty string when the doc is unreadable", () => {
+    const ctx = buildDocSyncContext(manifest, affectedButtons, {
+      readFile: () => {
+        throw new Error("ENOENT");
+      },
+      gitDiffFile: () => "",
+    });
+    expect(ctx.docSource).toBe("");
+  });
+
+  it("skips a component that is not in the manifest", () => {
+    const affected = {
+      docId: "x", sourcePath: "/p/x.stories.md",
+      reasons: [{ kind: "embed-component-changed", componentId: "ghost", storyId: "z" }],
+    } as const;
+    const ctx = buildDocSyncContext(manifest, affected, deps);
+    expect(ctx.changedComponents).toEqual([]);
+  });
+
+  it("does not pull a component diff for a broken-embed-only doc", () => {
+    const affected = {
+      docId: "broken", sourcePath: "/p/broken.stories.md",
+      reasons: [{ kind: "broken-embed", embedId: "button--smal", suggestion: "button--small" }],
+    } as const;
+    const ctx = buildDocSyncContext(manifest, affected, deps);
+    expect(ctx.changedComponents).toEqual([]);
+    expect(ctx.reasons).toEqual(affected.reasons);
   });
 });
