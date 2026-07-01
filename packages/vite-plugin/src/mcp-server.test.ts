@@ -22,12 +22,29 @@ const manifest = {
   ],
 } as unknown as Manifest;
 
+const manifestWithDoc = {
+  ...manifest,
+  docs: [
+    {
+      id: "buttons",
+      title: "Buttons",
+      group: "",
+      section: "",
+      sourcePath: "/p/buttons.stories.md",
+      embeds: ["button--primary"],
+      html: '<a href="openstory:docs/button">api</a>',
+    },
+  ],
+} as unknown as Manifest;
+
 function makeCtx(over: Partial<McpToolContext> = {}): McpToolContext {
   return {
     getManifest: async () => manifest,
     projectRoot: "/p",
     baseUrl: "http://localhost:5180",
     gitChangedFiles: () => ({ files: ["/p/src/button.tsx"] }),
+    gitDiffFile: () => "diff --git a/button.stories.tsx b/button.stories.tsx\n+changed",
+    mergeBase: () => null,
     readFile: () => "export const Button = () => null;",
     ...over,
   };
@@ -115,6 +132,46 @@ describe("buildMcpTools", () => {
       buildMcpTools(makeCtx()).list_stories.handler({ component: "nope" }),
     ).rejects.toThrow(/Unknown component/);
   });
+
+  it("get_affected_docs returns affected docs with reasons", async () => {
+    const ctx = makeCtx({ getManifest: async () => manifestWithDoc });
+    const r = (await buildMcpTools(ctx).get_affected_docs.handler({})) as {
+      affected: Array<{ docId: string; reasons: Array<{ kind: string }> }>;
+    };
+    expect(r.affected.map((a) => a.docId)).toEqual(["buttons"]);
+    expect(r.affected[0].reasons.map((x) => x.kind)).toContain("embed-component-changed");
+  });
+
+  it("get_affected_docs degrades outside a git repo", async () => {
+    const ctx = makeCtx({
+      getManifest: async () => manifestWithDoc,
+      gitChangedFiles: () => ({ files: null }),
+    });
+    const r = (await buildMcpTools(ctx).get_affected_docs.handler({})) as {
+      degraded?: string;
+      affected: unknown[];
+    };
+    expect(r.degraded).toBe("not-a-git-repo");
+    expect(r.affected).toEqual([]);
+  });
+
+  it("get_doc_sync_context returns the package for an affected doc", async () => {
+    const ctx = makeCtx({ getManifest: async () => manifestWithDoc });
+    const r = (await buildMcpTools(ctx).get_doc_sync_context.handler({ doc: "buttons" })) as {
+      docId: string;
+      changedComponents: Array<{ componentId: string; gitDiff: string }>;
+    };
+    expect(r.docId).toBe("buttons");
+    expect(r.changedComponents[0].componentId).toBe("button");
+    expect(r.changedComponents[0].gitDiff).toContain("+changed");
+  });
+
+  it("get_doc_sync_context throws on an unaffected doc", async () => {
+    const ctx = makeCtx({ getManifest: async () => manifestWithDoc });
+    await expect(buildMcpTools(ctx).get_doc_sync_context.handler({ doc: "nope" })).rejects.toThrow(
+      /Unknown or unaffected/,
+    );
+  });
 });
 
 describe("createMcpServer round-trip (in-memory transport)", () => {
@@ -126,12 +183,14 @@ describe("createMcpServer round-trip (in-memory transport)", () => {
     return { client, server };
   }
 
-  it("exposes the six read-only tools", async () => {
+  it("exposes the eight read-only tools", async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
+      "get_affected_docs",
       "get_changed_stories",
       "get_component_props",
+      "get_doc_sync_context",
       "get_render_url",
       "get_story_source",
       "list_components",

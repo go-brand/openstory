@@ -7,7 +7,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { resolvePatterns } from "./discover.js";
 import { assembleManifest } from "./assemble-manifest.js";
 import { createMcpServer } from "./mcp-server.js";
-import { gitChangedFiles } from "./changed-stories.js";
+import { gitChangedFiles, gitDiffFile, mergeBase } from "./changed-stories.js";
 
 // Re-exported so existing importers (and tests) keep `buildManifest` from "./plugin".
 export { buildManifest } from "./assemble-manifest.js";
@@ -197,6 +197,8 @@ export function openStory(options: PluginOptions = {}): Plugin {
                 readFile: (abs) => readFileSync(abs, "utf8"),
               }),
             gitChangedFiles,
+            gitDiffFile,
+            mergeBase,
             readFile: (abs) => readFileSync(abs, "utf8"),
           });
           // Omitting sessionIdGenerator IS the stateless mode (no session state

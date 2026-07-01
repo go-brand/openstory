@@ -22,17 +22,22 @@ type Component = Manifest["components"][number];
 function levenshtein(a: string, b: string): number {
   const m = a.length;
   const n = b.length;
-  const dp = Array.from({ length: m + 1 }, (_, i) => i);
+  // Rolling single-row DP. `?? 0` guards satisfy noUncheckedIndexedAccess — the
+  // indices are always in-bounds, so the fallback never actually fires.
+  let prevRow = Array.from({ length: m + 1 }, (_, i) => i);
   for (let j = 1; j <= n; j++) {
-    let prev = dp[0];
-    dp[0] = j;
+    const curRow: number[] = [j];
     for (let i = 1; i <= m; i++) {
-      const tmp = dp[i];
-      dp[i] = Math.min(dp[i] + 1, dp[i - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
-      prev = tmp;
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curRow[i] = Math.min(
+        (curRow[i - 1] ?? 0) + 1,
+        (prevRow[i] ?? 0) + 1,
+        (prevRow[i - 1] ?? 0) + cost,
+      );
     }
+    prevRow = curRow;
   }
-  return dp[m];
+  return prevRow[m] ?? 0;
 }
 
 // Closest existing story key for a component, by edit distance — only when within

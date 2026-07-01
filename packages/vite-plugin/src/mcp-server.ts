@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Manifest } from "./assemble-manifest.js";
-import { changedStories, type ChangedComponent, gitChangedFiles } from "./changed-stories.js";
+import {
+  changedStories,
+  type ChangedComponent,
+  gitChangedFiles,
+  gitDiffFile,
+  mergeBase,
+} from "./changed-stories.js";
+import { detectAffectedDocs, buildDocSyncContext } from "./doc-sync.js";
 
 // Everything the toolset needs, injected so the tools stay pure and testable
 // without a live Vite server.
@@ -12,6 +19,8 @@ export type McpToolContext = {
   // from the Host header at mount time.
   baseUrl: string;
   gitChangedFiles: typeof gitChangedFiles;
+  gitDiffFile: typeof gitDiffFile;
+  mergeBase: typeof mergeBase;
   readFile: (absPath: string) => string;
 };
 
@@ -103,6 +112,48 @@ export function buildMcpTools(ctx: McpToolContext): McpToolset {
           return { changed: all, degraded: "not-a-git-repo" };
         }
         return { changed: changedStories(manifest, files) };
+      },
+    },
+
+    get_affected_docs: {
+      description:
+        "List the *.stories.md docs affected by your cumulative changes since `base` (default: merge-base with origin/main, else working tree vs HEAD), each with structured reasons (embed/link to a changed component, the doc file itself changed, or a broken embed). Call ONCE at a completion boundary; then open each flagged doc and reconcile it with get_doc_sync_context.",
+      inputSchema: { base: z.string().optional().describe("Git ref to diff against (optional)") },
+      handler: async (args) => {
+        const manifest = await ctx.getManifest();
+        const base =
+          (args.base as string | undefined) ?? ctx.mergeBase(ctx.projectRoot) ?? undefined;
+        const { files } = ctx.gitChangedFiles(ctx.projectRoot, base);
+        if (files === null) return { affected: [], degraded: "not-a-git-repo" };
+        return { affected: detectAffectedDocs(manifest, files), base: base ?? null };
+      },
+    },
+
+    get_doc_sync_context: {
+      description:
+        "Get everything needed to reconcile ONE affected doc (from get_affected_docs): its current source, plus each changed component's git diff and current prop/story API. Read the diff for the before/after, then edit the *.stories.md with your own tools.",
+      inputSchema: {
+        doc: z.string().describe("Doc id from get_affected_docs"),
+        base: z.string().optional().describe("Git ref to diff against (optional)"),
+      },
+      handler: async (args) => {
+        const manifest = await ctx.getManifest();
+        const base =
+          (args.base as string | undefined) ?? ctx.mergeBase(ctx.projectRoot) ?? undefined;
+        const { files } = ctx.gitChangedFiles(ctx.projectRoot, base);
+        const affected = (files === null ? [] : detectAffectedDocs(manifest, files)).find(
+          (a) => a.docId === args.doc,
+        );
+        if (!affected) throw new Error(`Unknown or unaffected doc: ${String(args.doc)}`);
+        return buildDocSyncContext(
+          manifest,
+          affected,
+          {
+            readFile: ctx.readFile,
+            gitDiffFile: (abs, b) => ctx.gitDiffFile(ctx.projectRoot, abs, b),
+          },
+          base,
+        );
       },
     },
 
