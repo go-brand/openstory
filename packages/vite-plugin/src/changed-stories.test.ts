@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changedStories, gitChangedFiles } from "./changed-stories";
+import { changedStories, gitChangedFiles, gitDiffFile, mergeBase } from "./changed-stories";
 import type { Manifest } from "./assemble-manifest";
 
 const manifest = {
@@ -58,5 +58,22 @@ describe("gitChangedFiles flag-injection guard", () => {
   it("rejects a base that starts with a dash", () => {
     expect(gitChangedFiles("/p", "--output=/tmp/x")).toEqual({ files: null });
     expect(gitChangedFiles("/p", "-anything")).toEqual({ files: null });
+  });
+});
+
+describe("gitDiffFile flag-injection guard", () => {
+  it("returns empty string for a base starting with a dash, without invoking git", () => {
+    expect(gitDiffFile("/p", "/p/a.tsx", "--output=/tmp/x")).toBe("");
+    expect(gitDiffFile("/p", "/p/a.tsx", "-x")).toBe("");
+  });
+  it("returns empty string when git fails (not a repo)", () => {
+    // /dev/null is not a git repo; execFileSync throws -> "".
+    expect(gitDiffFile("/dev/null", "/dev/null/a.tsx")).toBe("");
+  });
+});
+
+describe("mergeBase", () => {
+  it("returns null when git fails (not a repo)", () => {
+    expect(mergeBase("/dev/null")).toBeNull();
   });
 });

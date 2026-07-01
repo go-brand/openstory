@@ -47,3 +47,33 @@ export function gitChangedFiles(projectRoot: string, base?: string): { files: st
     return { files: null };
   }
 }
+
+// `git diff [base] -- <absPath>` for one file — the before/after of a change the
+// agent reads to reconcile a doc. `base` is agent-controlled: reject a leading
+// `-` (argv injection) before invoking git, exactly like gitChangedFiles. Here
+// the `--` end-of-options marker is correct because absPath IS a pathspec (base,
+// if present, is a revision and precedes it). Any failure degrades to "".
+export function gitDiffFile(projectRoot: string, absPath: string, base?: string): string {
+  if (base !== undefined && base.startsWith("-")) return "";
+  try {
+    const args = ["diff", ...(base ? [base] : []), "--", absPath];
+    return execFileSync("git", args, { cwd: projectRoot, encoding: "utf8" });
+  } catch {
+    return "";
+  }
+}
+
+// The commit a branch diverged from — the natural "start of this work" boundary,
+// so a 10-step feature syncs its docs once against everything it changed. null
+// when unresolvable (no remote, shallow clone): callers fall back to HEAD.
+export function mergeBase(projectRoot: string, ref = "origin/main"): string | null {
+  try {
+    const out = execFileSync("git", ["merge-base", ref, "HEAD"], {
+      cwd: projectRoot,
+      encoding: "utf8",
+    });
+    return out.trim() || null;
+  } catch {
+    return null;
+  }
+}
