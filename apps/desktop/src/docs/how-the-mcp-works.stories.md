@@ -40,7 +40,7 @@ it:
 npx mcp-add --type http --url 'http://localhost:<port>/__pl__/mcp'
 ```
 
-## The six tools
+## The eight tools
 
 All read-only — the documented MCP safety default (narrow blast radius, no
 mutations). All read the same manifest that fills this sidebar:
@@ -53,6 +53,11 @@ mutations). All read the same manifest that fills this sidebar:
 | `get_story_source` | a component's stories file path + contents |
 | `get_changed_stories` | stories whose source changed (git diff; default working tree vs HEAD) |
 | `get_render_url` | a navigable render URL (structured object) for a story |
+| `get_affected_docs` | the `.stories.md` docs a change touched, with structured reasons |
+| `get_doc_sync_context` | one affected doc's source + each changed component's diff and current API |
+
+The last two are the **doc-sync engine** — run at a completion boundary to keep
+docs from drifting. See [Keeping Docs in Sync](./keeping-docs-in-sync.stories.md).
 
 ## The loop that matters
 
