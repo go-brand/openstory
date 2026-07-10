@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineOpenStoryConfig, deriveControls } from "@gobrand/openstory-config";
@@ -232,15 +233,24 @@ describe("buildManifest", () => {
   });
 
   it("derives a section from a monorepo sourcePath", () => {
-    // This repo IS a pnpm monorepo; resolve a real file under apps/desktop.
-    const config = defineOpenStoryConfig({
-      components: [
-        { id: "x", component: () => null, fixtures: [], sourcePath: "./electron/types.ts" },
-      ],
-    });
-    // projectRoot = apps/desktop → workspace member basename "desktop".
-    const root = new URL("../../../apps/desktop", import.meta.url).pathname;
-    expect(buildManifest(config, root).components[0]?.section).toBe("desktop");
+    const root = mkdtempSync(resolve(tmpdir(), "openstory-manifest-workspace-"));
+    const projectRoot = resolve(root, "apps/app");
+    mkdirSync(resolve(projectRoot, "src"), { recursive: true });
+    writeFileSync(resolve(root, "pnpm-workspace.yaml"), "packages:\n  - apps/*\n");
+    writeFileSync(resolve(root, "package.json"), JSON.stringify({ private: true }));
+    writeFileSync(resolve(projectRoot, "package.json"), JSON.stringify({ name: "app" }));
+    writeFileSync(resolve(projectRoot, "src/Card.tsx"), "export const Card = () => null;\n");
+
+    try {
+      const config = defineOpenStoryConfig({
+        components: [
+          { id: "Card", component: () => null, fixtures: [], sourcePath: "./src/Card.tsx" },
+        ],
+      });
+      expect(buildManifest(config, projectRoot).components[0]?.section).toBe("app");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("buildManifest derives a select control from prop types", () => {
