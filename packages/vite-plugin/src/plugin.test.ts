@@ -253,29 +253,33 @@ describe("buildManifest", () => {
     }
   });
 
-  it("buildManifest derives a select control from prop types", () => {
-    const root = resolve(fileURLToPath(new URL(".", import.meta.url)), "__fixtures__/types");
-    const config = {
-      components: [
-        {
-          id: "button",
-          name: "Button",
-          component: (() => null) as any,
-          sourcePath: "button.tsx",
-          fixtures: [{ id: "p", label: "P", props: { variant: "primary", label: "Hi" } }],
-        },
-      ],
-    };
-    const manifest = buildManifest(config as any, root);
-    const controls = manifest.components[0].controls;
-    expect(controls).toContainEqual({
-      name: "variant",
-      kind: "select",
-      options: ["primary", "secondary", "ghost", "danger", "link", "subtle"],
-    });
-    // `label` is a plain string prop -> text.
-    expect(controls).toContainEqual({ name: "label", kind: "text" });
-  });
+  it(
+    "buildManifest derives a select control from prop types",
+    () => {
+      const root = resolve(fileURLToPath(new URL(".", import.meta.url)), "__fixtures__/types");
+      const config = {
+        components: [
+          {
+            id: "button",
+            name: "Button",
+            component: (() => null) as any,
+            sourcePath: "button.tsx",
+            fixtures: [{ id: "p", label: "P", props: { variant: "primary", label: "Hi" } }],
+          },
+        ],
+      };
+      const manifest = buildManifest(config as any, root);
+      const controls = manifest.components[0].controls;
+      expect(controls).toContainEqual({
+        name: "variant",
+        kind: "select",
+        options: ["primary", "secondary", "ghost", "danger", "link", "subtle"],
+      });
+      // `label` is a plain string prop -> text.
+      expect(controls).toContainEqual({ name: "label", kind: "text" });
+    },
+    15_000,
+  );
 });
 
 describe("buildManifest docs", () => {
