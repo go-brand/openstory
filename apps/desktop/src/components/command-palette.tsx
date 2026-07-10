@@ -1,24 +1,66 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppState } from "../../electron/types";
 import type { Api } from "../lib/api";
+import { markPreviewRequest, markWorkspaceLoadStart } from "../lib/performance";
 import { cn } from "../lib/utils";
 import { HugeiconsIcon, Search01Icon, PackageIcon, Folder01Icon } from "../lib/icons";
+import { projectDisplayName } from "../lib/project-identity";
 
-type Item =
+export type CommandPaletteItem =
   | { kind: "story"; componentId: string; storyId: string; label: string; meta: string }
-  | { kind: "repo"; id: string; label: string };
+  | { kind: "project"; id: string; label: string; meta: string };
 
 // Subsequence match: every char of `query` appears in `text` in order. Cheap,
 // dependency-free, and good enough for a component list.
 function fuzzy(query: string, text: string): boolean {
   if (!query) return true;
-  const q = query.toLowerCase();
-  const t = text.toLowerCase();
+  const normalize = (value: string) => value.toLowerCase().replace(/[\s._/-]+/g, "");
+  const q = normalize(query);
+  const t = normalize(text);
   let i = 0;
   for (let j = 0; j < t.length && i < q.length; j++) {
     if (t[j] === q[i]) i++;
   }
   return i === q.length;
+}
+
+export function commandPaletteItems(state: AppState, query: string): CommandPaletteItem[] {
+  const stories: CommandPaletteItem[] = state.manifest.flatMap((component) =>
+    component.stories
+      .filter((story) =>
+        fuzzy(
+          query,
+          `${component.id} ${story.label} ${component.group} ${component.section ?? ""}`,
+        ),
+      )
+      .map((story) => ({
+        kind: "story" as const,
+        componentId: component.id,
+        storyId: story.id,
+        label: `${component.id} · ${story.label}`,
+        meta: component.section || component.group || "—",
+      })),
+  );
+  const projects: CommandPaletteItem[] = state.projects
+    .filter((project) => {
+      const { repository, workspace } = project.identity;
+      const searchText = [
+        repository.label,
+        repository.slug,
+        workspace.label,
+        workspace.relativePath,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return project.id !== state.selection.projectId && fuzzy(query, searchText);
+    })
+    .map((project) => ({
+      kind: "project" as const,
+      id: project.id,
+      label: projectDisplayName(project, state.projects),
+      meta: "Switch project",
+    }));
+  return [...stories, ...projects];
 }
 
 export function CommandPalette({
@@ -36,23 +78,7 @@ export function CommandPalette({
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const items = useMemo<Item[]>(() => {
-    const stories: Item[] = state.manifest.flatMap((p) =>
-      p.stories
-        .filter((v) => fuzzy(query, `${p.id} ${v.label} ${p.group} ${p.section ?? ""}`))
-        .map((v) => ({
-          kind: "story",
-          componentId: p.id,
-          storyId: v.id,
-          label: `${p.id} · ${v.label}`,
-          meta: p.section || p.group || "—",
-        })),
-    );
-    const repos: Item[] = state.projects
-      .filter((p) => p.id !== state.selection.projectId && fuzzy(query, p.name))
-      .map((p) => ({ kind: "repo", id: p.id, label: p.name }));
-    return [...stories, ...repos];
-  }, [query, state.manifest, state.projects, state.selection.projectId]);
+  const items = useMemo(() => commandPaletteItems(state, query), [query, state]);
 
   useEffect(() => setActive(0), [query]);
   useEffect(() => {
@@ -65,14 +91,16 @@ export function CommandPalette({
 
   if (!open) return null;
 
-  function choose(item: Item) {
+  function choose(item: CommandPaletteItem) {
     if (item.kind === "story") {
+      markPreviewRequest("story");
       api?.invoke("preview:set", {
         componentId: item.componentId,
         storyId: item.storyId,
         viewport: state.selection.viewport,
       });
     } else {
+      markWorkspaceLoadStart(item.id);
       api?.invoke("project:select", item.id);
     }
     onClose();
@@ -141,7 +169,7 @@ export function CommandPalette({
                 />
                 <span className="truncate">{it.label}</span>
                 <span className="ml-auto shrink-0 text-[10px] tracking-wide text-muted-foreground uppercase">
-                  {it.kind === "story" ? it.meta : "Switch repo"}
+                  {it.meta}
                 </span>
               </button>
             ))

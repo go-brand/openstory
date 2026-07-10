@@ -71,84 +71,86 @@ export function Toolbar({
   const noPreview = !component;
 
   return (
-    <div className="no-drag flex h-11 shrink-0 items-center gap-1 border-b border-border bg-toolbar px-2">
-      <ToolButton title="Reload" icon={RefreshIcon} disabled={noPreview} onClick={onReload} />
-      <Divider />
-      <ToolButton
-        title="Zoom out"
-        icon={ZoomOutAreaIcon}
-        disabled={noPreview}
-        onClick={onZoomOut}
-      />
-      <span className="min-w-[38px] text-center text-[11px] tabular-nums text-toolbar-icon">
-        {zoomLabel(zoom)}
-      </span>
-      <ToolButton title="Zoom in" icon={ZoomInAreaIcon} disabled={noPreview} onClick={onZoomIn} />
-      <ToolButton
-        title="Reset zoom"
-        icon={RefreshIcon}
-        disabled={noPreview || zoom === 1}
-        onClick={onZoomReset}
-      />
-      <Divider />
-      {(["measure", "grid", "outline"] as const).map((addon) => (
+    <div className="no-drag shrink-0 bg-background p-2">
+      <div className="mx-auto flex h-9 w-full max-w-3xl items-center gap-1 rounded-xl border border-border bg-toolbar px-2">
+        <ToolButton title="Reload" icon={RefreshIcon} disabled={noPreview} onClick={onReload} />
+        <Divider />
         <ToolButton
-          key={addon}
-          title={ADDON_LABELS[addon]}
-          icon={ADDON_ICONS[addon]}
-          active={addons[addon]}
+          title="Zoom out"
+          icon={ZoomOutAreaIcon}
           disabled={noPreview}
-          onClick={() => onToggleAddon(addon)}
+          onClick={onZoomOut}
         />
-      ))}
+        <span className="min-w-[38px] text-center text-[11px] tabular-nums text-toolbar-icon">
+          {zoomLabel(zoom)}
+        </span>
+        <ToolButton title="Zoom in" icon={ZoomInAreaIcon} disabled={noPreview} onClick={onZoomIn} />
+        <ToolButton
+          title="Reset zoom"
+          icon={RefreshIcon}
+          disabled={noPreview || zoom === 1}
+          onClick={onZoomReset}
+        />
+        <Divider />
+        {(["measure", "grid", "outline"] as const).map((addon) => (
+          <ToolButton
+            key={addon}
+            title={ADDON_LABELS[addon]}
+            icon={ADDON_ICONS[addon]}
+            active={addons[addon]}
+            disabled={noPreview}
+            onClick={() => onToggleAddon(addon)}
+          />
+        ))}
 
-      <div className="ml-auto flex items-center gap-2">
-        <select
-          title="Layout"
-          aria-label="Layout"
-          value={layout}
-          disabled={noPreview}
-          onChange={(e) => setLayout(e.target.value as Layout)}
-          className="h-7 rounded-md border border-border bg-card px-1.5 text-[11px] text-foreground transition-colors hover:text-foreground focus-visible:border-brand/60 focus-visible:outline-none disabled:opacity-40"
-        >
-          <option value="padded">Padded</option>
-          <option value="centered">Centered</option>
-          <option value="fullscreen">Fullscreen</option>
-        </select>
-        <Divider />
-        <div className="inline-flex items-center gap-0.5 rounded-lg bg-foreground/[0.04] p-0.5">
-          {(["desktop", "mobile"] as const).map((v) => {
-            const on = state.selection.viewport === v;
-            return (
-              <button
-                key={v}
-                type="button"
-                title={v === "desktop" ? "Desktop" : "Mobile"}
-                aria-label={v === "desktop" ? "Desktop" : "Mobile"}
-                aria-pressed={on}
-                disabled={noPreview}
-                onClick={() => setViewport(v)}
-                className={cn(
-                  "inline-flex size-7 items-center justify-center rounded-md transition-colors disabled:opacity-40",
-                  on
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <HugeiconsIcon
-                  icon={v === "desktop" ? ComputerIcon : SmartPhone01Icon}
-                  className="size-3.5"
-                />
-              </button>
-            );
-          })}
+        <div className="ml-auto flex items-center gap-2">
+          <select
+            title="Layout"
+            aria-label="Layout"
+            value={layout}
+            disabled={noPreview}
+            onChange={(e) => setLayout(e.target.value as Layout)}
+            className="h-7 rounded-md border border-border bg-card px-1.5 text-[11px] text-foreground transition-colors hover:text-foreground focus-visible:border-brand/60 focus-visible:outline-none disabled:opacity-40"
+          >
+            <option value="padded">Padded</option>
+            <option value="centered">Centered</option>
+            <option value="fullscreen">Fullscreen</option>
+          </select>
+          <Divider />
+          <div className="inline-flex items-center gap-0.5 rounded-lg bg-foreground/[0.04] p-0.5">
+            {(["desktop", "mobile"] as const).map((v) => {
+              const on = state.selection.viewport === v;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  title={v === "desktop" ? "Desktop" : "Mobile"}
+                  aria-label={v === "desktop" ? "Desktop" : "Mobile"}
+                  aria-pressed={on}
+                  disabled={noPreview}
+                  onClick={() => setViewport(v)}
+                  className={cn(
+                    "inline-flex size-7 items-center justify-center rounded-md transition-colors disabled:opacity-40",
+                    on
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <HugeiconsIcon
+                    icon={v === "desktop" ? ComputerIcon : SmartPhone01Icon}
+                    className="size-3.5"
+                  />
+                </button>
+              );
+            })}
+          </div>
+          <Divider />
+          <ToolButton
+            title={state.detachedOpen ? "Pop in" : "Open in new window"}
+            icon={state.detachedOpen ? ArrowShrink02Icon : LinkSquare02Icon}
+            onClick={() => api?.invoke(state.detachedOpen ? "preview:popIn" : "preview:popOut")}
+          />
         </div>
-        <Divider />
-        <ToolButton
-          title={state.detachedOpen ? "Pop in" : "Open in new window"}
-          icon={state.detachedOpen ? ArrowShrink02Icon : LinkSquare02Icon}
-          onClick={() => api?.invoke(state.detachedOpen ? "preview:popIn" : "preview:popOut")}
-        />
       </div>
     </div>
   );

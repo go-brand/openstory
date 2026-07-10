@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppState, ManifestComponent, PreviewSource } from "../../electron/types";
 import type { Api } from "../lib/api";
 import { Button } from "./ui/button";
@@ -11,9 +11,46 @@ export type PanelTab = "controls" | "code";
 type Story = ManifestComponent["stories"][number] | undefined;
 
 const PANEL_WIDTH = 320;
+const PANEL_MIN_WIDTH = 260;
+const PANEL_MAX_WIDTH = 520;
+const PANEL_WIDTH_STORAGE_KEY = "openstory:right-panel-width";
+
+export { PANEL_WIDTH, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH };
+
+export type PanelCloseMode = "animated" | "instant";
+
+export function panelShellSnapshot({
+  isOpen,
+  closeMode,
+  panelWidth = PANEL_WIDTH,
+}: {
+  isOpen: boolean;
+  closeMode: PanelCloseMode;
+  panelWidth?: number;
+}): { width: number; transform: "translateX(0)" | "translateX(100%)"; shouldTransition: boolean } {
+  return {
+    width: isOpen ? panelWidth : 0,
+    transform: isOpen ? "translateX(0)" : "translateX(100%)",
+    shouldTransition: closeMode === "animated",
+  };
+}
+
+export function clampPanelWidth(width: number): number {
+  return Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, Math.round(width)));
+}
+
+export function readStoredPanelWidth(): number {
+  if (typeof window === "undefined") return PANEL_WIDTH;
+  const raw = window.localStorage.getItem(PANEL_WIDTH_STORAGE_KEY);
+  const parsed = raw ? Number(raw) : Number.NaN;
+  return Number.isFinite(parsed) ? clampPanelWidth(parsed) : PANEL_WIDTH;
+}
 
 export function RightPanel({
   isOpen,
+  closeMode = "animated",
+  panelWidth,
+  onPanelWidthChange,
   tab,
   onTabChange,
   state,
@@ -23,6 +60,9 @@ export function RightPanel({
   onSetControl,
 }: {
   isOpen: boolean;
+  closeMode?: PanelCloseMode;
+  panelWidth?: number | undefined;
+  onPanelWidthChange?: ((width: number) => void) | undefined;
   tab: PanelTab;
   onTabChange: (tab: PanelTab) => void;
   state: AppState;
@@ -35,7 +75,12 @@ export function RightPanel({
   const pageId = state.selection.pageId;
   if (pageId) {
     return (
-      <PanelShell isOpen={isOpen}>
+      <PanelShell
+        isOpen={isOpen}
+        closeMode={closeMode}
+        panelWidth={panelWidth}
+        onPanelWidthChange={onPanelWidthChange}
+      >
         <div className="flex h-11 shrink-0 items-center gap-4 border-b border-border px-4">
           <button
             type="button"
@@ -51,7 +96,12 @@ export function RightPanel({
   }
 
   return (
-    <PanelShell isOpen={isOpen}>
+    <PanelShell
+      isOpen={isOpen}
+      closeMode={closeMode}
+      panelWidth={panelWidth}
+      onPanelWidthChange={onPanelWidthChange}
+    >
       <div className="flex h-11 shrink-0 items-center gap-4 border-b border-border px-4">
         {(["controls", "code"] as const).map((t) => {
           const on = tab === t;
@@ -87,23 +137,92 @@ export function RightPanel({
   );
 }
 
-// Animated, collapsible panel chrome shared by the component and page branches.
-// The aside animates width 0 -> PANEL_WIDTH and clips; content is pinned to the
-// full width so it lays out at its final size from the first frame (revealed,
-// not reflowed).
-function PanelShell({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
+// Collapsible panel chrome shared by the component and page branches. The shell
+// width is animated so the adjacent canvas flex area resizes continuously.
+function PanelShell({
+  isOpen,
+  closeMode,
+  panelWidth: controlledPanelWidth,
+  onPanelWidthChange,
+  children,
+}: {
+  isOpen: boolean;
+  closeMode: PanelCloseMode;
+  panelWidth?: number | undefined;
+  onPanelWidthChange?: ((width: number) => void) | undefined;
+  children: React.ReactNode;
+}) {
+  const [uncontrolledPanelWidth, setUncontrolledPanelWidth] = useState(readStoredPanelWidth);
+  const resizeStart = useRef<{ x: number; width: number } | null>(null);
+  const panelWidth = controlledPanelWidth ?? uncontrolledPanelWidth;
+
+  useEffect(() => {
+    window.localStorage.setItem(PANEL_WIDTH_STORAGE_KEY, String(panelWidth));
+  }, [panelWidth]);
+
+  const shell = panelShellSnapshot({ isOpen, closeMode, panelWidth });
+
+  function setPanelWidth(width: number) {
+    if (onPanelWidthChange) onPanelWidthChange(width);
+    else setUncontrolledPanelWidth(width);
+  }
+
+  function startResize(e: React.PointerEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    resizeStart.current = { x: e.clientX, width: panelWidth };
+  }
+
+  function resize(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!resizeStart.current) return;
+    const delta = resizeStart.current.x - e.clientX;
+    setPanelWidth(clampPanelWidth(resizeStart.current.width + delta));
+  }
+
+  function stopResize(e: React.PointerEvent<HTMLButtonElement>) {
+    if (resizeStart.current && e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    resizeStart.current = null;
+  }
+
   return (
     <aside
       aria-hidden={!isOpen}
       className={cn(
-        "relative flex h-full shrink-0 overflow-hidden border-l border-border bg-sidebar",
-        "transition-[width] duration-200 ease-out motion-reduce:transition-none",
-        !isOpen && "border-transparent",
+        "relative flex h-full shrink-0 overflow-hidden bg-background",
+        shell.shouldTransition &&
+          "transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
+        shell.width === 0 && "p-0",
       )}
-      style={{ width: isOpen ? PANEL_WIDTH : 0 }}
+      style={{ width: shell.width }}
     >
-      <div className="flex h-full flex-col" style={{ width: PANEL_WIDTH, minWidth: PANEL_WIDTH }}>
-        {children}
+      <div
+        className={cn(
+          "flex h-full flex-col",
+          shell.shouldTransition &&
+            "transition-transform duration-200 ease-in-out motion-reduce:transition-none",
+        )}
+        style={{
+          width: panelWidth,
+          minWidth: panelWidth,
+          transform: shell.transform,
+        }}
+      >
+        <div className="my-2 mr-2 flex h-[calc(100%-1rem)] flex-col overflow-hidden rounded-xl border border-border bg-sidebar">
+          {children}
+        </div>
+        {isOpen && (
+          <button
+            type="button"
+            aria-label="Resize controls panel"
+            onPointerDown={startResize}
+            onPointerMove={resize}
+            onPointerUp={stopResize}
+            onPointerCancel={stopResize}
+            className="no-drag absolute top-3 bottom-3 left-0 w-2 cursor-col-resize rounded-full outline-none hover:bg-foreground/[0.08] focus-visible:bg-foreground/[0.12]"
+          />
+        )}
       </div>
     </aside>
   );
@@ -214,7 +333,7 @@ function CodePanel({
   // Snippet from the live props (preset + overrides) — used when there is no
   // resolvable source file, and shown while the read is in flight.
   const fallback = useMemo(() => {
-    const props = { ...(story?.props ?? {}), ...state.selection.propOverrides };
+    const props = { ...story?.props, ...state.selection.propOverrides };
     return snippet(id, props);
   }, [id, story?.props, state.selection.propOverrides]);
 

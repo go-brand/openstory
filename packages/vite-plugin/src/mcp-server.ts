@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { formatProjectIdentity } from "@gobrand/openstory-config";
 import type { Manifest } from "./assemble-manifest.js";
 import {
   changedStories,
@@ -48,6 +49,20 @@ const THEMES = ["light", "dark"] as const;
 // get_changed_stories -> get_render_url -> point a browser MCP at the URL.
 export function buildMcpTools(ctx: McpToolContext): McpToolset {
   return {
+    get_project_context: {
+      description:
+        "Identify the exact repository and workspace served by this OpenStory MCP endpoint.",
+      inputSchema: {},
+      handler: async () => {
+        const { identity } = await ctx.getManifest();
+        return {
+          displayName: formatProjectIdentity(identity),
+          repository: identity.repository,
+          workspace: identity.workspace,
+        };
+      },
+    },
+
     list_components: {
       description:
         "List every component in the design system with its id, name, group, section, and story ids/labels.",

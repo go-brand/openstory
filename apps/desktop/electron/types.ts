@@ -1,8 +1,12 @@
+import type { ProjectIdentity } from "@gobrand/openstory-config";
+import type { WorkspaceInspection } from "./workspace-discovery";
+
 export type ProjectRecord = {
   id: string;
   name: string;
   path: string;
   addedAt: string;
+  identity: ProjectIdentity;
 };
 
 export type Theme = "light" | "dark";
@@ -11,6 +15,15 @@ export type Theme = "light" | "dark";
  *  `Layout` (duplicated to keep the Electron main process free of a
  *  `@gobrand/openstory-config` import, same as `ManifestControl`). */
 export type Layout = "padded" | "centered" | "fullscreen";
+
+export type PreviewPadding =
+  | number
+  | {
+      top?: number;
+      right?: number;
+      bottom?: number;
+      left?: number;
+    };
 
 export type OverlayState = {
   opacity: number;
@@ -57,10 +70,13 @@ export type ManifestComponent = {
   background: string;
   /** Positioning of the render within the preview surface. Defaults to `padded`. */
   layout: Layout;
+  /** Extra preview chrome around the render, outside the component itself. */
+  previewPadding?: PreviewPadding;
   stories: Array<{
     id: string;
     label: string;
     props: Record<string, unknown>;
+    previewPadding?: PreviewPadding;
   }>;
   controls: ManifestControl[];
   // Absolute path of the component source file, resolved by the vite-plugin.
@@ -103,6 +119,8 @@ export type AppState = {
 
 export type IpcInvoke = {
   "project:add": (path: string) => ProjectRecord;
+  "project:addMany": (paths: string[]) => ProjectRecord[];
+  "project:inspectPath": (path: string) => WorkspaceInspection;
   "project:pickFolder": () => string | null;
   "project:select": (projectId: string) => void;
   "project:remove": (projectId: string) => void;

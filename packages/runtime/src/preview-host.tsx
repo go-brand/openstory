@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { createRoot } from "react-dom/client";
 import {
   resolvePresets,
@@ -7,6 +15,7 @@ import {
   type ComponentDef,
   type Fixture,
   type Layout,
+  type PreviewPadding,
   type RegisteredComponent,
 } from "@gobrand/openstory-config";
 import { parseBridgeMessage, type RenderMessage, type ManifestMessage } from "./bridge.js";
@@ -28,6 +37,29 @@ export function useOpenStoryViewport(): ViewportName {
   return useContext(ViewportContext);
 }
 
+function finitePadding(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+function previewPaddingStyle(padding: PreviewPadding | undefined): CSSProperties | undefined {
+  if (padding === undefined) return undefined;
+  if (typeof padding === "number") {
+    const value = finitePadding(padding);
+    return value ? { padding: value } : undefined;
+  }
+  const top = finitePadding(padding.top);
+  const right = finitePadding(padding.right);
+  const bottom = finitePadding(padding.bottom);
+  const left = finitePadding(padding.left);
+  if (top === 0 && right === 0 && bottom === 0 && left === 0) return undefined;
+  return {
+    ...(top !== 0 && { paddingTop: top }),
+    ...(right !== 0 && { paddingRight: right }),
+    ...(bottom !== 0 && { paddingBottom: bottom }),
+    ...(left !== 0 && { paddingLeft: left }),
+  };
+}
+
 // Wraps the rendered story and reports its OWN size to the manager (pl:size) so
 // the manager can size the preview iframe to the component and center it on the
 // OpenStory canvas — instead of stretching the iframe to fill the canvas. This
@@ -43,15 +75,20 @@ export function useOpenStoryViewport(): ViewportName {
 function MeasuredStage({
   layout,
   width,
+  previewPadding,
+  measureKey,
   children,
 }: {
   layout: Layout;
   width: number;
+  previewPadding?: PreviewPadding | undefined;
+  measureKey: string;
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const paddingStyle = previewPaddingStyle(previewPadding);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (layout === "fullscreen") {
       window.parent.postMessage({ type: "pl:size", width: 0, height: 0 }, "*");
       return;
@@ -70,16 +107,20 @@ function MeasuredStage({
     const ro = new ResizeObserver(post);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [layout, width]);
+  }, [layout, width, measureKey]);
 
   if (layout === "fullscreen") {
-    return <div style={{ width: "100%", minHeight: "100vh" }}>{children}</div>;
+    return (
+      <div style={{ width: "100%", minHeight: "100vh", boxSizing: "border-box", ...paddingStyle }}>
+        {children}
+      </div>
+    );
   }
   // inline-block shrink-wraps to the component so the reported size IS the
-  // component box (no padding) — the manager supplies breathing room around the
-  // iframe on the canvas, so the iframe matches the component exactly.
+  // component box plus any story-declared preview padding. The manager supplies
+  // its normal breathing room around the iframe on the canvas.
   return (
-    <div ref={ref} style={{ display: "inline-block", verticalAlign: "top" }}>
+    <div ref={ref} style={{ display: "inline-block", verticalAlign: "top", ...paddingStyle }}>
       <div style={{ width, maxWidth: "100%" }}>{children}</div>
     </div>
   );
@@ -157,10 +198,24 @@ export function PreviewStage({
   // The outer layout wrapper supplies the Storybook-style breathing room. A
   // toolbar override (selection.layout) wins over the component's declared layout.
   const layout = selection.layout ?? component.layout ?? "padded";
+  const previewPadding = fixture.previewPadding ?? component.previewPadding;
+  const measureKey = [
+    selection.componentId,
+    selection.storyId,
+    selection.viewport,
+    layout,
+    JSON.stringify(previewPadding ?? null),
+    JSON.stringify(selection.fixtureOverrides ?? {}),
+  ].join("|");
   return (
     <Providers>
       <ViewportContext.Provider value={selection.viewport}>
-        <MeasuredStage layout={layout} width={width}>
+        <MeasuredStage
+          layout={layout}
+          width={width}
+          previewPadding={previewPadding}
+          measureKey={measureKey}
+        >
           <Component {...props} />
         </MeasuredStage>
       </ViewportContext.Provider>
@@ -189,6 +244,10 @@ export function DocsPage({
   componentId: string;
   layoutOverride?: Layout | undefined;
 }) {
+  useLayoutEffect(() => {
+    window.parent.postMessage({ type: "pl:size", width: 0, height: 0 }, "*");
+  }, [componentId, layoutOverride]);
+
   const component = (config.components ?? []).find((p) => p.id === componentId) as
     | RegisteredComponent
     | undefined;

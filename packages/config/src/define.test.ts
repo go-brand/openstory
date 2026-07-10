@@ -7,6 +7,7 @@ import {
   humanize,
   kebabCase,
   type ManifestDoc,
+  type OpenStoryConfig,
 } from "./define";
 import type { Fixture, ManifestControl } from "./define";
 
@@ -34,6 +35,18 @@ describe("defineOpenStoryConfig", () => {
     });
 
     expect(config.providers).toBe(Providers);
+  });
+
+  it("accepts portable repository and workspace identity labels", () => {
+    const config = {
+      identity: { repository: "GoBrand", workspace: "Web App" },
+      components: [],
+    } satisfies OpenStoryConfig;
+
+    expect(defineOpenStoryConfig(config).identity).toEqual({
+      repository: "GoBrand",
+      workspace: "Web App",
+    });
   });
 });
 
@@ -106,6 +119,36 @@ describe("defineStories name", () => {
     const reg = defineStories({ component: Button, stories: { A: {} } });
     expect(reg.name).toBe("Button");
     expect(reg.id).toBe("button");
+  });
+});
+
+describe("defineStories previewPadding", () => {
+  function Slider() {
+    return null;
+  }
+
+  it("preserves component-level preview padding", () => {
+    const reg = defineStories({
+      component: Slider,
+      previewPadding: { top: 8 },
+      stories: { Default: {} },
+    });
+
+    expect(reg.previewPadding).toEqual({ top: 8 });
+  });
+
+  it("preserves story-level preview padding", () => {
+    const reg = defineStories({
+      component: Slider,
+      stories: {
+        Default: {
+          args: {},
+          previewPadding: { top: 8 },
+        },
+      },
+    });
+
+    expect(reg.fixtures[0]?.previewPadding).toEqual({ top: 8 });
   });
 });
 

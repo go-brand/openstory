@@ -1,44 +1,83 @@
-import type { ActiveSelection, ManifestComponent } from "./types";
+import type { ActiveSelection, ManifestComponent, ManifestDoc } from "./types";
 
 export type SelectionPatch = Pick<
   ActiveSelection,
-  "componentId" | "storyId" | "propOverrides" | "docsComponentId" | "pageId"
+  | "componentId"
+  | "storyId"
+  | "propOverrides"
+  | "docsComponentId"
+  | "pageId"
+  | "layout"
+  | "mode"
 >;
 
 // Reconcile the persisted selection against a freshly-loaded manifest.
 // Returns a patch when the selection must change, or null when it's still valid.
 //
-// - The current selection still resolves to a real component + story → null (keep it).
-// - Otherwise reset to the first component's first story, when one exists.
-// - Empty manifest (or the first component has no stories) → clear to null, so the
-//   harness bridge posts nothing instead of rendering the previous repo's stale
-//   ghost component (e.g. "Unknown component: linkedin" after switching to a repo
-//   whose openstory.config.ts has `components: []`).
+// - Active feature-doc page still exists -> null (keep it).
+// - Active component docs still exist -> null (keep it).
+// - Active component story still exists -> null (keep it).
+// - Otherwise reset to the first component story, then the first feature-doc page.
+// - Empty workspace -> clear to null, so the harness bridge posts nothing instead
+//   of rendering the previous repo's stale ghost component.
 export function reconcileSelection(
   manifest: ManifestComponent[],
-  selection: Pick<ActiveSelection, "componentId" | "storyId">,
+  selection: Pick<
+    ActiveSelection,
+    "componentId" | "storyId" | "docsComponentId" | "pageId"
+  >,
+  docs: ManifestDoc[] = [],
 ): SelectionPatch | null {
+  if (selection.pageId) return docs.some((doc) => doc.id === selection.pageId) ? null : fallback();
+
+  if (selection.docsComponentId) {
+    return manifest.some((component) => component.id === selection.docsComponentId)
+      ? null
+      : fallback();
+  }
+
   const current = manifest.find((p) => p.id === selection.componentId);
   const valid = current?.stories.some((v) => v.id === selection.storyId) ?? false;
   if (valid) return null;
+  return fallback();
 
-  const first = manifest[0];
-  if (first && first.stories[0]) {
+  function fallback(): SelectionPatch {
+    const first = manifest[0];
+    if (first && first.stories[0]) {
+      return {
+        componentId: first.id,
+        storyId: first.stories[0].id,
+        propOverrides: {},
+        docsComponentId: null,
+        pageId: null,
+        layout: null,
+        mode: "design",
+      };
+    }
+
+    const firstDoc = docs[0];
+    if (firstDoc) {
+      return {
+        componentId: null,
+        storyId: null,
+        propOverrides: {},
+        docsComponentId: null,
+        pageId: firstDoc.id,
+        layout: null,
+        mode: "docs",
+      };
+    }
+
     return {
-      componentId: first.id,
-      storyId: first.stories[0].id,
+      componentId: null,
+      storyId: null,
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
+      layout: null,
+      mode: "design",
     };
   }
-  return {
-    componentId: null,
-    storyId: null,
-    propOverrides: {},
-    docsComponentId: null,
-    pageId: null,
-  };
 }
 
 // Pick the mode to show after a manifest load: flip away from an EMPTY active

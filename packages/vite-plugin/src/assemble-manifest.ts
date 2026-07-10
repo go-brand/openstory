@@ -18,6 +18,7 @@ import {
 } from "./discover.js";
 import { discoverDocs } from "./discover-docs.js";
 import type { ComponentTarget } from "./resolve-doc-links.js";
+import { resolveProjectIdentity } from "./project-identity.js";
 
 // Pure manifest shaping from a resolved config. Lives here (not in plugin.ts) so
 // both the `/manifest.json` route AND the MCP tools can build the same manifest
@@ -34,6 +35,7 @@ export function buildManifest(
     // query params (component/story/viewport/theme/layout) are stable under this
     // number. Bump on any breaking change to either. See the agent-first spec.
     schemaVersion: 1 as const,
+    identity: resolveProjectIdentity(projectRoot ?? process.cwd(), config.identity),
     components: (config.components ?? []).map((p) => {
       const render = resolveRender(p, presets);
       const sourcePath = p.sourcePath && projectRoot ? resolve(projectRoot, p.sourcePath) : null;
@@ -53,10 +55,12 @@ export function buildManifest(
         section: deriveSection(sourcePath),
         background: render.background,
         layout: p.layout ?? "padded",
+        ...(p.previewPadding !== undefined && { previewPadding: p.previewPadding }),
         stories: p.fixtures.map((f) => ({
           id: f.id,
           label: f.label,
           props: f.props,
+          ...(f.previewPadding !== undefined && { previewPadding: f.previewPadding }),
         })),
         controls: mergeControls(p.fixtures, typeControls),
         sourcePath,
@@ -114,5 +118,5 @@ export async function assembleManifest(deps: AssembleManifestDeps): Promise<Mani
     }
   }
 
-  return buildManifest({ ...(config ?? {}), components }, projectRoot, docs);
+  return buildManifest({ ...config, components }, projectRoot, docs);
 }

@@ -40,13 +40,15 @@ genuinely different content universes belong in the top-level mode switcher.
 The stable desktop layout is:
 
 ```text
-┌──────────────┬──────────────────────────────────┬───────────────┐
+┌────────────────────────────────────────────────────────────────┐
+│ Titlebar: sidebar toggle · repository / mode · search · actions │
+├──────────────┬──────────────────────────────────┬───────────────┤
 │ Left sidebar │ Center                           │ Right sidebar │
 │              │ ┌──────────────────────────────┐ │               │
-│ Mode         │ │ Contextual header            │ │ Inspector     │
-│ Repository   │ ├──────────────────────────────┤ │               │
-│ Explorer     │ │                              │ │ Controls      │
-│              │ │ Main work surface            │ │ Code          │
+│ Contextual   │ │ Contextual header            │ │ Inspector     │
+│ tree         │ ├──────────────────────────────┤ │               │
+│              │ │                              │ │ Controls      │
+│ Explorer     │ │ Main work surface            │ │ Code          │
 │              │ │                              │ │ Tests         │
 │              │ │ Canvas / docs / multiview    │ │ Accessibility │
 │              │ │                              │ │ Metadata      │
@@ -59,17 +61,18 @@ and right sidebars are independent siblings around it.
 
 ## Decisions
 
-### 1. The mode switcher replaces the current tabs
+### 1. The titlebar mode switcher replaces the current tabs
 
 Replace the current `ModeTabs` segmented control with one menu-style mode
-switcher at the top of the left sidebar.
+switcher in the titlebar breadcrumb, after the repository picker and muted `/`.
+The left sidebar retains only the contextual tree for the active mode.
 
 Initial modes:
 
-| Mode | Description | Existing state |
-| --- | --- | --- |
+| Mode              | Description                   | Existing state                |
+| ----------------- | ----------------------------- | ----------------------------- |
 | **Design System** | Browse components and stories | `selection.mode === "design"` |
-| **Documentation** | Browse project documentation | `selection.mode === "docs"` |
+| **Documentation** | Browse project documentation  | `selection.mode === "docs"`   |
 
 The trigger shows the active mode's icon and label plus a downward chevron. The
 menu shows both the label and description, and marks the selected entry with a
@@ -127,18 +130,24 @@ zoom, addons, or right-inspector state.
 Use a short, restrained transition (approximately 180-200ms) and disable the
 transition under `prefers-reduced-motion`.
 
-### 5. The sidebar hierarchy is mode, repository, explorer
+### 5. Repository and mode context form a titlebar breadcrumb
 
-When open, the left sidebar content order is:
+The repository picker is global application context, so it sits in the titlebar
+immediately after the left-sidebar toggle. The mode picker follows it after a
+muted `/`, forming `repository / working context`. Both remain reachable while
+the sidebar is closed.
 
-1. Mode switcher
-2. Repository switcher
-3. Contextual tree
+At wide widths both triggers show their icon, label, and chevron. From 961px to
+1280px the repository label remains while the mode trigger collapses to its
+icon. At 960px and below both collapse to icons. Both retain explicit accessible
+labels and fixed-width menus in compact form.
 
-The mode switcher is the strongest control. The repository switcher is visually
-secondary because it changes the workspace inside the current OpenStory mode.
-The existing tree behavior, selection semantics, loading state, keyboard
-navigation, and expansion persistence remain unchanged.
+When open, the left sidebar contains only the contextual tree.
+
+This makes the hierarchy repository, mode, explorer: the titlebar establishes
+the connected app and working context, while the sidebar explores it.
+The existing repository menu actions, tree behavior, selection semantics,
+loading state, keyboard navigation, and expansion persistence remain unchanged.
 
 ### 6. The center remains the work surface
 
@@ -168,6 +177,8 @@ Accept separate left-sidebar and inspector state/actions:
 ```ts
 type TitlebarProps = {
   onOpenPalette: () => void;
+  state: AppState;
+  api: Api;
   leftSidebarOpen: boolean;
   onToggleLeftSidebar: () => void;
   inspectorOpen: boolean;
@@ -177,9 +188,11 @@ type TitlebarProps = {
 
 Placement:
 
-- Left: macOS safe area, then left-sidebar toggle.
+- Left: macOS safe area, then left-sidebar toggle, repository picker, muted `/`,
+  and mode picker.
 - Center: existing command/search trigger.
-- Right: inspector toggle and settings.
+- Right: settings, then the inspector toggle as the outermost control adjacent
+  to the panel it owns.
 
 Labels use explicit nouns: `Hide sidebar` / `Show sidebar` and
 `Hide inspector` / `Show inspector`.
@@ -187,7 +200,7 @@ Labels use explicit nouns: `Hide sidebar` / `Show sidebar` and
 ### `ModeSwitcher`
 
 Replace `components/sidebar/mode-tabs.tsx` with a menu-based component. The file
-may be renamed to `mode-switcher.tsx`; consumers must not retain both controls.
+becomes `components/mode-switcher.tsx`; consumers must not retain both controls.
 
 The component receives the existing mode and callback:
 
@@ -203,13 +216,27 @@ type ModeSwitcherProps = {
 Selecting the already-active mode closes the menu without producing redundant
 state work.
 
+The titlebar trigger exposes `Switch mode: <label>` as its accessible label and
+title. Its menu retains the explanatory descriptions and radio selected
+semantics. The trigger label and chevron hide at 1280px and below, leaving the
+active mode icon visible.
+
 ### `Sidebar`
 
 The sidebar receives `isOpen` or is wrapped by a focused `SidebarShell`. The
 shell owns width, translation, opacity, overflow, and reduced-motion behavior;
-the existing `Sidebar` continues to own repository and tree interactions.
+the existing `Sidebar` continues to own tree interactions.
 
-Remove `ModeTabs`. Render `ModeSwitcher` above `RepoSwitcher`.
+Remove `ModeTabs`, `RepoSwitcher`, and `ModeSwitcher`. The sidebar surface owns
+only the contextual tree.
+
+### `RepoSwitcher`
+
+Move the component out of the sidebar namespace because it is titlebar-owned.
+Reuse its existing Base UI menu and repository actions. The titlebar trigger is
+compact, exposes `Switch repository: <name>` as its accessible label/title, and
+opens a fixed-width menu so the popup remains usable when the trigger collapses
+to an icon below 960px.
 
 ### `MainApp`
 
@@ -242,6 +269,8 @@ chrome stays quiet so the rendered project remains the visual focus.
 ## Accessibility
 
 - Both panel toggles are native buttons with explicit labels and titles.
+- The compact repository trigger retains an explicit label and title when its
+  visible repository name is hidden.
 - The mode switcher uses the existing accessible menu primitives.
 - The selected mode exposes a visual check and the menu's selected semantics.
 - Keyboard users can open the menu, move between modes, select one, and dismiss
@@ -259,12 +288,15 @@ Follow the repository's existing focused-test style.
    independent.
 3. Add a mode descriptor/switcher test proving the active label and descriptions
    map to `design` and `docs` correctly.
-4. Preserve existing sidebar loading, tree, selection, right-panel, and harness
+4. Add a titlebar rendering test proving left-side
+   sidebar/repository/mode order and right-side settings/inspector order.
+5. Preserve existing sidebar loading, tree, selection, right-panel, and harness
    bridge tests.
-5. Run the full repository gates: `pnpm typecheck`, `pnpm test`, `pnpm lint`, and
+6. Run the full repository gates: `pnpm typecheck`, `pnpm test`, `pnpm lint`, and
    `pnpm build`.
-6. Perform a desktop visual smoke check at both open and closed sidebar states,
-   including narrow-window overlap around the centered command trigger.
+7. Perform a desktop visual smoke check at both open and closed sidebar states,
+   including the responsive repository trigger and narrow-window overlap around
+   the centered command trigger.
 
 ## Non-goals
 
@@ -282,7 +314,8 @@ Follow the repository's existing focused-test style.
 1. Characterize independent left/right panel state with failing tests.
 2. Split `MainApp` panel state and update `Titlebar` ownership.
 3. Add the left-sidebar shell and transition.
-4. Replace `ModeTabs` with `ModeSwitcher` and reposition the repository switcher.
+4. Replace `ModeTabs` with `ModeSwitcher`, then move the repository switcher to
+   the titlebar.
 5. Run focused tests, then full verification.
 6. Visually verify open/closed sidebar, mode switching, inspector independence,
    keyboard behavior, and the stable preview iframe.

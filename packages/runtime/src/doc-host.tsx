@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ComponentType } from "react";
 import type { NavigateTarget } from "./bridge.js";
@@ -41,7 +41,7 @@ export function parseNavTarget(href: string): NavigateTarget | null {
 
 export function DocHost({
   html,
-  embeds,
+  embeds: _embeds,
   components,
 }: {
   html: string;
@@ -61,7 +61,7 @@ export function DocHost({
   // wipes whatever the portals injected — the embeds silently vanish. Setting
   // innerHTML once here hands the subtree to us, so React leaves it (and the
   // portal children inside it) alone.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return;
     root.innerHTML = html;
@@ -84,6 +84,7 @@ export function DocHost({
       window.parent?.postMessage({ type: "pl:navigate", target }, "*");
     };
     root.addEventListener("click", onClick);
+    window.parent?.postMessage({ type: "pl:size", width: 0, height: 0 }, "*");
     return () => root.removeEventListener("click", onClick);
   }, [html]);
 

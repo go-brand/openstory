@@ -13,4 +13,18 @@ describe("assembleManifest", () => {
     expect(Array.isArray(m.components)).toBe(true);
     expect(Array.isArray(m.docs)).toBe(true);
   });
+
+  it("applies identity labels from the loaded config", async () => {
+    const manifest = await assembleManifest({
+      projectRoot: "/tmp/openstory/apps/app",
+      resolvedConfigPath: "/tmp/openstory/apps/app/openstory.config.ts",
+      ssrLoadModule: async () => ({
+        default: { identity: { repository: "GoBrand", workspace: "Web App" } },
+      }),
+      readFile: () => "",
+    });
+
+    expect(manifest.identity.repository.label).toBe("GoBrand");
+    expect(manifest.identity.workspace.label).toBe("Web App");
+  });
 });

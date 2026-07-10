@@ -1,3 +1,4 @@
+import type { CSSProperties, ReactNode } from "react";
 import type { ActiveSelection } from "../../../electron/types";
 import { cn } from "../../lib/utils";
 import {
@@ -22,7 +23,8 @@ export type TreeCallbacks = {
   setFocusedId: (id: string) => void;
 };
 
-const INDENT = 12;
+const INDENT = 16;
+type BranchStyle = CSSProperties & { "--sidebar-branch-left"?: string };
 
 function isSelected(node: TreeNode, sel: ActiveSelection): boolean {
   if (node.kind === "story") {
@@ -37,11 +39,16 @@ function isSelected(node: TreeNode, sel: ActiveSelection): boolean {
   return false;
 }
 
+function showWorkStatusDot(status: string | undefined): boolean {
+  return Boolean(status && status !== "shipped");
+}
+
 function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallbacks }) {
   const selected = isSelected(node, cb.selection);
   const focused = cb.focusedId === node.id;
   const expandable = isContainer(node);
   const open = expandable && cb.isExpanded(node.id);
+  const rowInset = 6 + depth * INDENT;
 
   function activate() {
     cb.setFocusedId(node.id);
@@ -59,10 +66,12 @@ function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallb
         <button
           type="button"
           onClick={activate}
-          style={{ paddingLeft: 8 + depth * INDENT }}
+          style={{ marginLeft: rowInset, width: `calc(100% - ${rowInset}px)` }}
           className={cn(
-            "flex h-7 w-full items-center gap-1.5 pr-2 text-[10px] font-semibold tracking-[0.13em] uppercase transition-colors",
-            focused ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+            "mt-1.5 flex h-6 items-center gap-1.5 rounded-md px-1.5 text-[10.5px] font-semibold tracking-[0.16em] uppercase",
+            focused
+              ? "text-foreground"
+              : "text-muted-foreground hover:bg-foreground/[0.03] hover:text-foreground",
           )}
         >
           <HugeiconsIcon
@@ -71,7 +80,13 @@ function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallb
           />
           <span className="truncate">{node.label}</span>
         </button>
-        {open && node.children.map((c) => <Row key={c.id} node={c} depth={depth + 1} cb={cb} />)}
+        {open && (
+          <Branch depth={depth + 1}>
+            {node.children.map((c) => (
+              <Row key={c.id} node={c} depth={depth + 1} cb={cb} />
+            ))}
+          </Branch>
+        )}
       </>
     );
   }
@@ -102,14 +117,14 @@ function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallb
       <button
         type="button"
         onClick={activate}
-        style={{ paddingLeft: 8 + depth * INDENT }}
+        style={{ marginLeft: rowInset, width: `calc(100% - ${rowInset}px)` }}
         className={cn(
-          "relative flex h-8 w-full items-center gap-1.5 rounded-lg pr-2 text-[12.5px] transition-colors",
+          "relative flex h-7 items-center gap-1.5 rounded-lg px-1.5 text-[12.5px] outline-none",
           selected
-            ? "bg-brand text-white"
+            ? "bg-brand text-white shadow-[0_4px_14px_color-mix(in_oklab,var(--brand)_22%,transparent)]"
             : focused
-              ? "bg-foreground/[0.06] text-foreground"
-              : "text-foreground/90 hover:bg-foreground/[0.04]",
+              ? "bg-foreground/[0.07] text-foreground ring-1 ring-inset ring-foreground/10"
+              : "text-foreground/90 hover:bg-foreground/[0.045] hover:text-foreground",
         )}
       >
         {expandable ? (
@@ -125,22 +140,39 @@ function Row({ node, depth, cb }: { node: TreeNode; depth: number; cb: TreeCallb
           className={cn("size-3.5 shrink-0", selected ? "text-white" : iconColor)}
         />
         <span className="truncate">{node.label}</span>
-        {node.kind === "page" && node.status && (
-          <span className="ml-auto shrink-0 rounded px-1 text-[9px] text-muted-foreground opacity-70">
-            {node.status}
-          </span>
+        {node.kind === "page" && showWorkStatusDot(node.status) && (
+          <span
+            title={node.status}
+            className="ml-auto size-1.5 shrink-0 rounded-full bg-orange-400 ring-2 ring-orange-400/15"
+          />
         )}
       </button>
-      {expandable &&
-        open &&
-        node.children.map((c) => <Row key={c.id} node={c} depth={depth + 1} cb={cb} />)}
+      {expandable && open && (
+        <Branch depth={depth + 1}>
+          {node.children.map((c) => (
+            <Row key={c.id} node={c} depth={depth + 1} cb={cb} />
+          ))}
+        </Branch>
+      )}
     </>
+  );
+}
+
+function Branch({ depth, children }: { depth: number; children: ReactNode }) {
+  return (
+    <div
+      className="sidebar-tree-branch"
+      data-depth={depth}
+      style={{ "--sidebar-branch-left": `${8 + depth * INDENT}px` } as BranchStyle}
+    >
+      {children}
+    </div>
   );
 }
 
 export function Tree({ nodes, cb }: { nodes: TreeNode[]; cb: TreeCallbacks }) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-px">
       {nodes.map((n) => (
         <Row key={n.id} node={n} depth={0} cb={cb} />
       ))}

@@ -6,6 +6,19 @@ import type { Manifest } from "./assemble-manifest";
 
 const manifest = {
   schemaVersion: 1,
+  identity: {
+    repository: {
+      label: "GoBrand",
+      slug: "go-brand/gb-monorepo",
+      rootPath: "/repo",
+    },
+    workspace: {
+      label: "Web App",
+      relativePath: "apps/app",
+      rootPath: "/repo/apps/app",
+    },
+    source: "config",
+  },
   docs: [],
   components: [
     {
@@ -51,6 +64,16 @@ function makeCtx(over: Partial<McpToolContext> = {}): McpToolContext {
 }
 
 describe("buildMcpTools", () => {
+  it("get_project_context identifies the exact repository and workspace", async () => {
+    const result = await buildMcpTools(makeCtx()).get_project_context.handler({});
+
+    expect(result).toEqual({
+      displayName: "GoBrand · Web App",
+      repository: manifest.identity.repository,
+      workspace: manifest.identity.workspace,
+    });
+  });
+
   it("list_components returns id/name/stories", async () => {
     const r = (await buildMcpTools(makeCtx()).list_components.handler({})) as Array<{
       id: string;
@@ -183,7 +206,7 @@ describe("createMcpServer round-trip (in-memory transport)", () => {
     return { client, server };
   }
 
-  it("exposes the eight read-only tools", async () => {
+  it("exposes the nine read-only tools", async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
@@ -191,6 +214,7 @@ describe("createMcpServer round-trip (in-memory transport)", () => {
       "get_changed_stories",
       "get_component_props",
       "get_doc_sync_context",
+      "get_project_context",
       "get_render_url",
       "get_story_source",
       "list_components",

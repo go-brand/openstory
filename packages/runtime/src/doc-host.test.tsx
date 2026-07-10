@@ -102,9 +102,17 @@ describe("DocHost click interception", () => {
   it("ignores clicks on non-navigable spans", () => {
     const spy = vi.spyOn(window, "postMessage");
     mount('<p><span class="openstory-doc-deadlink">dead</span></p>');
+    spy.mockClear();
     container
       .querySelector("span")!
       .dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("reports full-canvas readiness after docs mount", async () => {
+    const spy = vi.spyOn(window.parent, "postMessage");
+    mount("<p>Ready</p>");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(spy).toHaveBeenCalledWith({ type: "pl:size", width: 0, height: 0 }, "*");
   });
 });

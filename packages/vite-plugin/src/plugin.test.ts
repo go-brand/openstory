@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineOpenStoryConfig, deriveControls } from "@gobrand/openstory-config";
@@ -12,6 +13,16 @@ describe("buildHarnessEntry", () => {
     expect(code).toContain("from '@gobrand/openstory-runtime'");
     expect(code).toContain("from '/abs/path/openstory.config.ts'");
     expect(code).toContain("mountPreviewHost");
+  });
+
+  it("can import the runtime from a plugin-resolved file path", () => {
+    const code = buildHarnessEntry(
+      "/abs/path/openstory.config.ts",
+      [],
+      ["**/*.stories.{ts,tsx}"],
+      "/@fs/abs/node_modules/@gobrand/openstory-runtime/dist/index.js",
+    );
+    expect(code).toContain("from '/@fs/abs/node_modules/@gobrand/openstory-runtime/dist/index.js'");
   });
 
   it("normalizes Windows backslash paths to forward slashes", () => {
@@ -55,9 +66,41 @@ describe("buildHarnessEntry", () => {
     expect(code).toContain("import.meta.glob");
     expect(code).not.toContain("openstory.config");
   });
+
+  it("drops markdown-only patterns from the browser harness glob", () => {
+    expect(stripMarkdownPatterns(["**/*.stories.{ts,tsx,md}", "**/*.stories.{md}"])).toEqual([
+      "**/*.stories.{ts,tsx}",
+    ]);
+    expect(stripMarkdownPatterns(["**/*.stories.md"])).toEqual([]);
+  });
+});
+
+describe("package dependencies", () => {
+  it("declares the runtime package because the virtual harness imports it", () => {
+    const pkgPath = resolve(fileURLToPath(new URL("..", import.meta.url)), "package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as {
+      dependencies?: Record<string, string>;
+    };
+
+    expect(pkg.dependencies).toHaveProperty("@gobrand/openstory-runtime");
+  });
 });
 
 describe("buildManifest", () => {
+  it("includes resolved project identity", () => {
+    const manifest = buildManifest(
+      defineOpenStoryConfig({
+        identity: { repository: "GoBrand", workspace: "Web App" },
+        components: [],
+      }),
+      "/tmp/openstory/apps/app",
+    );
+
+    expect(manifest.identity.repository.label).toBe("GoBrand");
+    expect(manifest.identity.workspace.label).toBe("Web App");
+    expect(manifest.identity.workspace.rootPath).toBe("/tmp/openstory/apps/app");
+  });
+
   it("emits stories with props and inferred controls", () => {
     const config = defineOpenStoryConfig({
       // Presets are project-defined (OpenStory ships only `default`).
@@ -128,7 +171,8 @@ describe("buildManifest", () => {
 
   it("returns no components for an empty config", () => {
     const config = defineOpenStoryConfig({ components: [] });
-    expect(buildManifest(config)).toEqual({ schemaVersion: 1, components: [], docs: [] });
+    expect(buildManifest(config)).toMatchObject({ schemaVersion: 1, components: [], docs: [] });
+    expect(buildManifest(config).identity.workspace.rootPath).toBeTruthy();
   });
 
   it("carries schemaVersion 1", () => {
@@ -168,6 +212,23 @@ describe("buildManifest", () => {
     const [a, b] = buildManifest(config).components;
     expect(a?.layout).toBe("padded");
     expect(b?.layout).toBe("centered");
+  });
+
+  it("emits preview padding for components and stories", () => {
+    const config = defineOpenStoryConfig({
+      components: [
+        {
+          id: "slider",
+          component: () => null,
+          fixtures: [{ id: "default", label: "Default", props: {}, previewPadding: { top: 12 } }],
+          previewPadding: { top: 8 },
+        },
+      ],
+    });
+
+    const slider = buildManifest(config).components[0];
+    expect(slider?.previewPadding).toEqual({ top: 8 });
+    expect(slider?.stories[0]?.previewPadding).toEqual({ top: 12 });
   });
 
   it("derives a section from a monorepo sourcePath", () => {

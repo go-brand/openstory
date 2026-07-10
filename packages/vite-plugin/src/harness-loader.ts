@@ -32,26 +32,29 @@ export function buildHtmlShell(): string {
 // and drop any pure-`.md` pattern. The Node manifest walk keeps the wide glob.
 export function stripMarkdownPatterns(patterns: string[]): string[] {
   return patterns
-    .map((p) =>
-      p.replace(
-        /\{([^}]*)\}/g,
-        (_full, inner: string) =>
-          "{" +
-          inner
-            .split(",")
-            .map((s) => s.trim())
-            .filter((s) => s !== "md")
-            .join(",") +
-          "}",
-      ),
-    )
-    .filter((p) => !/\.md$/.test(p));
+    .map((p) => {
+      let keep = true;
+      const next = p.replace(/\{([^}]*)\}/g, (_full, inner: string) => {
+        const parts = inner
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s !== "md");
+        if (parts.length === 0) {
+          keep = false;
+          return "";
+        }
+        return parts.length === 1 ? (parts[0] ?? "") : `{${parts.join(",")}}`;
+      });
+      return keep ? next : null;
+    })
+    .filter((p): p is string => p !== null && !p.endsWith(".md"));
 }
 
 export function buildHarnessEntry(
   configPath: string | null,
   styles: string[] = [],
   patterns: string[] = ["**/*.stories.{ts,tsx}"],
+  runtimeImport = "@gobrand/openstory-runtime",
 ): string {
   // ESM import specifiers use forward slashes on every OS; normalize so a
   // Windows path (C:\...) doesn't emit invalid backslash escapes in the string.
@@ -79,7 +82,7 @@ export function buildHarnessEntry(
     : `const userConfig = {}`;
   return [
     ...styleImports,
-    "import { mountPreviewHost } from '@gobrand/openstory-runtime'",
+    `import { mountPreviewHost } from '${norm(runtimeImport)}'`,
     "import { isRegisteredComponent, mergeComponents } from '@gobrand/openstory-config'",
     configLine,
     `const modules = import.meta.glob(${globArg}, { eager: true })`,

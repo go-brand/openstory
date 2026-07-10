@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AppState } from "../../electron/types";
 import type { Api } from "./api";
 import { ADDONS, NO_ADDONS, type AddonState } from "./preview-view";
+import { markPreviewRequest, measurePreviewVisible, type PreviewRequestKind } from "./performance";
 
 // Mirrors @gobrand/openstory-runtime's NavigateTarget. Duplicated (not imported)
 // because the desktop does not depend on the runtime package — same boundary
@@ -22,12 +23,15 @@ export function dispatchNavigate(
 ): void {
   switch (target.kind) {
     case "page":
+      markPreviewRequest("page");
       api.invoke("preview:setPage", target.id);
       break;
     case "docs":
+      markPreviewRequest("docs");
       api.invoke("preview:setDocs", target.componentId);
       break;
     case "story":
+      markPreviewRequest("story");
       api.invoke("preview:set", {
         componentId: target.componentId,
         storyId: target.storyId,
@@ -47,6 +51,16 @@ export function dispatchNavigate(
  *  - `"fill"`: the harness asked to fill the canvas (fullscreen layout).
  *  - `{width,height}`: the component's measured box; the manager sizes to it. */
 export type ContentSize = { width: number; height: number } | "fill" | undefined;
+
+export function renderFallbackDelayMs(selection: AppState["selection"]): number {
+  return selection.docsComponentId || selection.pageId ? 50 : 120;
+}
+
+function previewKind(selection: AppState["selection"]): PreviewRequestKind {
+  if (selection.pageId) return "page";
+  if (selection.docsComponentId) return "docs";
+  return "story";
+}
 
 export function useHarnessBridge(
   iframeRef: React.RefObject<HTMLIFrameElement | null>,
@@ -156,23 +170,9 @@ export function useHarnessBridge(
   };
 
   // `propOverrides` is a fresh object on every state broadcast; key by its
-  // contents so this effect only fires on a real override change.
+  // contents so we only react to a real override change.
   const propOverridesKey = JSON.stringify(selection.propOverrides);
-
-  // Re-post on any selection/override change (docs toggle included). Reset the
-  // reported size to `undefined` (loading) so the new selection doesn't inherit
-  // the previous story's dimensions. A fallback timer flips it to "fill" if no
-  // pl:size arrives — so a harness that never reports a size (e.g. an older
-  // published runtime without the size bridge) still shows the preview instead
-  // of staying hidden forever.
-  useEffect(() => {
-    setContentSize(undefined);
-    postRef.current();
-    const t = setTimeout(() => {
-      setContentSize((cur) => (cur === undefined ? "fill" : cur));
-    }, 700);
-    return () => clearTimeout(t);
-  }, [
+  const selectionKey = [
     selection.componentId,
     selection.storyId,
     selection.viewport,
@@ -180,7 +180,38 @@ export function useHarnessBridge(
     selection.docsComponentId,
     selection.pageId,
     propOverridesKey,
-  ]);
+  ].join("|");
+  const fallbackDelayMs = renderFallbackDelayMs(selection);
+
+  // Reset the reported size to `undefined` (loading) the MOMENT the selection
+  // changes — synchronously during render, NOT in an effect. Effects run after
+  // the browser paints, so resetting there leaves the first frame of a
+  // docs→story switch painting with the previous selection's size still in
+  // state: docs never reports a size, so `contentSize` sits at "fill", and the
+  // manager renders the story iframe full-canvas from the top-left for one frame
+  // before the real size arrives and snaps it to the centered box. Adjusting
+  // state during render (guarded by the previous key) drops that stale frame.
+  const prevSelectionKey = useRef(selectionKey);
+  if (prevSelectionKey.current !== selectionKey) {
+    prevSelectionKey.current = selectionKey;
+    setContentSize(undefined);
+  }
+
+  // Re-post the render request on any selection/override change (docs toggle
+  // included). A fallback timer flips the size to "fill" if no pl:size arrives —
+  // so a harness that never reports one (e.g. an older published runtime without
+  // the size bridge) still shows the preview instead of staying hidden forever.
+  useEffect(() => {
+    postRef.current();
+    const t = setTimeout(() => {
+      setContentSize((cur) => {
+        if (cur !== undefined) return cur;
+        measurePreviewVisible(previewKind(latest.current));
+        return "fill";
+      });
+    }, fallbackDelayMs);
+    return () => clearTimeout(t);
+  }, [selectionKey, fallbackDelayMs]);
 
   // Re-post addon toggles whenever they change.
   const addonsKey = JSON.stringify(addons);
@@ -211,7 +242,11 @@ export function useHarnessBridge(
         const d = e.data as { width?: number; height?: number };
         const width = Number(d.width) || 0;
         const height = Number(d.height) || 0;
-        setContentSize(width > 0 && height > 0 ? { width, height } : "fill");
+        const nextSize = width > 0 && height > 0 ? { width, height } : "fill";
+        setContentSize((cur) => {
+          if (cur === undefined) measurePreviewVisible(previewKind(latest.current));
+          return nextSize;
+        });
       } else if (type === "pl:navigate") {
         // Only the preview iframe may drive navigation: pl:navigate can open the
         // user's real browser (shell:openExternal) and change the selection, so

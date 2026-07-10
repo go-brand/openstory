@@ -1,7 +1,7 @@
 {
   "name": "openstory-desktop",
-  "private": true,
   "version": "0.4.0",
+  "private": true,
   "description": "OpenStory — a Storybook alternative you point at any repo.",
   "author": "go-brand <hello@gobrand.app>",
   "type": "module",
@@ -23,7 +23,9 @@
     "clsx": "^2.1.1",
     "electron-store": "11.0.0",
     "tailwind-merge": "^3.6.0",
-    "vite": "8.1.0"
+    "tinyglobby": "^0.2.17",
+    "vite": "8.1.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@gobrand/openstory-config": "workspace:*",

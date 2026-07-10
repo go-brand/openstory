@@ -1,8 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AppState } from "../electron/types";
 import { MainApp } from "./views/main-app";
 import { DetachedPreview } from "./views/detached-preview";
 import { ThemeProvider } from "./components/theme-provider";
+import {
+  markAppLoadStart,
+  measureAppWorkspaceDataVisible,
+  measureWorkspaceDataVisible,
+} from "./lib/performance";
 
 const FALLBACK_STATE: AppState = {
   projects: [],
@@ -39,6 +44,7 @@ function getApi() {
 // Window is always present in the Electron renderer, so resolve the role once
 // at module load rather than on every render.
 const ROLE = new URLSearchParams(window.location.search).get("role") ?? "main";
+markAppLoadStart();
 
 // The detached overlay must be see-through (it sits over a real site), so drop
 // the opaque body background that the main window relies on. Flagged on <html>
@@ -48,6 +54,8 @@ if (ROLE === "detached") document.documentElement.classList.add("role-detached")
 export function App() {
   const api = getApi();
   const [state, setState] = useState<AppState>(FALLBACK_STATE);
+  const measuredWorkspaceData = useRef(new Set<string>());
+  const measuredAppWorkspaceData = useRef(false);
 
   useEffect(() => {
     if (!api) return;
@@ -64,6 +72,22 @@ export function App() {
       off();
     };
   }, [api]);
+
+  useEffect(() => {
+    const projectId = state.selection.projectId;
+    if (!projectId || state.manifest.length + state.docs.length === 0) return;
+
+    const source = state.vite.status === "ready" ? "live" : "cache";
+    const key = `${projectId}:${source}`;
+    if (!measuredWorkspaceData.current.has(key)) {
+      measuredWorkspaceData.current.add(key);
+      measureWorkspaceDataVisible(projectId, source);
+    }
+    if (!measuredAppWorkspaceData.current) {
+      measuredAppWorkspaceData.current = true;
+      measureAppWorkspaceDataVisible(source);
+    }
+  }, [state.docs.length, state.manifest.length, state.selection.projectId, state.vite.status]);
 
   return (
     <ThemeProvider theme={state.theme} api={api}>

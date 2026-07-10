@@ -1,21 +1,59 @@
+import type { AppState } from "../../electron/types";
+import type { Api } from "../lib/api";
 import { HugeiconsIcon, Search01Icon } from "../lib/icons";
 import { AnimatedPanelIcon } from "./icons/animated-panel";
+import { ModeSwitcher } from "./mode-switcher";
+import { RepoSwitcher } from "./repo-switcher";
 import { SettingsMenu } from "./settings-menu";
+
+export const LEFT_SIDEBAR_TOGGLE_ID = "openstory-left-sidebar-toggle";
+
+export type TitlebarProps = {
+  onOpenPalette: () => void;
+  state: AppState;
+  api: Api;
+  leftSidebarOpen: boolean;
+  onToggleLeftSidebar: () => void;
+  inspectorOpen: boolean;
+  onToggleInspector: () => void;
+};
 
 // Full-width native titlebar. The whole row is the drag region (-webkit-app-
 // region: drag) so the window moves like a real macOS app; the centered search
 // trigger opts out via `no-drag`. Left padding clears the inset traffic lights.
 export function Titlebar({
   onOpenPalette,
-  sidebarOpen,
-  onToggleSidebar,
-}: {
-  onOpenPalette: () => void;
-  sidebarOpen: boolean;
-  onToggleSidebar: () => void;
-}) {
+  state,
+  api,
+  leftSidebarOpen,
+  onToggleLeftSidebar,
+  inspectorOpen,
+  onToggleInspector,
+}: TitlebarProps) {
   return (
     <header className="drag relative flex h-11 shrink-0 items-center border-b border-border bg-sidebar pr-3 pl-[78px]">
+      <div className="no-drag flex items-center">
+        <button
+          id={LEFT_SIDEBAR_TOGGLE_ID}
+          type="button"
+          onClick={onToggleLeftSidebar}
+          aria-label={leftSidebarOpen ? "Hide sidebar" : "Show sidebar"}
+          aria-pressed={leftSidebarOpen}
+          title={leftSidebarOpen ? "Hide sidebar" : "Show sidebar"}
+          className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <AnimatedPanelIcon isOpen={leftSidebarOpen} side="left" />
+        </button>
+        <RepoSwitcher state={state} api={api} />
+        <span aria-hidden="true" className="mx-1 text-[12px] text-muted-foreground/40">
+          /
+        </span>
+        <ModeSwitcher
+          mode={state.selection.mode}
+          onSelect={(mode) => api?.invoke("preview:setMode", mode)}
+        />
+      </div>
+
       <div className="no-drag absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
         <button
           type="button"
@@ -31,17 +69,17 @@ export function Titlebar({
       </div>
 
       <div className="no-drag ml-auto flex items-center gap-1">
+        <SettingsMenu />
         <button
           type="button"
-          onClick={onToggleSidebar}
-          aria-label={sidebarOpen ? "Hide panel" : "Show panel"}
-          aria-pressed={sidebarOpen}
-          title={sidebarOpen ? "Hide panel" : "Show panel"}
+          onClick={onToggleInspector}
+          aria-label={inspectorOpen ? "Hide inspector" : "Show inspector"}
+          aria-pressed={inspectorOpen}
+          title={inspectorOpen ? "Hide inspector" : "Show inspector"}
           className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
-          <AnimatedPanelIcon isOpen={sidebarOpen} />
+          <AnimatedPanelIcon isOpen={inspectorOpen} side="right" />
         </button>
-        <SettingsMenu />
       </div>
     </header>
   );

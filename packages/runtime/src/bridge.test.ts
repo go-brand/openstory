@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseBridgeMessage, type BridgeMessage } from "./bridge";
+import { parseBridgeMessage } from "./bridge";
 
 describe("parseBridgeMessage", () => {
   it("accepts a valid pl:render message", () => {

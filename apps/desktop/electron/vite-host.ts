@@ -9,6 +9,7 @@ export type ViteHostStatus =
 export class ViteHost {
   private server: ViteDevServer | null = null;
   private currentRoot: string | null = null;
+  private startToken = 0;
   private statusValue: ViteHostStatus = {
     status: "idle",
     port: null,
@@ -18,6 +19,10 @@ export class ViteHost {
 
   status(): ViteHostStatus {
     return this.statusValue;
+  }
+
+  generation(): number {
+    return this.startToken;
   }
 
   subscribe(listener: (s: ViteHostStatus) => void): () => void {
@@ -32,7 +37,9 @@ export class ViteHost {
 
   async start(root: string): Promise<void> {
     if (this.currentRoot === root && this.statusValue.status === "ready") return;
-    await this.stop();
+    const token = ++this.startToken;
+    await this.stop(false);
+    if (token !== this.startToken) return;
     this.currentRoot = root;
     this.emit({ status: "starting", port: null, error: null });
     let server: ViteDevServer | null = null;
@@ -55,19 +62,25 @@ export class ViteHost {
       if (typeof address !== "object" || address === null) {
         throw new Error("Vite server did not return an address");
       }
+      if (token !== this.startToken || this.currentRoot !== root) {
+        await server.close().catch(() => {});
+        return;
+      }
       this.server = server;
       this.emit({ status: "ready", port: address.port, error: null });
     } catch (err) {
       // listen() can throw after createServer() succeeds; close the orphan so
       // we never leak a server/port that stop() can no longer reach.
       await server?.close().catch(() => {});
+      if (token !== this.startToken) return;
       const message = err instanceof Error ? err.message : String(err);
       this.emit({ status: "error", port: null, error: message });
       this.currentRoot = null;
     }
   }
 
-  async stop(): Promise<void> {
+  async stop(invalidatePendingStart = true): Promise<void> {
+    if (invalidatePendingStart) this.startToken++;
     if (!this.server) {
       this.emit({ status: "idle", port: null, error: null });
       return;

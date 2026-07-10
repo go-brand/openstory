@@ -7,6 +7,7 @@ export {
   kebabCase,
   type Fixture,
   type Layout,
+  type PreviewPadding,
   type ManifestControl,
   type ManifestDoc,
   type ComponentDef,
@@ -25,3 +26,8 @@ export {
   type Preset,
   type ResolvedRender,
 } from "./presets.js";
+export {
+  formatProjectIdentity,
+  type OpenStoryIdentityConfig,
+  type ProjectIdentity,
+} from "./identity.js";

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Plugin, ViteDevServer } from "vite";
 import { buildHarnessEntry, buildHtmlShell } from "./harness-loader.js";
 import type { OpenStoryConfig } from "@gobrand/openstory-config";
@@ -85,6 +86,18 @@ function findConfig(root: string): string | null {
   return null;
 }
 
+function toViteFsImport(absPath: string): string {
+  return `/@fs/${absPath.replace(/\\/g, "/")}`;
+}
+
+function resolveRuntimeImport(): string {
+  try {
+    return toViteFsImport(fileURLToPath(import.meta.resolve("@gobrand/openstory-runtime")));
+  } catch {
+    return "@gobrand/openstory-runtime";
+  }
+}
+
 export function openStory(options: PluginOptions = {}): Plugin {
   let resolvedConfigPath: string | null = null;
   let projectRoot = process.cwd();
@@ -150,6 +163,7 @@ export function openStory(options: PluginOptions = {}): Plugin {
         resolvedConfigPath,
         await resolveStyles(),
         await resolveEntryPatterns(),
+        resolveRuntimeImport(),
       );
     },
 

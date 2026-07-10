@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { ManifestComponent } from "./types";
+import type { ManifestComponent, ManifestDoc } from "./types";
 import { reconcileSelection, defaultMode } from "./selection";
 
 function component(over: Partial<ManifestComponent> & { id: string }): ManifestComponent {
@@ -16,12 +16,31 @@ function component(over: Partial<ManifestComponent> & { id: string }): ManifestC
   };
 }
 
+function doc(over: Partial<ManifestDoc> & { id: string }): ManifestDoc {
+  return {
+    id: over.id,
+    title: over.title ?? over.id,
+    group: over.group ?? "",
+    section: over.section ?? null,
+    html: over.html ?? "<h1>Doc</h1>",
+    embeds: over.embeds ?? [],
+    sourcePath: over.sourcePath ?? `/repo/${over.id}.stories.md`,
+  };
+}
+
 describe("reconcileSelection", () => {
   it("returns null when the current selection still resolves", () => {
     const manifest = [
       component({ id: "button", stories: [{ id: "primary", label: "P", props: {} }] }),
     ];
-    expect(reconcileSelection(manifest, { componentId: "button", storyId: "primary" })).toBeNull();
+    expect(
+      reconcileSelection(manifest, {
+        componentId: "button",
+        storyId: "primary",
+        docsComponentId: null,
+        pageId: null,
+      }),
+    ).toBeNull();
   });
 
   it("resets to the first component+story when the selection is stale but the manifest has one", () => {
@@ -29,12 +48,21 @@ describe("reconcileSelection", () => {
       component({ id: "card", stories: [{ id: "a", label: "A", props: {} }] }),
       component({ id: "button" }),
     ];
-    expect(reconcileSelection(manifest, { componentId: "linkedin", storyId: "desktop" })).toEqual({
+    expect(
+      reconcileSelection(manifest, {
+        componentId: "linkedin",
+        storyId: "desktop",
+        docsComponentId: null,
+        pageId: null,
+      }),
+    ).toEqual({
       componentId: "card",
       storyId: "a",
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
+      layout: null,
+      mode: "design",
     });
   });
 
@@ -42,23 +70,41 @@ describe("reconcileSelection", () => {
     // Loading a repo whose openstory.config.ts has `components: []` must not leave
     // the previous repo's componentId in place — the harness would render
     // "Unknown component: <stale>".
-    expect(reconcileSelection([], { componentId: "linkedin", storyId: "desktop" })).toEqual({
+    expect(
+      reconcileSelection([], {
+        componentId: "linkedin",
+        storyId: "desktop",
+        docsComponentId: null,
+        pageId: null,
+      }),
+    ).toEqual({
       componentId: null,
       storyId: null,
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
+      layout: null,
+      mode: "design",
     });
   });
 
   it("clears to null when the only component has no stories", () => {
     const manifest = [component({ id: "empty", stories: [] })];
-    expect(reconcileSelection(manifest, { componentId: "linkedin", storyId: "x" })).toEqual({
+    expect(
+      reconcileSelection(manifest, {
+        componentId: "linkedin",
+        storyId: "x",
+        docsComponentId: null,
+        pageId: null,
+      }),
+    ).toEqual({
       componentId: null,
       storyId: null,
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
+      layout: null,
+      mode: "design",
     });
   });
 
@@ -66,18 +112,116 @@ describe("reconcileSelection", () => {
     const manifest = [
       component({ id: "button", stories: [{ id: "primary", label: "P", props: {} }] }),
     ];
-    expect(reconcileSelection(manifest, { componentId: "button", storyId: "gone" })).toEqual({
+    expect(
+      reconcileSelection(manifest, {
+        componentId: "button",
+        storyId: "gone",
+        docsComponentId: null,
+        pageId: null,
+      }),
+    ).toEqual({
       componentId: "button",
       storyId: "primary",
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
+      layout: null,
+      mode: "design",
     });
   });
 
   it("reset patches clear pageId", () => {
-    const patch = reconcileSelection([], { componentId: "x", storyId: "y" });
+    const patch = reconcileSelection([], {
+      componentId: "x",
+      storyId: "y",
+      docsComponentId: null,
+      pageId: "old-page",
+    });
     expect(patch).toMatchObject({ pageId: null });
+  });
+
+  it("keeps an active docs page when it still exists", () => {
+    expect(
+      reconcileSelection(
+        [],
+        { componentId: null, storyId: null, docsComponentId: null, pageId: "intro" },
+        [doc({ id: "intro" })],
+      ),
+    ).toBeNull();
+  });
+
+  it("keeps active component docs when the component still exists", () => {
+    expect(
+      reconcileSelection(
+        [component({ id: "button" })],
+        { componentId: null, storyId: null, docsComponentId: "button", pageId: null },
+        [],
+      ),
+    ).toBeNull();
+  });
+
+  it("does not keep a background story when the active docs page is stale", () => {
+    expect(
+      reconcileSelection(
+        [component({ id: "button" })],
+        {
+          componentId: "button",
+          storyId: "default",
+          docsComponentId: null,
+          pageId: "deleted-page",
+        },
+        [],
+      ),
+    ).toEqual({
+      componentId: "button",
+      storyId: "default",
+      propOverrides: {},
+      docsComponentId: null,
+      pageId: null,
+      layout: null,
+      mode: "design",
+    });
+  });
+
+  it("does not keep a background story when active component docs are stale", () => {
+    expect(
+      reconcileSelection(
+        [component({ id: "button" })],
+        {
+          componentId: "button",
+          storyId: "default",
+          docsComponentId: "deleted-component",
+          pageId: null,
+        },
+        [],
+      ),
+    ).toEqual({
+      componentId: "button",
+      storyId: "default",
+      propOverrides: {},
+      docsComponentId: null,
+      pageId: null,
+      layout: null,
+      mode: "design",
+    });
+  });
+
+  it("selects the first docs page for a docs-only workspace", () => {
+    expect(
+      reconcileSelection(
+        [],
+        { componentId: "old", storyId: "old", docsComponentId: null, pageId: null },
+        [doc({ id: "intro" })],
+      ),
+    ).toEqual({
+      componentId: null,
+      storyId: null,
+      propOverrides: {},
+      docsComponentId: null,
+      pageId: "intro",
+      layout: null,
+      mode: "docs",
+    });
   });
 });
 

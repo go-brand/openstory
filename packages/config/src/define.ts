@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import type { Preset } from "./presets.js";
+import type { OpenStoryIdentityConfig } from "./identity.js";
 
 export type Viewport = {
   width: number;
@@ -17,11 +18,22 @@ export type Viewport = {
  */
 export type Layout = "padded" | "centered" | "fullscreen";
 
+export type PreviewPadding =
+  | number
+  | {
+      top?: number;
+      right?: number;
+      bottom?: number;
+      left?: number;
+    };
+
 export type Fixture<TProps = unknown> = {
   id: string;
   label: string;
   props: TProps;
   notes?: string;
+  /** Extra preview chrome around this fixture, outside the component itself. */
+  previewPadding?: PreviewPadding;
 };
 
 // =============================================================================
@@ -154,6 +166,8 @@ export type ComponentDef<TProps = unknown> = {
   preset?: string;
   /** Positioning of the render within the preview surface. Defaults to `padded`. */
   layout?: Layout;
+  /** Extra preview chrome around every fixture, outside the component itself. */
+  previewPadding?: PreviewPadding;
   component: ComponentType<TProps>;
   fixtures: Fixture<TProps>[];
   viewports?: Partial<Record<"desktop" | "mobile", Viewport>>;
@@ -177,6 +191,8 @@ export type RegisteredComponent = {
   preset?: string;
   /** Positioning of the render within the preview surface. Defaults to `padded`. */
   layout?: Layout;
+  /** Extra preview chrome around every fixture, outside the component itself. */
+  previewPadding?: PreviewPadding;
   component: ComponentType<never>;
   fixtures: Fixture<unknown>[];
   viewports?: Partial<Record<"desktop" | "mobile", Viewport>>;
@@ -185,6 +201,8 @@ export type RegisteredComponent = {
 };
 
 export type OpenStoryConfig = {
+  /** Optional human-facing labels for the containing repository and this runnable workspace. */
+  identity?: OpenStoryIdentityConfig;
   components?: RegisteredComponent[];
   /** Glob patterns (relative to project root) for auto-discovered story files.
    *  Omit for the default ["**\/*.stories.{ts,tsx}"]. */
@@ -210,6 +228,8 @@ export type Story<TProps> =
       args: TProps;
       label?: string;
       notes?: string;
+      /** Extra preview chrome for this story, outside the component itself. */
+      previewPadding?: PreviewPadding;
     };
 
 export type StoriesDef<TProps> = {
@@ -221,6 +241,8 @@ export type StoriesDef<TProps> = {
   preset?: string;
   /** Positioning of the render within the preview surface. Defaults to `padded`. */
   layout?: Layout;
+  /** Extra preview chrome around every story, outside the component itself. */
+  previewPadding?: PreviewPadding;
   /** Optional explicit id; defaults to the component's displayName/name. */
   id?: string;
   /** Explicit viewport overrides; otherwise derived from the preset. */
@@ -259,7 +281,7 @@ export function kebabCase(name: string): string {
 
 function isLonghandStory<TProps>(
   story: Story<TProps>,
-): story is { args: TProps; label?: string; notes?: string } {
+): story is { args: TProps; label?: string; notes?: string; previewPadding?: PreviewPadding } {
   return (
     typeof story === "object" && story !== null && "args" in (story as Record<string, unknown>)
   );
@@ -294,6 +316,9 @@ export function defineStories<TProps>(def: StoriesDef<TProps>): RegisteredCompon
     if (longhand && story.notes !== undefined) {
       fixture.notes = story.notes;
     }
+    if (longhand && story.previewPadding !== undefined) {
+      fixture.previewPadding = story.previewPadding;
+    }
     return fixture;
   });
 
@@ -313,6 +338,7 @@ export function defineStories<TProps>(def: StoriesDef<TProps>): RegisteredCompon
   if (def.group !== undefined) result.group = def.group;
   if (def.preset !== undefined) result.preset = def.preset;
   if (def.layout !== undefined) result.layout = def.layout;
+  if (def.previewPadding !== undefined) result.previewPadding = def.previewPadding;
   if (def.viewports !== undefined) {
     result.viewports = def.viewports;
   }

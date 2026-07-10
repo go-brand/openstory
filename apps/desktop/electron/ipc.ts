@@ -1,12 +1,15 @@
 import { ipcMain, BrowserWindow, dialog, shell } from "electron";
-import { randomUUID } from "node:crypto";
-import { basename, relative, resolve, sep } from "node:path";
+import { relative, resolve, sep } from "node:path";
 import { readFileSync, statSync } from "node:fs";
 import { AppStore } from "./store";
 import { ViteHost } from "./vite-host";
 import type { AppState, Layout, ManifestComponent, ManifestDoc, PreviewSource } from "./types";
 import { reconcileSelection, defaultMode } from "./selection";
 import { allowedExternalUrl } from "./external-url.js";
+import { createProjectRecord, isProjectIdentity } from "./project-records";
+import { inspectWorkspaceSelection } from "./workspace-discovery";
+import { addProjectPathsAndBroadcast } from "./project-actions";
+import { shouldApplyManifestResponse, type ManifestRequest } from "./manifest-request";
 
 // Hard cap so a stray huge file can't be slurped into the renderer's Code panel.
 const MAX_SOURCE_BYTES = 256 * 1024;
@@ -72,31 +75,78 @@ export function registerIpc(deps: Deps) {
     deps.getDetached()?.webContents.send("state:update", state);
   }
 
+  function reconcileActiveSelection() {
+    const patch = reconcileSelection(manifest, deps.store.state.selection, docs);
+    if (patch) deps.store.patchSelection(patch);
+
+    const sel = deps.store.state.selection;
+    const wantMode = defaultMode(sel.mode, manifest.length, docs.length);
+    if (wantMode !== sel.mode) deps.store.patchSelection({ mode: wantMode });
+  }
+
   async function fetchManifest(port: number) {
+    const expectedProject = deps.store.state.projects.find(
+      (project) => project.id === deps.store.state.selection.projectId,
+    );
+    if (!expectedProject) return;
+    const request: ManifestRequest = {
+      projectId: expectedProject.id,
+      projectPath: expectedProject.path,
+      port,
+      generation: deps.viteHost.generation(),
+    };
+
+    function currentProject() {
+      return deps.store.state.projects.find(
+        (project) => project.id === deps.store.state.selection.projectId,
+      );
+    }
+
+    function requestIsCurrent(identity: Parameters<typeof shouldApplyManifestResponse>[4]) {
+      return shouldApplyManifestResponse(
+        request,
+        currentProject(),
+        deps.viteHost.status(),
+        deps.viteHost.generation(),
+        identity,
+      );
+    }
+
+    function clearCurrentManifest() {
+      if (!requestIsCurrent(undefined)) return;
+      manifest = [];
+      docs = [];
+      reconcileActiveSelection();
+    }
+
     try {
       const res = await fetch(`http://127.0.0.1:${port}/__pl__/manifest.json`);
       if (!res.ok) {
-        manifest = [];
-        docs = [];
+        clearCurrentManifest();
         return;
       }
-      const body = (await res.json()) as { components: ManifestComponent[]; docs?: ManifestDoc[] };
-      manifest = body.components ?? [];
-      docs = body.docs ?? [];
+      const body = (await res.json()) as {
+        components: ManifestComponent[];
+        docs?: ManifestDoc[];
+        identity?: unknown;
+      };
+      const identity = isProjectIdentity(body.identity) ? body.identity : undefined;
+      if (!requestIsCurrent(identity)) return;
+      const project = currentProject()!;
+      const nextManifest = body.components ?? [];
+      const nextDocs = body.docs ?? [];
+      manifest = nextManifest;
+      docs = nextDocs;
+      if (identity) deps.store.updateProjectIdentity(project.id, identity);
+      deps.store.setWorkspaceData(project, nextManifest, nextDocs);
 
       // Reconcile the persisted selection against the new manifest: keep it if
       // still valid, reset to the first preview, or clear it entirely when the
       // manifest can't satisfy it (e.g. switching to a repo with no components) —
       // otherwise the harness would render the previous repo's stale preview.
-      const patch = reconcileSelection(manifest, deps.store.state.selection);
-      if (patch) deps.store.patchSelection(patch);
-
-      const sel = deps.store.state.selection;
-      const wantMode = defaultMode(sel.mode, manifest.length, docs.length);
-      if (wantMode !== sel.mode) deps.store.patchSelection({ mode: wantMode });
+      reconcileActiveSelection();
     } catch {
-      manifest = [];
-      docs = [];
+      clearCurrentManifest();
     }
   }
 
@@ -122,15 +172,18 @@ export function registerIpc(deps: Deps) {
   });
 
   ipcMain.handle("project:add", async (_e, path: string) => {
-    const record = deps.store.addProject({
-      id: randomUUID(),
-      name: basename(path),
-      path,
-      addedAt: new Date().toISOString(),
-    });
+    const record = deps.store.addProject(createProjectRecord(path));
     broadcastState();
     return record;
   });
+
+  ipcMain.handle("project:addMany", async (_e, paths: string[]) => {
+    return addProjectPathsAndBroadcast(deps.store, paths, broadcastState);
+  });
+
+  ipcMain.handle("project:inspectPath", async (_e, path: string) =>
+    inspectWorkspaceSelection(path),
+  );
 
   ipcMain.handle("project:remove", (_e, id: string) => {
     deps.store.removeProject(id);
@@ -143,14 +196,14 @@ export function registerIpc(deps: Deps) {
     const switching = deps.store.state.selection.projectId !== id;
     deps.store.patchSelection({ projectId: id });
     if (switching) {
-      // Drop the previous repo's manifest so the sidebar renders a loading state
-      // rather than the old project's tree while Vite restarts. We deliberately
-      // don't broadcast here: viteHost.start() drives the broadcasts (stop -> idle,
-      // then "starting", then "ready" which fetches the new manifest and
-      // broadcasts it). Eager-broadcasting now would paint the new projectId over
-      // the stale tree.
-      manifest = [];
-      docs = [];
+      // Drop the previous repo's manifest unless this project has a persisted
+      // cache. The cached tree lets repeat workspace loads show data during Vite
+      // startup; the live fetch below still refreshes/reconciles as soon as the
+      // dev server is ready.
+      const cached = deps.store.getWorkspaceData(project);
+      manifest = cached?.manifest ?? [];
+      docs = cached?.docs ?? [];
+      if (cached) reconcileActiveSelection();
     }
     await deps.viteHost.start(project.path);
   });

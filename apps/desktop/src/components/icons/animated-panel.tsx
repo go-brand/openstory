@@ -1,9 +1,22 @@
 import { cn } from "../../lib/utils";
 
-// Panel-toggle icon: the right-hand panel region fills in (scaleX 0 -> 1) when
-// open, matching the sidebar's own width animation. Ported from the
-// tanstack-start app's DetailSidebar trigger.
-export function AnimatedPanelIcon({ isOpen, className }: { isOpen: boolean; className?: string }) {
+// Panel-toggle icon: the owned panel region fills in (scaleX 0 -> 1) when open,
+// matching the shell's width animation.
+export function AnimatedPanelIcon({
+  isOpen,
+  side = "right",
+  className,
+}: {
+  isOpen: boolean;
+  side?: "left" | "right";
+  className?: string;
+}) {
+  const isLeft = side === "left";
+  const dividerX = isLeft ? 9 : 15;
+  const panelX = isLeft ? 3 : 15;
+  const transformOrigin = isLeft ? "3px 12px" : "21px 12px";
+  const clipPathId = `os-${side}-panel-clip`;
+
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -18,21 +31,21 @@ export function AnimatedPanelIcon({ isOpen, className }: { isOpen: boolean; clas
       className={cn("size-4", className)}
     >
       <defs>
-        <clipPath id="os-right-panel-clip">
-          <rect x="15" y="3" width="6" height="18" rx="2" />
+        <clipPath id={clipPathId}>
+          <rect x={panelX} y="3" width="6" height="18" rx="2" />
         </clipPath>
       </defs>
 
       {/* Outer frame */}
       <rect width="18" height="18" x="3" y="3" rx="2" />
 
-      {/* Divider between main area and right panel */}
-      <path d="M15 3v18" />
+      {/* Divider between the panel and main area */}
+      <path d={`M${dividerX} 3v18`} />
 
-      {/* Animated fill, clipped to the right panel, scaling from its right edge */}
-      <g clipPath="url(#os-right-panel-clip)">
+      {/* Animated fill, clipped to the owned panel and scaling from its outer edge. */}
+      <g clipPath={`url(#${clipPathId})`}>
         <rect
-          x="15"
+          x={panelX}
           y="3"
           width="6"
           height="18"
@@ -40,7 +53,7 @@ export function AnimatedPanelIcon({ isOpen, className }: { isOpen: boolean; clas
           stroke="none"
           className="transition-transform duration-200 ease-out motion-reduce:transition-none"
           style={{
-            transformOrigin: "21px 12px",
+            transformOrigin,
             transform: isOpen ? "scaleX(1)" : "scaleX(0)",
           }}
         />

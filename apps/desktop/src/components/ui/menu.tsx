@@ -63,6 +63,45 @@ function MenuItem({ className, ...props }: React.ComponentProps<typeof MenuPrimi
   );
 }
 
+function MenuRadioGroup(props: React.ComponentProps<typeof MenuPrimitive.RadioGroup>) {
+  return <MenuPrimitive.RadioGroup {...props} />;
+}
+
+function MenuRadioItem({
+  className,
+  ...props
+}: React.ComponentProps<typeof MenuPrimitive.RadioItem>) {
+  return (
+    <MenuPrimitive.RadioItem
+      {...props}
+      className={cn(
+        "relative flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground outline-hidden transition-colors select-none",
+        "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
+        "data-disabled:pointer-events-none data-disabled:opacity-50",
+        className,
+      )}
+    />
+  );
+}
+
+function MenuRadioItemIndicator({
+  className,
+  ...props
+}: React.ComponentProps<typeof MenuPrimitive.RadioItemIndicator>) {
+  return (
+    <MenuPrimitive.RadioItemIndicator
+      keepMounted
+      {...props}
+      className={cn(
+        "flex size-4 items-center justify-center data-[unchecked]:invisible",
+        className,
+      )}
+    >
+      <HugeiconsIcon icon={Tick02Icon} className="size-4 text-brand" />
+    </MenuPrimitive.RadioItemIndicator>
+  );
+}
+
 function MenuSeparator({
   className,
   ...props
@@ -116,6 +155,9 @@ export {
   MenuContent,
   MenuItem,
   MenuItemCheck,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuRadioItemIndicator,
   MenuSeparator,
   MenuGroup,
   MenuSubmenuRoot,
