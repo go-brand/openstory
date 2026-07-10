@@ -1,6 +1,6 @@
 {
   "name": "@gobrand/openstory-config",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Config and story-definition API for OpenStory component previews",
   "private": false,
   "publishConfig": {
