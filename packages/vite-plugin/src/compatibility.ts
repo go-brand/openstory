@@ -58,6 +58,16 @@ export async function applyOpenStoryCompatibility(
   config: UserConfig,
   options: OpenStoryCompatibilityOptions = {},
 ): Promise<string[]> {
+  config.optimizeDeps ??= {};
+  config.optimizeDeps.entries = [];
+
+  const clientOptimizeDeps = config.environments?.client?.optimizeDeps;
+  if (clientOptimizeDeps) clientOptimizeDeps.entries = [];
+
+  const warmup = config.server?.warmup;
+  if (warmup?.clientFiles) warmup.clientFiles = [];
+  if (warmup?.ssrFiles) warmup.ssrFiles = [];
+
   const plugins = await flattenPlugins(config.plugins);
   const names = new Set(plugins.map((plugin) => plugin.name));
   const hasTanStackStart = names.has(TANSTACK_START_MARKER);

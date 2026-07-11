@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Plugin, UserConfig } from "vite";
+import { resolveConfig, type Plugin, type UserConfig } from "vite";
 import { applyOpenStoryCompatibility } from "./compatibility";
+import { openStory } from "./plugin";
 
 function namedPlugin(name: string, overrides: Partial<Plugin> = {}): Plugin {
   return { name, ...overrides };
@@ -106,5 +107,97 @@ describe("applyOpenStoryCompatibility", () => {
     expect(hook.order).toBe("post");
     expect(await hook.handler.call({} as never, {}, {} as never)).toBeUndefined();
     expect(original).not.toHaveBeenCalled();
+  });
+
+  it("clears application scan entries and warmup files without changing related config", async () => {
+    const include = ["react", "react-dom"];
+    const exclude = ["sqlite"];
+    const alias = { "@": "/project/src" };
+    const config: UserConfig = {
+      optimizeDeps: {
+        entries: ["src/**/*.{ts,tsx}"],
+        include,
+        exclude,
+      },
+      environments: {
+        client: {
+          optimizeDeps: {
+            entries: ["src/routes/**/*.tsx"],
+            include: ["react/jsx-runtime"],
+          },
+        },
+      },
+      resolve: { alias },
+      server: {
+        host: "127.0.0.1",
+        warmup: {
+          clientFiles: ["src/routes/**/*.tsx"],
+          ssrFiles: ["src/server.ts"],
+        },
+      },
+    };
+
+    await applyOpenStoryCompatibility(config);
+
+    expect(config.optimizeDeps).toEqual({ entries: [], include, exclude });
+    expect(config.environments?.client?.optimizeDeps).toEqual({
+      entries: [],
+      include: ["react/jsx-runtime"],
+    });
+    expect(config.server).toMatchObject({
+      host: "127.0.0.1",
+      warmup: { clientFiles: [], ssrFiles: [] },
+    });
+    expect(config.resolve?.alias).toBe(alias);
+  });
+
+  it("suppresses adapter config hooks during real Vite resolution only in openstory mode", async () => {
+    const openStoryAdapterHook = vi.fn(() => {
+      throw new Error("adapter config hook should be suppressed");
+    });
+    const unrelatedHook = vi.fn();
+    const openstory = await resolveConfig(
+      {
+        configFile: false,
+        mode: "openstory",
+        optimizeDeps: { entries: ["src/**/*.ts"] },
+        plugins: [
+          openStory(),
+          namedPlugin("tanstack-react-start:config", {
+            enforce: "pre",
+            config: openStoryAdapterHook,
+          }),
+          namedPlugin("tanstack-start-core:config", {
+            enforce: "pre",
+            config: openStoryAdapterHook,
+          }),
+          namedPlugin("vite-plugin-cloudflare", { config: openStoryAdapterHook }),
+          namedPlugin("vite-plugin-cloudflare:config", { config: openStoryAdapterHook }),
+          namedPlugin("unrelated", { config: unrelatedHook }),
+        ],
+      },
+      "serve",
+    );
+
+    expect(openStoryAdapterHook).not.toHaveBeenCalled();
+    expect(unrelatedHook).toHaveBeenCalledOnce();
+    expect(openstory.optimizeDeps.entries).toEqual([]);
+
+    const normalAdapterHook = vi.fn();
+    const normal = await resolveConfig(
+      {
+        configFile: false,
+        mode: "development",
+        optimizeDeps: { entries: ["src/**/*.ts"] },
+        plugins: [
+          openStory(),
+          namedPlugin("vite-plugin-cloudflare", { config: normalAdapterHook }),
+        ],
+      },
+      "serve",
+    );
+
+    expect(normalAdapterHook).toHaveBeenCalledOnce();
+    expect(normal.optimizeDeps.entries).toEqual(["src/**/*.ts"]);
   });
 });
