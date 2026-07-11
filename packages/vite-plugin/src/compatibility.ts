@@ -7,6 +7,11 @@ export type OpenStoryCompatibilityOptions = {
 
 const TANSTACK_START_MARKER = "tanstack-react-start:config";
 const CLOUDFLARE_MARKER = "vite-plugin-cloudflare";
+const HARNESS_OPTIMIZE_DEPS = ["react", "react/jsx-runtime", "react-dom", "react-dom/client"];
+
+function includeHarnessDependencies(include: string[] | undefined): string[] {
+  return [...new Set([...(include ?? []), ...HARNESS_OPTIMIZE_DEPS])];
+}
 
 async function flattenPlugins(options: PluginOption[] | undefined): Promise<Plugin[]> {
   const plugins: Plugin[] = [];
@@ -58,9 +63,13 @@ export async function applyOpenStoryCompatibility(
 ): Promise<string[]> {
   config.optimizeDeps ??= {};
   config.optimizeDeps.entries = [];
+  config.optimizeDeps.include = includeHarnessDependencies(config.optimizeDeps.include);
 
   const clientOptimizeDeps = config.environments?.client?.optimizeDeps;
-  if (clientOptimizeDeps) clientOptimizeDeps.entries = [];
+  if (clientOptimizeDeps) {
+    clientOptimizeDeps.entries = [];
+    clientOptimizeDeps.include = includeHarnessDependencies(clientOptimizeDeps.include);
+  }
 
   const warmup = config.server?.warmup;
   if (warmup?.clientFiles) warmup.clientFiles = [];

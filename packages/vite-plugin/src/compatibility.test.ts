@@ -139,16 +139,52 @@ describe("applyOpenStoryCompatibility", () => {
 
     await applyOpenStoryCompatibility(config);
 
-    expect(config.optimizeDeps).toEqual({ entries: [], include, exclude });
+    expect(config.optimizeDeps).toEqual({
+      entries: [],
+      include: [...include, "react/jsx-runtime", "react-dom/client"],
+      exclude,
+    });
     expect(config.environments?.client?.optimizeDeps).toEqual({
       entries: [],
-      include: ["react/jsx-runtime"],
+      include: ["react/jsx-runtime", "react", "react-dom", "react-dom/client"],
     });
     expect(config.server).toMatchObject({
       host: "127.0.0.1",
       warmup: { clientFiles: [], ssrFiles: [] },
     });
     expect(config.resolve?.alias).toBe(alias);
+  });
+
+  it("prebundles the React entrypoints required by the harness when application scans are disabled", async () => {
+    const config: UserConfig = {
+      optimizeDeps: {
+        include: ["react", "consumer-only-dependency"],
+      },
+      environments: {
+        client: {
+          optimizeDeps: {
+            include: ["react/jsx-runtime", "client-only-dependency"],
+          },
+        },
+      },
+    };
+
+    await applyOpenStoryCompatibility(config);
+
+    expect(config.optimizeDeps?.include).toEqual([
+      "react",
+      "consumer-only-dependency",
+      "react/jsx-runtime",
+      "react-dom",
+      "react-dom/client",
+    ]);
+    expect(config.environments?.client?.optimizeDeps?.include).toEqual([
+      "react/jsx-runtime",
+      "client-only-dependency",
+      "react",
+      "react-dom",
+      "react-dom/client",
+    ]);
   });
 
   it("suppresses adapter config hooks during real Vite resolution only in openstory mode", async () => {
