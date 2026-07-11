@@ -199,9 +199,15 @@ importers:
       '@gobrand/openstory-runtime':
         specifier: workspace:^
         version: link:../runtime
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.29.0(zod@4.4.3)
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
+      jiti:
+        specifier: ^2.7.0
+        version: 2.7.0
     devDependencies:
       '@types/node':
         specifier: 24.10.4
