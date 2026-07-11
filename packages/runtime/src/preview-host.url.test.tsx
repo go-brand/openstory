@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
-import { PreviewStage, applyThemeFromUrl, readSelectionFromUrl } from "./preview-host";
+import {
+  OpenStoryPreview,
+  PreviewStage,
+  applyThemeFromUrl,
+  readSelectionFromUrl,
+} from "./preview-host";
 
 function setUrl(search: string) {
   window.history.replaceState({}, "", `/__pl__/${search}`);
@@ -92,5 +97,24 @@ describe("clean accessibility tree around the rendered story", () => {
     expect(container.querySelectorAll("[role]").length).toBe(0);
     expect(container.querySelector("nav, header, main, aside")).toBeNull();
     expect(container.querySelector("button")?.textContent).toBe("Save");
+  });
+});
+
+describe("OpenStoryPreview", () => {
+  it("renders directly inside an existing React root and announces readiness", () => {
+    setUrl("");
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const postMessage = vi.spyOn(window.parent, "postMessage");
+
+    flushSync(() => root.render(<OpenStoryPreview config={{ components: [] }} />));
+
+    expect(container.textContent).toContain("Waiting for selection");
+    expect(postMessage).toHaveBeenCalledWith({ type: "pl:ready" }, "*");
+
+    flushSync(() => root.unmount());
+    container.remove();
+    postMessage.mockRestore();
   });
 });
