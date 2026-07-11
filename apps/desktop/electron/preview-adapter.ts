@@ -39,6 +39,27 @@ async function findPackageRoot(entryPath: string, packageName: string): Promise<
   return null;
 }
 
+async function findPackageFromAncestors(
+  projectRoot: string,
+  packageName: string,
+): Promise<string | null> {
+  let directory = projectRoot;
+  const filesystemRoot = parse(directory).root;
+  while (directory !== filesystemRoot) {
+    const candidate = join(directory, "node_modules", packageName);
+    const manifest = await readManifest(join(candidate, "package.json"));
+    if (manifest?.name === packageName) {
+      try {
+        return await realpath(candidate);
+      } catch {
+        return candidate;
+      }
+    }
+    directory = dirname(directory);
+  }
+  return null;
+}
+
 async function resolvePackage(
   projectRoot: string,
   packageName: string,
@@ -51,7 +72,7 @@ async function resolvePackage(
     try {
       packageRoot = await findPackageRoot(require.resolve(packageName), packageName);
     } catch {
-      return null;
+      packageRoot = await findPackageFromAncestors(projectRoot, packageName);
     }
   }
   if (!packageRoot) return null;

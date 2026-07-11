@@ -10,7 +10,13 @@ async function project() {
   return root;
 }
 
-async function installPackage(root: string, name: string, version: string, bin?: string) {
+async function installPackage(
+  root: string,
+  name: string,
+  version: string,
+  bin?: string,
+  importOnly = false,
+) {
   const packageRoot = join(root, "node_modules", name);
   await mkdir(packageRoot, { recursive: true });
   await writeFile(
@@ -19,7 +25,7 @@ async function installPackage(root: string, name: string, version: string, bin?:
       name,
       version,
       type: "module",
-      exports: { ".": "./index.js" },
+      exports: { ".": importOnly ? { import: "./index.js" } : "./index.js" },
       ...(bin ? { bin: { "openstory-next": bin } } : {}),
     }),
   );
@@ -49,6 +55,15 @@ describe("detectPreviewAdapter", () => {
     await writeFile(join(root, "vite.config.ts"), "export default {};");
     await installPackage(root, "vite", "8.1.0");
     await installPackage(root, "@gobrand/openstory-vite", "0.6.2");
+
+    await expect(detectPreviewAdapter(root)).resolves.toEqual({ ok: true, adapter: "vite" });
+  });
+
+  it("detects an installed ESM adapter with an import-only package export", async () => {
+    const root = await project();
+    await writeFile(join(root, "vite.config.ts"), "export default {};");
+    await installPackage(root, "vite", "8.1.0");
+    await installPackage(root, "@gobrand/openstory-vite", "0.6.4", undefined, true);
 
     await expect(detectPreviewAdapter(root)).resolves.toEqual({ ok: true, adapter: "vite" });
   });
