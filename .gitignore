@@ -2,6 +2,8 @@ node_modules/
 dist/
 out/
 .turbo/
+.source/
+.wrangler/
 .DS_Store
 *.log
 .env

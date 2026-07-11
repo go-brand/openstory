@@ -1,0 +1,77 @@
+---
+title: Installation
+description: Add OpenStory to a Vite project and prepare the desktop manager
+---
+
+## Install the project packages
+
+Add the authoring API and Vite plugin to the project whose components you want to explore:
+
+```bash
+pnpm add -D @gobrand/openstory-config @gobrand/openstory-vite
+```
+
+The browser runtime is installed transitively by `@gobrand/openstory-vite`; you do not need to manage it separately.
+
+OpenStory currently supports Vite 7 and 8. Your project also needs React 19.
+
+## Add the Vite plugin
+
+For a plain React and Vite project, add `openStory()` to `vite.config.ts`:
+
+```ts
+import react from "@vitejs/plugin-react";
+import { openStory } from "@gobrand/openstory-vite";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [react(), openStory()],
+});
+```
+
+OpenStory starts Vite with `mode: 'openstory'`. If your application uses a framework or runtime plugin that owns the development request pipeline, exclude it in that mode:
+
+```ts
+import react from "@vitejs/plugin-react";
+import { openStory } from "@gobrand/openstory-vite";
+import { defineConfig } from "vite";
+
+export default defineConfig(({ mode }) => {
+  const isOpenStory = mode === "openstory";
+
+  return {
+    plugins: [react(), openStory(), ...(isOpenStory ? [] : [tanstackStart(), cloudflare()])],
+    ...(isOpenStory ? { optimizeDeps: { entries: [] } } : {}),
+  };
+});
+```
+
+This keeps framework middleware from swallowing OpenStory's `/__pl__/` harness route and avoids crawling framework-only virtual modules during dependency optimization.
+
+## Get the manager
+
+<div className="manager-status">
+  <strong>Public desktop download: Coming soon</strong>
+  <p>
+    The install button is not live yet. Until signed desktop builds are published, run the manager
+    from source.
+  </p>
+</div>
+
+The repository requires Node.js 22 or newer:
+
+```bash
+git clone https://github.com/go-brand/openstory.git
+cd openstory
+corepack enable
+pnpm install
+pnpm dev
+```
+
+The development command builds the packages and opens the Electron manager.
+
+## Next step
+
+Create a colocated story, then choose **Open a project…** in the manager.
+
+[Write your first story →](/docs/first-story)

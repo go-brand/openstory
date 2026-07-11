@@ -1,0 +1,15 @@
+{
+  "name": "OpenStory",
+  "short_name": "OpenStory",
+  "start_url": "/openstory/",
+  "display": "standalone",
+  "background_color": "#1b1c1d",
+  "theme_color": "#1b1c1d",
+  "icons": [
+    {
+      "src": "/openstory/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
