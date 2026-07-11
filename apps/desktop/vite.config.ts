@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { openStory } from "@gobrand/openstory-vite";
 
 // Plain Vite config used ONLY when the OpenStory manager opens this folder as a
-// project: ViteHost does `createServer({ root, mode: 'openstory' })`, which loads
+// project: PreviewServer does `createServer({ root, mode: 'openstory' })`, which loads
 // this file. The Electron build uses electron.vite.config.ts (electron-vite loads
 // that one explicitly), so the two never collide.
 //

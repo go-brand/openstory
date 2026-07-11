@@ -178,11 +178,7 @@ export function PreviewStage({
   return (
     <Providers>
       <ViewportContext.Provider value={selection.viewport}>
-        <MeasuredStage
-          width={width}
-          previewPadding={previewPadding}
-          measureKey={measureKey}
-        >
+        <MeasuredStage width={width} previewPadding={previewPadding} measureKey={measureKey}>
           <Component {...props} />
         </MeasuredStage>
       </ViewportContext.Provider>
@@ -283,7 +279,7 @@ export function DocsPage({
   );
 }
 
-function App({ config }: { config: OpenStoryConfig }) {
+export function OpenStoryPreview({ config }: { config: OpenStoryConfig }) {
   const [selection, setSelection] = useState<ActiveSelection | null>(readSelectionFromUrl);
   const [page, setPage] = useState<{ html: string; embeds: string[] } | null>(null);
   const [docsComponentId, setDocsComponentId] = useState<string | null>(null);
@@ -395,5 +391,5 @@ function App({ config }: { config: OpenStoryConfig }) {
 
 export function mountPreviewHost(target: HTMLElement, config: OpenStoryConfig): void {
   const root = createRoot(target);
-  root.render(<App config={config} />);
+  root.render(<OpenStoryPreview config={config} />);
 }

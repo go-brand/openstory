@@ -79,10 +79,7 @@ function isInsideOrSame(root: string, target: string): boolean {
   return rel === "" || (!rel.startsWith("..") && !rel.startsWith(`..${sep}`));
 }
 
-function candidate(
-  path: string,
-  repository?: ProjectIdentity["repository"],
-): WorkspaceCandidate {
+function candidate(path: string, repository?: ProjectIdentity["repository"]): WorkspaceCandidate {
   const identity = resolveProjectIdentity(path);
   if (!repository) return { path: identity.workspace.rootPath, identity };
   const relativePath =

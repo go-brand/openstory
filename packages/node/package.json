@@ -1,0 +1,51 @@
+{
+  "name": "@gobrand/openstory-node",
+  "version": "0.6.2",
+  "private": false,
+  "description": "Builder-independent Node services for OpenStory adapters",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/go-brand/openstory.git",
+    "directory": "packages/node"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./project-identity": {
+      "types": "./dist/project-identity.d.ts",
+      "import": "./dist/project-identity.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gobrand/openstory-config": "workspace:^",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "marked": "^18.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.4",
+    "@types/react": "19.2.7",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18",
+    "zod": "^4.4.3"
+  }
+}

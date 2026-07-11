@@ -2,7 +2,7 @@ import { ipcMain, BrowserWindow, dialog, shell } from "electron";
 import { relative, resolve, sep } from "node:path";
 import { readFileSync, statSync } from "node:fs";
 import { AppStore } from "./store";
-import { ViteHost } from "./vite-host";
+import { PreviewServer } from "./preview-server";
 import type { AppState, ManifestComponent, ManifestDoc, PreviewSource } from "./types";
 import { reconcileSelection, defaultMode } from "./selection";
 import { allowedExternalUrl } from "./external-url.js";
@@ -23,7 +23,7 @@ function isInside(root: string, target: string): boolean {
 
 type Deps = {
   store: AppStore;
-  viteHost: ViteHost;
+  previewServer: PreviewServer;
   getMain: () => BrowserWindow | null;
   getDetached: () => BrowserWindow | null;
   openDetached: () => void;
@@ -38,13 +38,13 @@ function buildHarnessUrl(port: number): string {
 
 function buildAppState(
   store: AppStore,
-  viteHost: ViteHost,
+  previewServer: PreviewServer,
   manifest: ManifestComponent[],
   docs: ManifestDoc[],
   detachedOpen: boolean,
 ): AppState {
   const s = store.state;
-  const status = viteHost.status();
+  const status = previewServer.status();
   const iframeUrl = status.status === "ready" && status.port ? buildHarnessUrl(status.port) : null;
   return {
     projects: s.projects,
@@ -55,7 +55,7 @@ function buildAppState(
     docs,
     iframeUrl,
     detachedOpen,
-    vite: status,
+    previewServer: status,
   };
 }
 
@@ -66,7 +66,7 @@ export function registerIpc(deps: Deps) {
   function broadcastState() {
     const state = buildAppState(
       deps.store,
-      deps.viteHost,
+      deps.previewServer,
       manifest,
       docs,
       deps.getDetached() !== null,
@@ -93,7 +93,7 @@ export function registerIpc(deps: Deps) {
       projectId: expectedProject.id,
       projectPath: expectedProject.path,
       port,
-      generation: deps.viteHost.generation(),
+      generation: deps.previewServer.generation(),
     };
 
     function currentProject() {
@@ -106,8 +106,8 @@ export function registerIpc(deps: Deps) {
       return shouldApplyManifestResponse(
         request,
         currentProject(),
-        deps.viteHost.status(),
-        deps.viteHost.generation(),
+        deps.previewServer.status(),
+        deps.previewServer.generation(),
         identity,
       );
     }
@@ -150,7 +150,7 @@ export function registerIpc(deps: Deps) {
     }
   }
 
-  deps.viteHost.subscribe(async (status) => {
+  deps.previewServer.subscribe(async (status) => {
     if (status.status === "ready" && status.port) {
       await fetchManifest(status.port);
     }
@@ -158,7 +158,7 @@ export function registerIpc(deps: Deps) {
   });
 
   ipcMain.handle("state:get", () =>
-    buildAppState(deps.store, deps.viteHost, manifest, docs, deps.getDetached() !== null),
+    buildAppState(deps.store, deps.previewServer, manifest, docs, deps.getDetached() !== null),
   );
 
   ipcMain.handle("project:pickFolder", async () => {
@@ -197,7 +197,7 @@ export function registerIpc(deps: Deps) {
     deps.store.patchSelection({ projectId: id });
     if (switching) {
       // Drop the previous repo's manifest unless this project has a persisted
-      // cache. The cached tree lets repeat workspace loads show data during Vite
+      // cache. The cached tree lets repeat workspace loads show data while the preview
       // startup; the live fetch below still refreshes/reconciles as soon as the
       // dev server is ready.
       const cached = deps.store.getWorkspaceData(project);
@@ -205,7 +205,7 @@ export function registerIpc(deps: Deps) {
       docs = cached?.docs ?? [];
       if (cached) reconcileActiveSelection();
     }
-    await deps.viteHost.start(project.path);
+    await deps.previewServer.start(project.path);
   });
 
   ipcMain.handle(
@@ -264,10 +264,10 @@ export function registerIpc(deps: Deps) {
   // the active project root before reading — defense in depth.
   // The harness re-posts pl:manifest when Vite HMR re-runs import.meta.glob (a
   // *.stories.tsx was added/removed). Re-fetch the manifest and broadcast so the
-  // sidebar tree updates live without a relaunch. Mirrors the viteHost.subscribe
+  // sidebar tree updates live without a relaunch. Mirrors the previewServer.subscribe
   // "ready → fetchManifest → broadcast" path above.
   ipcMain.handle("preview:refreshManifest", async () => {
-    const status = deps.viteHost.status();
+    const status = deps.previewServer.status();
     if (status.status === "ready" && status.port) {
       await fetchManifest(status.port);
       broadcastState();

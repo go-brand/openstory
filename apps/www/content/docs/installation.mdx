@@ -1,9 +1,13 @@
 ---
 title: Installation
-description: Add OpenStory to a Vite project and prepare the desktop manager
+description: Add OpenStory to a Vite or Next.js project and prepare the desktop manager
 ---
 
-## Install the project packages
+Choose the adapter that owns your application's development pipeline. The desktop manager detects the installed adapter when you open the project.
+
+## Vite
+
+### Install the project packages
 
 Add the authoring API and Vite plugin to the project whose components you want to explore:
 
@@ -15,17 +19,7 @@ The browser runtime is installed transitively by `@gobrand/openstory-vite`; you 
 
 OpenStory currently supports Vite 7 and 8. Your project also needs React 19.
 
-## Install the agent skill
-
-If coding agents maintain your feature documentation, install OpenStory's source-backed `*.stories.md` workflow too:
-
-```bash
-npx skills add go-brand/openstory --skill openstory-feature-docs
-```
-
-[Learn what the feature docs skill checks →](/docs/agent-skill)
-
-## Add the Vite plugin
+### Add the Vite plugin
 
 Add `openStory()` before framework and runtime adapters in `vite.config.ts`:
 
@@ -56,6 +50,38 @@ openStory({
 
 `keep` takes precedence over built-in and custom disabling.
 
+## Next.js
+
+For a Next.js 16 App Router project using Turbopack, install the authoring API and Next adapter:
+
+```bash
+pnpm add -D @gobrand/openstory-config @gobrand/openstory-next
+```
+
+There is no `next.config` wrapper and no route to add. Open the project in the desktop manager, or run the adapter directly:
+
+```json
+{
+  "scripts": {
+    "story:dev": "openstory-next"
+  }
+}
+```
+
+The adapter generates a disposable App Router application under `.openstory/cache`, then runs it with the project's installed Next.js and Turbopack. Add `.openstory/` to the project's ignore file.
+
+[Read the Next.js support contract →](/docs/nextjs)
+
+## Install the agent skill
+
+If coding agents maintain your feature documentation, install OpenStory's source-backed `*.stories.md` workflow too:
+
+```bash
+npx skills add go-brand/openstory --skill openstory-feature-docs
+```
+
+[Learn what the feature docs skill checks →](/docs/agent-skill)
+
 ## Get the manager
 
 <div className="manager-status">
@@ -80,6 +106,6 @@ The development command builds the packages and opens the Electron manager.
 
 ## Next step
 
-Create a colocated story, then choose **Open a project…** in the manager.
+Create a colocated story, then choose **Open a project…** in the manager. OpenStory selects the installed Vite or Next adapter automatically.
 
 [Write your first story →](/docs/first-story)

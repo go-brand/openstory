@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AppState, ProjectRecord } from "../../electron/types";
-import {
-  projectAfterBatchAdd,
-  REPO_MENU_WIDTH_CLASS,
-  repoSwitcherSnapshot,
-} from "./repo-switcher";
+import { projectAfterBatchAdd, REPO_MENU_WIDTH_CLASS, repoSwitcherSnapshot } from "./repo-switcher";
 
 function project(
   id: string,
@@ -56,7 +52,7 @@ function state(projects: ProjectRecord[]): AppState {
     docs: [],
     iframeUrl: null,
     detachedOpen: false,
-    vite: { status: "idle", port: null, error: null },
+    previewServer: { status: "idle", adapter: null, port: null, error: null },
   };
 }
 

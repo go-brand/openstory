@@ -23,11 +23,13 @@ export function sidebarShellSnapshot(isOpen: boolean): {
 
 export function showProjectLoading(
   projectCount: number,
-  viteStatus: AppState["vite"]["status"],
+  previewServerStatus: AppState["previewServer"]["status"],
   nodeCount: number,
 ) {
   return (
-    projectCount > 0 && (viteStatus === "starting" || viteStatus === "idle") && nodeCount === 0
+    projectCount > 0 &&
+    (previewServerStatus === "starting" || previewServerStatus === "idle") &&
+    nodeCount === 0
   );
 }
 
@@ -148,11 +150,15 @@ export function Sidebar({ state, api, onSelectStory }: SidebarProps) {
             <p className="px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
               Add a repository to load its OpenStory components.
             </p>
-          ) : showProjectLoading(state.projects.length, state.vite.status, nodes.length) ? (
+          ) : showProjectLoading(
+              state.projects.length,
+              state.previewServer.status,
+              nodes.length,
+            ) ? (
             // Project switching: the new manifest hasn't arrived yet, so show a
             // spinner instead of an empty/stale tree. When a same-project cache is
             // present, `nodes` is non-empty and the tree can render immediately
-            // while Vite refreshes it in the background.
+            // while the preview server refreshes it in the background.
             <Loading label="Loading project…" className="px-3 py-6" />
           ) : nodes.length === 0 ? (
             <p className="px-3 py-2 text-[11px] text-muted-foreground">

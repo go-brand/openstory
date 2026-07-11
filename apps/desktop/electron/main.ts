@@ -2,7 +2,7 @@ import { app, BrowserWindow } from "electron";
 import { appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { AppStore } from "./store";
-import { ViteHost } from "./vite-host";
+import { PreviewServer } from "./preview-server";
 import { createMainWindow } from "./windows/main-window";
 import { createDetachedWindow } from "./windows/detached-window";
 import { registerIpc } from "./ipc";
@@ -36,7 +36,7 @@ process.on("warning", (w) => {
   }
 });
 
-const viteHost = new ViteHost();
+const previewServer = new PreviewServer();
 const store = new AppStore();
 let mainWindow: BrowserWindow | null = null;
 let detachedWindow: BrowserWindow | null = null;
@@ -127,7 +127,7 @@ async function bootstrap() {
 
   const ipc = registerIpc({
     store,
-    viteHost,
+    previewServer,
     getMain: () => mainWindow,
     getDetached: () => detachedWindow,
     openDetached: () => {
@@ -143,7 +143,7 @@ async function bootstrap() {
   const { projectId } = store.state.selection;
   if (projectId) {
     const project = store.state.projects.find((p) => p.id === projectId);
-    if (project) viteHost.start(project.path).catch(() => {});
+    if (project) previewServer.start(project.path).catch(() => {});
   }
 }
 
@@ -158,11 +158,11 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-// Ensure the child Vite server is torn down before we exit. Electron does not
+// Ensure the active preview server is torn down before we exit. Electron does not
 // await async before-quit listeners, so we defer the quit until stop resolves.
 app.on("before-quit", (event) => {
   if (isQuitting) return;
   event.preventDefault();
   isQuitting = true;
-  viteHost.stop().finally(() => app.quit());
+  previewServer.stop().finally(() => app.quit());
 });

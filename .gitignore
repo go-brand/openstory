@@ -15,3 +15,5 @@ playwright-report/
 # brainstorming visual companion
 .superpowers/
 .worktrees/
+.openstory/
+.next/

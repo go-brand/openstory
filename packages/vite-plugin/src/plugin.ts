@@ -5,17 +5,21 @@ import type { Plugin, ViteDevServer } from "vite";
 import { buildHarnessEntry, buildHtmlShell } from "./harness-loader.js";
 import type { OpenStoryConfig } from "@gobrand/openstory-config";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { resolvePatterns } from "./discover.js";
-import { assembleManifest } from "./assemble-manifest.js";
-import { createMcpServer } from "./mcp-server.js";
-import { gitChangedFiles, gitDiffFile, mergeBase } from "./changed-stories.js";
+import {
+  assembleManifest,
+  createMcpServer,
+  gitChangedFiles,
+  gitDiffFile,
+  mergeBase,
+  resolvePatterns,
+} from "@gobrand/openstory-node";
 import {
   applyOpenStoryCompatibility,
   type OpenStoryCompatibilityOptions,
 } from "./compatibility.js";
 
 // Re-exported so existing importers (and tests) keep `buildManifest` from "./plugin".
-export { buildManifest } from "./assemble-manifest.js";
+export { buildManifest } from "@gobrand/openstory-node";
 
 const VIRTUAL_ID = "virtual:openstory-entry";
 const RESOLVED_VIRTUAL_ID = "\0virtual:openstory-entry";

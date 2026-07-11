@@ -1,4 +1,9 @@
-export { mountPreviewHost, useOpenStoryViewport, type ViewportName } from "./preview-host.js";
+export {
+  mountPreviewHost,
+  OpenStoryPreview,
+  useOpenStoryViewport,
+  type ViewportName,
+} from "./preview-host.js";
 export { DocHost } from "./doc-host.js";
 export { parseBridgeMessage } from "./bridge.js";
 export type {

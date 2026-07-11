@@ -49,6 +49,7 @@
   },
   "dependencies": {
     "@gobrand/openstory-config": "workspace:^",
+    "@gobrand/openstory-node": "workspace:^",
     "@gobrand/openstory-runtime": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "marked": "^18.0.5"

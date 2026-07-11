@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ProjectRecord } from "./types";
-import type { ViteHostStatus } from "./vite-host";
+import type { PreviewServerStatus } from "./preview-server";
 import { shouldApplyManifestResponse } from "./manifest-request";
 
 const project = {
@@ -9,14 +9,19 @@ const project = {
 } as ProjectRecord;
 
 describe("shouldApplyManifestResponse", () => {
-  it("accepts only the project and Vite port captured when the request started", () => {
+  it("accepts only the project and preview port captured when the request started", () => {
     const request = {
       projectId: "app",
       projectPath: "/repo/apps/app",
       port: 4100,
       generation: 3,
     };
-    const ready = { status: "ready", port: 4100, error: null } satisfies ViteHostStatus;
+    const ready = {
+      status: "ready",
+      adapter: "vite",
+      port: 4100,
+      error: null,
+    } satisfies PreviewServerStatus;
 
     expect(shouldApplyManifestResponse(request, project, ready, 3, undefined)).toBe(true);
     expect(
@@ -26,7 +31,7 @@ describe("shouldApplyManifestResponse", () => {
       shouldApplyManifestResponse(
         request,
         project,
-        { status: "ready", port: 4200, error: null },
+        { status: "ready", adapter: "vite", port: 4200, error: null },
         3,
         undefined,
       ),
@@ -35,7 +40,7 @@ describe("shouldApplyManifestResponse", () => {
       shouldApplyManifestResponse(
         request,
         project,
-        { status: "starting", port: null, error: null },
+        { status: "starting", adapter: "vite", port: null, error: null },
         3,
         undefined,
       ),
@@ -50,20 +55,19 @@ describe("shouldApplyManifestResponse", () => {
       port: 4100,
       generation: 3,
     };
-    const ready = { status: "ready", port: 4100, error: null } satisfies ViteHostStatus;
+    const ready = {
+      status: "ready",
+      adapter: "vite",
+      port: 4100,
+      error: null,
+    } satisfies PreviewServerStatus;
 
     expect(
-      shouldApplyManifestResponse(
-        request,
-        project,
-        ready,
-        3,
-        {
-          repository: { label: "Repo", slug: null, rootPath: "/other" },
-          workspace: { label: "App", relativePath: "apps/app", rootPath: "/other/apps/app" },
-          source: "automatic",
-        },
-      ),
+      shouldApplyManifestResponse(request, project, ready, 3, {
+        repository: { label: "Repo", slug: null, rootPath: "/other" },
+        workspace: { label: "App", relativePath: "apps/app", rootPath: "/other/apps/app" },
+        source: "automatic",
+      }),
     ).toBe(false);
   });
 });

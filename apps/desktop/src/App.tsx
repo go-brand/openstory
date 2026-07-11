@@ -33,7 +33,7 @@ const FALLBACK_STATE: AppState = {
   docs: [],
   iframeUrl: null,
   detachedOpen: false,
-  vite: { status: "idle", port: null, error: null },
+  previewServer: { status: "idle", adapter: null, port: null, error: null },
 };
 
 function getApi() {
@@ -76,7 +76,7 @@ export function App() {
     const projectId = state.selection.projectId;
     if (!projectId || state.manifest.length + state.docs.length === 0) return;
 
-    const source = state.vite.status === "ready" ? "live" : "cache";
+    const source = state.previewServer.status === "ready" ? "live" : "cache";
     const key = `${projectId}:${source}`;
     if (!measuredWorkspaceData.current.has(key)) {
       measuredWorkspaceData.current.add(key);
@@ -86,7 +86,12 @@ export function App() {
       measuredAppWorkspaceData.current = true;
       measureAppWorkspaceDataVisible(source);
     }
-  }, [state.docs.length, state.manifest.length, state.selection.projectId, state.vite.status]);
+  }, [
+    state.docs.length,
+    state.manifest.length,
+    state.previewServer.status,
+    state.selection.projectId,
+  ]);
 
   return (
     <ThemeProvider theme={state.theme} api={api}>
