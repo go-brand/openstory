@@ -1,0 +1,55 @@
+---
+title: Introduction
+description: A component workbench and living-docs tool for real Vite projects
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+OpenStory discovers the stories and docs already living beside your components, then renders them with your project's React, CSS, providers, and Vite pipeline.
+
+It gives people a focused desktop workbench and gives agents stable render URLs plus a read-only MCP surface. Both use the same manifest and the same renderer.
+
+## What it replaces
+
+Use OpenStory when you want a component workbench without maintaining a separate documentation application or a large Storybook configuration.
+
+- Write `*.stories.ts` or `*.stories.tsx` beside a component.
+- Write `*.stories.md` anywhere under `src` for living documentation.
+- Add one Vite plugin; discovery and the preview harness are automatic.
+- Keep using your real styles, providers, components, and React version.
+
+## Manager and harness
+
+OpenStory has one important boundary:
+
+- The **manager** is the desktop window: sidebar, toolbar, controls, and canvas.
+- The **harness** runs inside your Vite server and imports your actual project code.
+
+The manager cannot import your components directly because they depend on your bundler and project setup. It opens the harness at `/__pl__/` in an iframe and communicates with it over `postMessage`.
+
+That split is what lets OpenStory stay outside your application while still rendering the application accurately.
+
+## Current scope
+
+OpenStory currently targets React projects using Vite. In `openstory` mode it automatically isolates the preview route from supported framework and runtime plugins that own the development request pipeline, including TanStack Start and the Cloudflare Vite plugin.
+
+The project packages are available, but the public desktop manager download is **coming soon**. You can run the manager from source today.
+
+<Cards>
+  <Card
+    title="Installation"
+    href="/docs/installation"
+    description="Add the packages and configure Vite."
+  />
+  <Card
+    title="Your first story"
+    href="/docs/first-story"
+    description="Render a real component in OpenStory."
+  />
+</Cards>
+
+## Built for agents too
+
+Every project harness also exposes a versioned story render route and a read-only MCP server at `/__pl__/mcp`. An agent can list components, inspect story source, find changed stories, and navigate to the same rendered output a person sees in the manager.
+
+No bundled browser is required; OpenStory works with the browser tooling your agent already uses.

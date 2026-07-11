@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "openstory-www",
+  "main": "@tanstack/react-start/server-entry",
+  "compatibility_date": "2025-01-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "eng.gobrand.app/openstory",
+      "zone_name": "gobrand.app",
+    },
+    {
+      "pattern": "eng.gobrand.app/openstory/*",
+      "zone_name": "gobrand.app",
+    },
+  ],
+}

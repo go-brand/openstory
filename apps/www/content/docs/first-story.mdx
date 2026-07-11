@@ -1,0 +1,67 @@
+---
+title: Your first story
+description: Define a component state and open it in the OpenStory manager
+---
+
+## Add a colocated story
+
+Create `Button.stories.tsx` beside your component:
+
+```tsx
+import { defineStories } from "@gobrand/openstory-config";
+import { Button } from "./Button";
+
+export default defineStories({
+  component: Button,
+  stories: {
+    Primary: {
+      variant: "primary",
+      children: "Save changes",
+    },
+    Disabled: {
+      args: {
+        variant: "primary",
+        children: "Save changes",
+        disabled: true,
+      },
+      label: "Primary (disabled)",
+    },
+  },
+});
+```
+
+OpenStory discovers `*.stories.ts` and `*.stories.tsx` files automatically. Each key under `stories` becomes a stable kebab-cased ID and a human-readable label:
+
+- `Primary` becomes `primary` / **Primary**
+- `Disabled` becomes `disabled` / **Primary (disabled)** because the story supplies a custom label
+
+## Open the project
+
+1. Start the OpenStory manager.
+2. Select **Open a project…**.
+3. Choose the project directory containing `vite.config.ts`.
+4. Open **Design System → Button → Primary** in the sidebar.
+
+The canvas now renders your actual `Button` through your Vite server. Controls are derived from its TypeScript props, and changing the story source updates the preview.
+
+## Optional project configuration
+
+Add `openstory.config.ts` at the project root only when you need shared providers, global styles, named preview presets, or project identity labels:
+
+```ts
+import { defineOpenStoryConfig } from "@gobrand/openstory-config";
+
+export default defineOpenStoryConfig({
+  presets: {
+    docs: {
+      viewport: {
+        desktop: { width: 720 },
+        mobile: { width: 360 },
+      },
+      chrome: { background: "#ffffff" },
+    },
+  },
+});
+```
+
+You can omit the config file entirely for the default neutral canvas.

@@ -9,6 +9,10 @@ import { resolvePatterns } from "./discover.js";
 import { assembleManifest } from "./assemble-manifest.js";
 import { createMcpServer } from "./mcp-server.js";
 import { gitChangedFiles, gitDiffFile, mergeBase } from "./changed-stories.js";
+import {
+  applyOpenStoryCompatibility,
+  type OpenStoryCompatibilityOptions,
+} from "./compatibility.js";
 
 // Re-exported so existing importers (and tests) keep `buildManifest` from "./plugin".
 export { buildManifest } from "./assemble-manifest.js";
@@ -74,8 +78,9 @@ function detectStyles(projectRoot: string): string[] {
   return [];
 }
 
-type PluginOptions = {
+export type PluginOptions = {
   configFile?: string;
+  compatibility?: OpenStoryCompatibilityOptions;
 };
 
 function findConfig(root: string): string | null {
@@ -143,6 +148,15 @@ export function openStory(options: PluginOptions = {}): Plugin {
   return {
     name: "@gobrand/openstory-vite",
     enforce: "pre",
+
+    config: {
+      order: "pre",
+      async handler(config, env) {
+        if (env.mode === "openstory") {
+          await applyOpenStoryCompatibility(config, options.compatibility);
+        }
+      },
+    },
 
     configResolved(config) {
       projectRoot = config.root;
