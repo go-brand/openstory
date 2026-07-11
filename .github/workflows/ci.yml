@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     branches: [main]
 
@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build
@@ -45,8 +45,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-          cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build
@@ -60,7 +60,15 @@ jobs:
         run: pnpm --filter @gobrand/openstory-runtime publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish @gobrand/openstory-node
+        run: pnpm --filter @gobrand/openstory-node publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish @gobrand/openstory-vite
         run: pnpm --filter @gobrand/openstory-vite publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish @gobrand/openstory-next
+        run: pnpm --filter @gobrand/openstory-next publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

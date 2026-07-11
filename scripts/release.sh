@@ -10,7 +10,9 @@ NC='\033[0m'
 PACKAGES=(
   "packages/config"
   "packages/runtime"
+  "packages/node"
   "packages/vite-plugin"
+  "packages/next"
 )
 
 if [ -z "$1" ]; then

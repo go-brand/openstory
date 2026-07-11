@@ -13,7 +13,7 @@
 - Support Next.js `>=16 <17`, App Router, Turbopack, React 19, and client-compatible stories only.
 - Do not support Pages Router, webpack mode, React Server Components, Server Actions, or production harness export in v1.
 - Render through the consumer's installed Next.js and Turbopack; do not start Vite for Next projects.
-- Write generated files only under `<project>/node_modules/.cache/openstory-next/<project-hash>`.
+- Write generated files only under `<project>/.openstory/cache/next/<project-hash>`.
 - Never modify tracked consumer source/configuration and never install dependencies automatically.
 - Preserve `/__pl__/`, `/__pl__/manifest.json`, `/__pl__/mcp`, and the existing manifest schema.
 - Keep existing Vite behavior and public exports backward-compatible.
@@ -25,6 +25,7 @@
 ### Task 1: Extract builder-independent Node services
 
 **Files:**
+
 - Create: `packages/node/package.json`
 - Create: `packages/node/tsconfig.json`
 - Create: `packages/node/README.md`
@@ -36,6 +37,7 @@
 - Modify: `packages/vite-plugin/src/*.ts` imports and public compatibility re-exports
 
 **Interfaces:**
+
 - Produces: `buildManifest(config, projectRoot?, docs?)` and `Manifest`.
 - Produces: `assembleLoadedManifest({ projectRoot, loaded, readFile })`.
 - Produces: discovery, docs, identity, Git, prop-type, doc-sync, and MCP helpers currently imported inside the Vite package.
@@ -80,7 +82,11 @@ export type LoadedProject = {
   components: RegisteredComponent[];
 };
 
-export function assembleLoadedManifest({ projectRoot, loaded, readFile }: {
+export function assembleLoadedManifest({
+  projectRoot,
+  loaded,
+  readFile,
+}: {
   projectRoot: string;
   loaded: LoadedProject;
   readFile: (path: string) => string;
@@ -119,11 +125,13 @@ git commit -m "refactor: extract OpenStory Node core"
 ### Task 2: Export the shared React preview component
 
 **Files:**
+
 - Modify: `packages/runtime/src/preview-host.tsx`
 - Modify: `packages/runtime/src/index.ts`
 - Modify: `packages/runtime/src/preview-host.test.tsx`
 
 **Interfaces:**
+
 - Produces: `OpenStoryPreview({ config }: { config: OpenStoryConfig })`.
 - Preserves: `mountPreviewHost(target, config)` as a wrapper around the component.
 
@@ -175,6 +183,7 @@ git commit -m "refactor: export shared preview component"
 ### Task 3: Generate deterministic Next story registries
 
 **Files:**
+
 - Create: `packages/next/package.json`
 - Create: `packages/next/tsconfig.json`
 - Create: `packages/next/README.md`
@@ -187,6 +196,7 @@ git commit -m "refactor: export shared preview component"
 - Create: `packages/next/src/cache.test.ts`
 
 **Interfaces:**
+
 - Produces: `inspectNextProject(root): NextProjectInspection`.
 - Produces: `generateRegistries({ projectRoot, cacheRoot, configPath, storyFiles })`.
 - Produces: `resolveNextCacheRoot(projectRoot)` and containment guards.
@@ -217,7 +227,7 @@ dependency; Next `16.2.10` and React `19.2.3` as development dependencies; and:
 
 Resolve packages from the consumer root with `createRequire`, parse Next's major
 version, locate `app/` or `src/app/`, and return typed errors with remediation.
-Build the cache at `node_modules/.cache/openstory-next/<stable-project-hash>` and
+Build the cache at `.openstory/cache/next/<stable-project-hash>` and
 reject discovered realpaths outside the project/workspace roots.
 
 - [ ] **Step 5: Implement atomic dual registries**
@@ -247,6 +257,7 @@ git commit -m "feat: generate Next story registries"
 ### Task 4: Generate and run the shadow App Router application
 
 **Files:**
+
 - Create: `packages/next/src/shadow-app.ts`
 - Create: `packages/next/src/shadow-app.test.ts`
 - Create: `packages/next/src/next-config.ts`
@@ -258,6 +269,7 @@ git commit -m "feat: generate Next story registries"
 - Create: `packages/next/src/protocol.test.ts`
 
 **Interfaces:**
+
 - Produces: `generateShadowApp(options): Promise<GeneratedNextApp>`.
 - Produces: `startNextPreview(options): Promise<NextPreviewServer>`.
 - Produces stdout events `{"type":"ready","adapter":"next","port":number}`,
@@ -283,8 +295,9 @@ Expected: fail because generators/server do not exist.
 
 - [ ] **Step 4: Generate the App Router files**
 
-Generate `app/layout.tsx`, `app/__pl__/page.tsx`, and
-`app/__pl__/manifest.json/route.ts`. The page renders the generated client
+Generate `app/layout.tsx`, `app/%5F_pl__/page.tsx`, and
+`app/%5F_pl__/manifest.json/route.ts`. The encoded leading underscore is Next's
+filesystem form of the public `/__pl__` route. The page renders the generated client
 registry. The route imports `loadedProject` and calls
 `assembleLoadedManifest`, returning `Response.json(manifest)` or a JSON 500.
 
@@ -323,6 +336,7 @@ git commit -m "feat: run OpenStory through Next Turbopack"
 ### Task 5: Generalize the desktop preview server
 
 **Files:**
+
 - Create: `apps/desktop/electron/preview-server.ts`
 - Create: `apps/desktop/electron/preview-server.test.ts`
 - Create: `apps/desktop/electron/preview-adapter.ts`
@@ -335,6 +349,7 @@ git commit -m "feat: run OpenStory through Next Turbopack"
 - Modify: renderer consumers/tests of `AppState.vite`
 
 **Interfaces:**
+
 - Produces: `PreviewAdapter = "vite" | "next"`.
 - Produces: `PreviewServerStatus` from the approved spec.
 - Produces: `PreviewServer.start(root)` / `stop()` / `generation()` / `subscribe()`.
@@ -391,11 +406,13 @@ git commit -m "feat: launch framework preview adapters"
 ### Task 6: Prove the real Next 16/Turbopack integration
 
 **Files:**
+
 - Create: `packages/next/src/__fixtures__/next-app/` fixture files
 - Create: `packages/next/src/next-integration.test.ts`
 - Modify: `packages/next/package.json` test configuration if required
 
 **Interfaces:**
+
 - Consumes: `startNextPreview` and the public HTTP contracts.
 - Verifies: real Next 16.2.10/Turbopack, not injected fakes.
 
@@ -411,8 +428,9 @@ Start on port 0 and assert:
 
 ```ts
 expect((await fetch(`${base}/__pl__/`)).status).toBe(200);
-expect(await fetch(`${base}/__pl__/manifest.json`).then((r) => r.json()))
-  .toMatchObject({ schemaVersion: 1 });
+expect(await fetch(`${base}/__pl__/manifest.json`).then((r) => r.json())).toMatchObject({
+  schemaVersion: 1,
+});
 ```
 
 Use Playwright for the headless render URL and navigation/image assertions.
@@ -451,6 +469,7 @@ git commit -m "test: prove Next Turbopack adapter end to end"
 ### Task 7: Document Next support and finish verification
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `packages/next/README.md`
 - Modify: `apps/www/content/docs/installation.mdx`
@@ -459,6 +478,7 @@ git commit -m "test: prove Next Turbopack adapter end to end"
 - Modify: release/package metadata required for the two new public packages
 
 **Interfaces:**
+
 - Documents: install, zero-config desktop detection, `story:dev`, supported Next versions/features, and client-only boundary.
 
 - [ ] **Step 1: Update public documentation**

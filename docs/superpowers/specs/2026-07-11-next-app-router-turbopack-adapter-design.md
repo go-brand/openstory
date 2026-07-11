@@ -162,7 +162,7 @@ the consumer project so the harness runs the same versions as the application.
 Generate the adapter under:
 
 ```text
-<project>/node_modules/.cache/openstory-next/<project-hash>/
+<project>/.openstory/cache/next/<project-hash>/
 ```
 
 The generated tree contains:
@@ -170,7 +170,7 @@ The generated tree contains:
 ```text
 app/
   layout.tsx
-  __pl__/
+  %5F_pl__/
     page.tsx
     manifest.json/route.ts
 generated/
@@ -182,7 +182,10 @@ tsconfig.json
 ```
 
 Nothing is written to the consumer's tracked `app/` or `src/` directories.
-`node_modules/.cache` already has the expected generated-artifact semantics.
+The cache lives outside `node_modules` because Turbopack cannot treat a Next
+application rooted below `node_modules` as source. `%5F_pl__` is Next's
+filesystem escape for the public `/__pl__` URL segment. Projects ignore the
+disposable `.openstory/` directory.
 
 The generated Next config loads the consumer's `next.config` export, including
 async/function exports, and merges only adapter-owned settings:

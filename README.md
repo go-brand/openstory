@@ -1,14 +1,14 @@
 # OpenStory
 
-OpenStory is an open-source tool that reads your codebase via a Vite plugin and
-compiles your **design system and docs** into a desktop app — Storybook without
-the config tax. Point it at any repo.
+OpenStory is an open-source tool that compiles your **design system and docs**
+through your project's real Vite or Next.js development pipeline into a desktop
+app — Storybook without the config tax. Point it at any repo.
 
 Drop `*.stories.{ts,tsx}` next to your components and `*.stories.md` anywhere
-under `src`, add one Vite plugin, and OpenStory boots the project's own dev
-server, discovers everything, and renders your real components — with your CSS,
-your providers, your React — on its own themed canvas. No per-project app to
-build, no Storybook to host, no route to wire up.
+under `src`, install the matching adapter, and OpenStory boots the project's own
+development server, discovers everything, and renders your real components —
+with your CSS, your providers, your React — on its own themed canvas. Vite uses
+`openStory()`; Next.js 16 App Router projects need only the Next adapter.
 
 > Today this is a component workbench plus living docs. Compiling _more_ than
 > design systems is on the roadmap.
@@ -21,13 +21,13 @@ they run in two different places:
 - **The manager** is the Electron app — the sidebar, toolbar, controls panel,
   and the canvas you look at. You run it. It is _not_ published and _not_
   installed into your project.
-- **The harness** is a small React app that runs **inside your own Vite dev
-  server**, in an iframe. It imports your _real_ components and renders them with
-  your CSS, your React version, and your providers.
+- **The harness** is a small React app that runs **inside your own Vite or Next
+  development server**, in an iframe. It imports your _real_ components and
+  renders them with your CSS, your React version, and your providers.
 
 ```
-  Electron MANAGER                         YOUR Vite dev server
-  (chrome you click)                       (openStory() plugin)
+  Electron MANAGER                         YOUR development server
+  (chrome you click)                       (Vite plugin / Next adapter)
   ┌────────────────────┐   postMessage   ┌─────────────────────────┐
   │ sidebar / toolbar  │ ◄─────────────► │ harness renders YOUR     │
   │ <iframe /__pl__/ ──┼─────────────────┼─► components, posts size  │
@@ -43,10 +43,10 @@ split into the packages below.
 
 ### The request flow
 
-1. You add `openStory()` to your `vite.config.ts` and run Vite.
-2. The plugin globs `*.stories.{ts,tsx}` and `*.stories.md`, builds a manifest
+1. The manager detects the installed Vite or Next adapter and starts it.
+2. The adapter discovers `*.stories.{ts,tsx}` and `*.stories.md`, builds a manifest
    (components, stories, docs), and serves the harness HTML at `/__pl__/`.
-3. The manager starts your Vite server and loads `/__pl__/` in the canvas iframe.
+3. The manager loads `/__pl__/` from the project server in the canvas iframe.
 4. You click a story. The manager sends a `postMessage` (`pl:render`) with the
    selection + theme.
 5. The harness renders that component, measures it, and posts its size back
@@ -56,14 +56,16 @@ split into the packages below.
 ## Packages
 
 OpenStory is a Turborepo monorepo. The **manager** (`apps/desktop`, Electron) is
-not published. **Three packages** are, and the split is about **where code runs**,
+not published. **Five packages** are, and the split is about **where code runs**,
 not arbitrary modularity:
 
 | Package                      | Runs in                     | Job                                                                                                                                                                                                           |
 | ---------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@gobrand/openstory-config`  | everywhere (Node + browser) | the authoring API (`defineOpenStoryConfig` / `defineStories`) + the component/story types and the viewport presets. **Zero dependencies**, so the Node tooling can import the types without pulling in React. |
 | `@gobrand/openstory-runtime` | the **browser** harness     | the React app in the iframe — renders the component, the doc prose, and the size/manifest bridge.                                                                                                             |
+| `@gobrand/openstory-node`    | **Node**                    | builder-independent discovery, manifest, Git, docs, project identity, and MCP services shared by adapters.                                                                                                    |
 | `@gobrand/openstory-vite`    | **Node** (your Vite server) | serves the harness, discovers `*.stories.{ts,tsx}` + `*.stories.md`, extracts prop types from TypeScript.                                                                                                     |
+| `@gobrand/openstory-next`    | **Node** (your Next server) | generates a shadow App Router application and runs it through Next.js 16 and Turbopack.                                                                                                                       |
 
 The hard line is **Node vs Browser**: the Vite plugin and the harness literally
 cannot be one package. `config` stays dependency-free so the Node side imports
@@ -137,12 +139,12 @@ export default defineOpenStoryConfig({
 });
 ```
 
-### 2. Add the Vite plugin
+### 2. Install a project adapter
 
-Add `openStory()` before framework and runtime adapters. OpenStory starts the
-project's Vite server with `mode: "openstory"` and automatically isolates the
-preview harness from supported pipeline owners such as TanStack Start and the
-Cloudflare runtime plugin.
+For Vite, add `openStory()` before framework and runtime adapters. OpenStory
+starts the project's Vite server with `mode: "openstory"` and automatically
+isolates the preview harness from supported pipeline owners such as TanStack
+Start and the Cloudflare runtime plugin.
 
 ```ts
 // vite.config.ts
@@ -178,13 +180,25 @@ openStory({
 Unknown plugins stay enabled by default, and `keep` wins over built-in or custom
 disabling.
 
+For a Next.js 16 App Router project using Turbopack:
+
+```bash
+pnpm add -D @gobrand/openstory-config @gobrand/openstory-next
+```
+
+No `next.config` wrapper or application route is required. The adapter runs the
+real Next pipeline and supports client-compatible stories using Next images,
+links, navigation, aliases, providers, and CSS. Pages Router, webpack mode, RSC
+stories, and Server Actions are outside the v1 contract. See
+[`packages/next/README.md`](packages/next/README.md).
+
 Then in OpenStory: **Open a project…** → pick the folder. The sidebar fills with
 every discovered component (under **Design System**) and doc (under **Docs**).
 
 ## For agents
 
 OpenStory is drivable headlessly — no Electron, no clicking. Run the project's
-Vite dev server with the `openStory()` plugin and an AI agent gets two surfaces,
+Vite or Next adapter and an AI agent gets two surfaces,
 both mounted under `/__pl__/`:
 
 **1. Headless render route** — a versioned, stateless URL contract that renders
@@ -276,16 +290,15 @@ launched me went away," never a real fault.
 Pre-alpha. It is a component workbench plus living docs. Working today:
 
 - project open/switch
-- live preview via the project's own Vite HMR — the actual component, not a
+- live preview via the project's own Vite or Turbopack HMR — the actual component, not a
   snapshot
 - story + viewport switching
 - markdown docs with live `:::story` embeds
 - a light/dark themed canvas that fits itself to each component
 
-Next:
-
-- **Reduce integration to zero-config** — auto-detect and neutralize framework
-  plugins instead of asking projects to gate them on `mode`.
+The Next adapter currently targets Next.js 16 App Router and client-compatible
+stories. React Server Component stories and production harness export remain
+future work.
 
 ### Official app launch (distribution checklist)
 

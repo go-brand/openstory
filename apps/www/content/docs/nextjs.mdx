@@ -1,0 +1,63 @@
+---
+title: Next.js
+description: Run OpenStory through Next.js 16 App Router and Turbopack
+---
+
+OpenStory's Next adapter renders stories through the project's real Next.js development runtime. Next transforms, routing context, CSS pipeline, `next/image`, `next/link`, and `next/navigation` behave as they do in an App Router application.
+
+## Install
+
+```bash
+pnpm add -D @gobrand/openstory-config @gobrand/openstory-next
+```
+
+No `next.config` wrapper or generated source route is required. The desktop manager detects Next.js, the App Router, and the installed adapter automatically.
+
+To run the same server without the desktop manager, add a script:
+
+```json
+{
+  "scripts": {
+    "story:dev": "openstory-next"
+  }
+}
+```
+
+The command prints a machine-readable ready event and serves the same contracts as the Vite adapter:
+
+- `/__pl__/` — preview harness
+- `/__pl__/manifest.json` — component and docs manifest
+- `/__pl__/mcp` — read-only MCP server
+- `/__pl__/?component=...&story=...&viewport=...&theme=...` — headless story URL
+
+## Supported contract
+
+The first release supports:
+
+- Next.js `>=16 <17`
+- React 19
+- App Router
+- Turbopack development mode
+- client-compatible component stories
+
+A client-compatible story may use browser-compatible Next features, providers, aliases, global CSS, Tailwind, and PostCSS. The story file does not need a `"use client"` directive; the generated registry creates that boundary.
+
+The story graph must not import `server-only`, Node-only modules, Server Actions, or modules that require server evaluation. Direct `server-only` and `"use server"` boundaries fail with an actionable adapter error.
+
+Pages Router, Next's webpack mode, React Server Component stories, Server Actions, and production harness export are not supported in v1.
+
+## Generated cache
+
+OpenStory writes its disposable shadow application under `.openstory/cache/next` and never adds routes to the project's tracked `app/` or `src/app/` directory. Add this entry to the project's ignore file:
+
+```text
+.openstory/
+```
+
+The `%5F_pl__` folder visible inside that cache is Next's filesystem encoding for the public `/__pl__` route. It is an implementation detail; public URLs remain unchanged.
+
+## Updates and errors
+
+Edits to an existing component, story, provider, config, or stylesheet use Turbopack HMR. Adding, deleting, or renaming a story regenerates the static registry and refreshes the manager manifest.
+
+Project validation reports missing adapters, unsupported Next versions, and missing App Router directories directly. Turbopack diagnostics remain available for module-graph errors.

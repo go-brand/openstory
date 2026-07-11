@@ -1,11 +1,11 @@
 ---
 title: Introduction
-description: A component workbench and living-docs tool for real Vite projects
+description: A component workbench and living-docs tool for real React projects
 ---
 
 import { Card, Cards } from "fumadocs-ui/components/card";
 
-OpenStory discovers the stories and docs already living beside your components, then renders them with your project's React, CSS, providers, and Vite pipeline.
+OpenStory discovers the stories and docs already living beside your components, then renders them with your project's React, CSS, providers, and development pipeline.
 
 It gives people a focused desktop workbench and gives agents stable render URLs plus a read-only MCP surface. Both use the same manifest and the same renderer.
 
@@ -15,7 +15,7 @@ Use OpenStory when you want a component workbench without maintaining a separate
 
 - Write `*.stories.ts` or `*.stories.tsx` beside a component.
 - Write `*.stories.md` anywhere under `src` for living documentation.
-- Add one Vite plugin; discovery and the preview harness are automatic.
+- Add the Vite plugin or install the Next adapter; discovery and the preview harness are automatic.
 - Keep using your real styles, providers, components, and React version.
 
 ## Manager and harness
@@ -23,7 +23,7 @@ Use OpenStory when you want a component workbench without maintaining a separate
 OpenStory has one important boundary:
 
 - The **manager** is the desktop window: sidebar, toolbar, controls, and canvas.
-- The **harness** runs inside your Vite server and imports your actual project code.
+- The **harness** runs inside your Vite or Next development server and imports your actual project code.
 
 The manager cannot import your components directly because they depend on your bundler and project setup. It opens the harness at `/__pl__/` in an iframe and communicates with it over `postMessage`.
 
@@ -31,7 +31,7 @@ That split is what lets OpenStory stay outside your application while still rend
 
 ## Current scope
 
-OpenStory currently targets React projects using Vite. In `openstory` mode it automatically isolates the preview route from supported framework and runtime plugins that own the development request pipeline, including TanStack Start and the Cloudflare Vite plugin.
+OpenStory supports React 19 projects using Vite 7 or 8, plus Next.js 16 App Router projects using Turbopack. The Next adapter runs the real Next development pipeline; it does not emulate Next APIs through Vite.
 
 The project packages are available, but the public desktop manager download is **coming soon**. You can run the manager from source today.
 
@@ -39,7 +39,12 @@ The project packages are available, but the public desktop manager download is *
   <Card
     title="Installation"
     href="/docs/installation"
-    description="Add the packages and configure Vite."
+    description="Choose the Vite or Next.js setup path."
+  />
+  <Card
+    title="Next.js"
+    href="/docs/nextjs"
+    description="Run stories through the real App Router and Turbopack."
   />
   <Card
     title="Your first story"
