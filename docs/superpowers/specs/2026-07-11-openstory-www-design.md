@@ -31,7 +31,7 @@ Deployment should support a configurable base path. The initial Cloudflare confi
 
 ## Homepage
 
-The homepage uses the Fumadocs home layout for consistent navigation and a custom, compact landing body.
+The homepage uses the Fumadocs home layout for consistent navigation and a restrained landing body modeled on the information rhythm of the Tiempo website.
 
 ### Navigation
 
@@ -48,24 +48,24 @@ Headline:
 
 > Your components, stories, and docs—running in your real Vite app.
 
-Supporting copy explains that OpenStory discovers colocated stories and Markdown docs, renders real project components with their existing CSS and providers, and presents them in a dedicated desktop workbench.
+Supporting copy explains that OpenStory discovers colocated stories and Markdown docs, renders real project components with their existing CSS and providers, and presents them in a dedicated desktop workbench. The hero uses a conventional responsive type scale rather than billboard-sized display type.
 
 Actions:
 
 - **Get started** → `/docs/installation`
 - **View on GitHub** → the OpenStory repository
 
-The hero visual is a simplified OpenStory window: compact graphite application chrome around a component canvas, sidebar tree, and controls edge. It is a faithful static product illustration, not a fake interactive demo or a screenshot that can quickly become stale.
+The hero includes a copyable install command and no product illustration. A real product screenshot may be added later only when a current, high-quality artifact is available; the website must not fabricate an application mockup.
 
 ### Explanation
 
-Below the hero, one short section explains the real architecture in user terms:
+Below the hero, one simple bordered section explains the real architecture in user terms:
 
 1. Add the Vite plugin.
 2. Write a colocated story.
 3. Open the project in OpenStory.
 
-A final narrow callout introduces the agent surface: the same stories are available through render URLs and a read-only MCP server. This stays secondary to the human workflow and links to the introduction rather than expanding into a large feature grid.
+A final plain text section introduces the agent surface: the same stories are available through render URLs and a read-only MCP server. This stays secondary to the human workflow and links to the introduction rather than expanding into a large feature grid or decorative terminal.
 
 ## Documentation
 
@@ -94,7 +94,7 @@ Show a small `Button.stories.tsx` using `defineStories`, explain discovery conve
 
 ## Visual direction
 
-The website should feel like the OpenStory desktop tool:
+The website should use a flat, restrained extension of the OpenStory desktop palette:
 
 - **App graphite** `#1b1c1d` — primary dark chrome and hero field
 - **Raised graphite** `#222425` — panels and code surfaces
@@ -103,9 +103,9 @@ The website should feel like the OpenStory desktop tool:
 - **Cool border** `#e3e8ee` — light separators
 - **Muted steel** `#9aa4ad` — secondary text on dark surfaces
 
-Typography uses a clean, compact sans-serif for content and a monospaced utility face for file names, commands, and small application labels. The product-window illustration is the single signature element; surrounding sections remain quiet and typographic. Motion is limited to subtle entrance or hover treatment and must respect `prefers-reduced-motion`.
+Typography uses a clean, compact sans-serif for content and a monospaced utility face for file names and commands. The layout follows the Tiempo website's simple pattern: constrained content width, clear heading hierarchy, ordinary vertical spacing, and thin borders. Motion is limited to basic hover treatment and must respect `prefers-reduced-motion`.
 
-The site supports dark and light documentation surfaces through Fumadocs, while the hero illustration retains OpenStory's graphite chrome in either theme.
+The site supports dark and light surfaces through Fumadocs. Each theme uses one flat page background. The homepage must not use grid textures, gradients, perspective transforms, fabricated product mockups, decorative terminals, statistics strips, or ornamental feature cards.
 
 ## Content and state boundaries
 
@@ -142,6 +142,7 @@ Automated UI behavior is intentionally minimal. Verification should emphasize bu
 - Publishing or signing the desktop manager
 - Creating a Homebrew formula or installer service
 - Interactive component rendering on the marketing site
+- Fabricated product illustrations or mockups
 - Full API reference generation
 - Versioned documentation
 - Blog, changelog, pricing, accounts, analytics, or CMS
