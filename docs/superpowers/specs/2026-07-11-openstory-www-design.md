@@ -119,7 +119,7 @@ The website should use precise present-tense claims only for features confirmed 
 - Keyboard-visible focus states for navigation, actions, and copy controls
 - Sufficient text and control contrast
 - Semantic navigation, main, section, and code structures
-- Mobile layout collapses the hero into copy followed by the product window
+- Mobile layout keeps the hero, install command, workflow, and agent copy in one readable column
 - No horizontal page overflow at 320 CSS pixels
 - Motion disabled or simplified for reduced-motion users
 
