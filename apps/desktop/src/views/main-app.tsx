@@ -85,11 +85,11 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
   // Canvas mode. Docs/auto-docs always fill the canvas. A single component story
   // is sized to the box the harness reports (pl:size): `sized` once it arrives,
   // hidden while we wait (so stale content from the previous selection cannot
-  // flash), `"fill"` for docs/pages/fullscreen layout.
+  // flash), `"fill"` for docs/pages.
   const isDocMode = docsActive || state.selection.pageId !== null;
   const sized = !isDocMode && contentSize && contentSize !== "fill" ? contentSize : null;
   const frameVisibility = previewFrameVisibility(contentSize);
-  // The canvas toolbar (zoom/addons/layout/viewport) only makes sense when an
+  // The canvas toolbar (zoom/addons/viewport) only makes sense when an
   // actual component story is being previewed. Hide it for docs/pages and for
   // the empty state — note `component` has a `?? manifest[0]` display fallback,
   // so gate on the real selection (`componentId`), not the fallback.
@@ -176,7 +176,7 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
               // pin it to the TOP of the themed canvas (bg-canvas — OpenStory's
               // own background — shows AROUND the component; not centered, so it
               // never drifts as the size resolves). Otherwise fill the canvas
-              // (docs/fullscreen). While the selected render is still loading,
+              // (docs/pages). While the selected render is still loading,
               // the iframe is rendered but hidden so stale content never flashes.
               <div
                 className={

@@ -36,7 +36,6 @@ const defaults: PersistedState = {
     pageId: null,
     viewport: "desktop",
     mode: "design",
-    layout: null,
     propOverrides: {},
   },
   overlay: {

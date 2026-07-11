@@ -27,7 +27,6 @@ const manifest = {
       group: "Forms",
       section: "ui",
       background: "#fff",
-      layout: "padded",
       stories: [{ id: "primary", label: "Primary", props: { variant: "primary" } }],
       controls: { variant: { name: "variant", type: "enum", options: ["primary", "danger"] } },
       sourcePath: "/p/src/button.tsx",
@@ -122,15 +121,6 @@ describe("buildMcpTools", () => {
     expect(r.url).toBe(
       "http://localhost:5180/__pl__/?component=button&story=primary&viewport=desktop&theme=dark",
     );
-  });
-
-  it("get_render_url appends layout only when provided", async () => {
-    const r = (await buildMcpTools(makeCtx()).get_render_url.handler({
-      component: "button",
-      story: "primary",
-      layout: "fullscreen",
-    })) as { url: string };
-    expect(r.url).toContain("layout=fullscreen");
   });
 
   it("get_changed_stories maps git diff to stories", async () => {

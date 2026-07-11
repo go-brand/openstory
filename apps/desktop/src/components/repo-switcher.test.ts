@@ -42,7 +42,6 @@ function state(projects: ProjectRecord[]): AppState {
       pageId: null,
       viewport: "desktop",
       mode: "design",
-      layout: null,
       propOverrides: {},
     },
     overlay: {

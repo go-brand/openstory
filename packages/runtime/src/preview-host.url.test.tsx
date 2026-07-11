@@ -24,24 +24,13 @@ describe("readSelectionFromUrl", () => {
     expect(readSelectionFromUrl()).toBeNull();
   });
 
-  it("reads a valid layout param", () => {
+  it("ignores the removed layout param", () => {
     setUrl("?component=button&story=primary&viewport=desktop&layout=centered");
     expect(readSelectionFromUrl()).toEqual({
       componentId: "button",
       storyId: "primary",
       viewport: "desktop",
-      layout: "centered",
     });
-  });
-
-  it("omits layout when absent", () => {
-    setUrl("?component=button&story=primary&viewport=desktop");
-    expect(readSelectionFromUrl()!.layout).toBeUndefined();
-  });
-
-  it("ignores an invalid layout value", () => {
-    setUrl("?component=button&story=primary&viewport=desktop&layout=bogus");
-    expect(readSelectionFromUrl()!.layout).toBeUndefined();
   });
 });
 

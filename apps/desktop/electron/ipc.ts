@@ -3,7 +3,7 @@ import { relative, resolve, sep } from "node:path";
 import { readFileSync, statSync } from "node:fs";
 import { AppStore } from "./store";
 import { ViteHost } from "./vite-host";
-import type { AppState, Layout, ManifestComponent, ManifestDoc, PreviewSource } from "./types";
+import type { AppState, ManifestComponent, ManifestDoc, PreviewSource } from "./types";
 import { reconcileSelection, defaultMode } from "./selection";
 import { allowedExternalUrl } from "./external-url.js";
 import { createProjectRecord, isProjectIdentity } from "./project-records";
@@ -218,12 +218,10 @@ export function registerIpc(deps: Deps) {
         viewport: "desktop" | "mobile";
       },
     ) => {
-      // Selecting a story is a clean start: clear overrides + layout override and
-      // exit any docs or page view.
+      // Selecting a story is a clean start: clear overrides and exit docs/page view.
       deps.store.patchSelection({
         ...input,
         propOverrides: {},
-        layout: null,
         docsComponentId: null,
         pageId: null,
         mode: "design",
@@ -234,12 +232,6 @@ export function registerIpc(deps: Deps) {
 
   ipcMain.handle("preview:setProps", (_e, overrides: Record<string, unknown>) => {
     deps.store.patchSelection({ propOverrides: overrides });
-    broadcastState();
-  });
-
-  // Per-selection layout override; null reverts to the component's declared layout.
-  ipcMain.handle("preview:setLayout", (_e, layout: Layout | null) => {
-    deps.store.patchSelection({ layout });
     broadcastState();
   });
 
@@ -255,7 +247,6 @@ export function registerIpc(deps: Deps) {
       storyId: null,
       docsComponentId: null,
       propOverrides: {},
-      layout: null,
       mode: "docs",
     });
     broadcastState();

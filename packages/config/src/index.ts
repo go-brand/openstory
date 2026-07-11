@@ -6,7 +6,6 @@ export {
   humanize,
   kebabCase,
   type Fixture,
-  type Layout,
   type PreviewPadding,
   type ManifestControl,
   type ManifestDoc,

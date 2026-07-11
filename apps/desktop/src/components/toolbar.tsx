@@ -1,4 +1,4 @@
-import type { AppState, Layout, ManifestComponent } from "../../electron/types";
+import type { AppState, ManifestComponent } from "../../electron/types";
 import type { Api } from "../lib/api";
 import type { AddonName, AddonState } from "../lib/preview-view";
 import { zoomLabel } from "../lib/preview-view";
@@ -62,12 +62,6 @@ export function Toolbar({
     }
   }
 
-  // Effective layout = manager override, else the component's declared layout.
-  const layout: Layout = state.selection.layout ?? component?.layout ?? "padded";
-  function setLayout(next: Layout) {
-    api?.invoke("preview:setLayout", next);
-  }
-
   const noPreview = !component;
 
   return (
@@ -104,19 +98,6 @@ export function Toolbar({
         ))}
 
         <div className="ml-auto flex items-center gap-2">
-          <select
-            title="Layout"
-            aria-label="Layout"
-            value={layout}
-            disabled={noPreview}
-            onChange={(e) => setLayout(e.target.value as Layout)}
-            className="h-7 rounded-md border border-border bg-card px-1.5 text-[11px] text-foreground transition-colors hover:text-foreground focus-visible:border-brand/60 focus-visible:outline-none disabled:opacity-40"
-          >
-            <option value="padded">Padded</option>
-            <option value="centered">Centered</option>
-            <option value="fullscreen">Fullscreen</option>
-          </select>
-          <Divider />
           <div className="inline-flex items-center gap-0.5 rounded-lg bg-foreground/[0.04] p-0.5">
             {(["desktop", "mobile"] as const).map((v) => {
               const on = state.selection.viewport === v;

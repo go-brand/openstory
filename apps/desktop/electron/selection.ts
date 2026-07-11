@@ -7,7 +7,6 @@ export type SelectionPatch = Pick<
   | "propOverrides"
   | "docsComponentId"
   | "pageId"
-  | "layout"
   | "mode"
 >;
 
@@ -50,7 +49,6 @@ export function reconcileSelection(
         propOverrides: {},
         docsComponentId: null,
         pageId: null,
-        layout: null,
         mode: "design",
       };
     }
@@ -63,7 +61,6 @@ export function reconcileSelection(
         propOverrides: {},
         docsComponentId: null,
         pageId: firstDoc.id,
-        layout: null,
         mode: "docs",
       };
     }
@@ -74,7 +71,6 @@ export function reconcileSelection(
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
-      layout: null,
       mode: "design",
     };
   }

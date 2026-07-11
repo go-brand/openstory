@@ -32,7 +32,7 @@ export function buildManifest(
   const presets = resolvePresets(config.presets);
   return {
     // Versioned public contract: the manifest shape AND the headless render-route
-    // query params (component/story/viewport/theme/layout) are stable under this
+    // query params (component/story/viewport/theme) are stable under this
     // number. Bump on any breaking change to either. See the agent-first spec.
     schemaVersion: 1 as const,
     identity: resolveProjectIdentity(projectRoot ?? process.cwd(), config.identity),
@@ -54,7 +54,6 @@ export function buildManifest(
         group: p.group ?? "",
         section: deriveSection(sourcePath),
         background: render.background,
-        layout: p.layout ?? "padded",
         ...(p.previewPadding !== undefined && { previewPadding: p.previewPadding }),
         stories: p.fixtures.map((f) => ({
           id: f.id,
