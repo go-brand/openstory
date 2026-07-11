@@ -1,0 +1,59 @@
+{
+  "name": "@gobrand/openstory-next",
+  "version": "0.6.2",
+  "private": false,
+  "description": "Native Next.js App Router and Turbopack adapter for OpenStory",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/go-brand/openstory.git",
+    "directory": "packages/next"
+  },
+  "bin": {
+    "openstory-next": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gobrand/openstory-config": "workspace:^",
+    "@gobrand/openstory-node": "workspace:^",
+    "@gobrand/openstory-runtime": "workspace:^",
+    "chokidar": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.4",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "next": "16.2.10",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  },
+  "peerDependencies": {
+    "next": ">=16 <17",
+    "react": "^19",
+    "react-dom": "^19"
+  }
+}
