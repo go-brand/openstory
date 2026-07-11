@@ -5,13 +5,13 @@ import { describe, expect, it } from "vitest";
 import { assertRealPathWithin, resolveNextCacheRoot } from "./cache.js";
 
 describe("resolveNextCacheRoot", () => {
-  it("is stable, project-specific, and contained by node_modules/.cache", async () => {
+  it("is stable, project-specific, and contained by .openstory/cache", async () => {
     const root = await mkdtemp(join(tmpdir(), "openstory-next-cache-"));
     const first = await resolveNextCacheRoot(root);
     const second = await resolveNextCacheRoot(root);
 
     expect(first).toBe(second);
-    expect(first).toMatch(/node_modules[/\\]\.cache[/\\]openstory-next[/\\][a-f0-9]{16}$/);
+    expect(first).toMatch(/\.openstory[/\\]cache[/\\]next[/\\][a-f0-9]{16}$/);
   });
 });
 

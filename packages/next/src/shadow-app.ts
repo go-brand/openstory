@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { access, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join, relative } from "node:path";
 import { buildNextConfigSource } from "./next-config.js";
 import { generateRegistries, type GeneratedRegistries } from "./registry.js";
 
@@ -35,6 +35,9 @@ const NEXT_CONFIG_CANDIDATES = [
 ];
 const POSTCSS_CONFIG_CANDIDATES = ["postcss.config.mjs", "postcss.config.js", "postcss.config.cjs"];
 const TSCONFIG_CANDIDATES = ["tsconfig.json", "jsconfig.json"];
+// App Router treats leading-underscore folders as private. `%5F` is Next's
+// documented filesystem escape for a public URL segment that begins with `_`.
+const HARNESS_SEGMENT = "%5F_pl__";
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -90,6 +93,11 @@ async function writeGenerated(path: string, content: string): Promise<boolean> {
   return true;
 }
 
+function relativeModuleSpecifier(importingDirectory: string, targetPath: string): string {
+  const path = relative(importingDirectory, targetPath).replaceAll("\\", "/");
+  return path.startsWith(".") ? path : `./${path}`;
+}
+
 export type GenerateShadowAppOptions = {
   projectRoot: string;
   cacheRoot: string;
@@ -128,9 +136,19 @@ export async function generateShadowApp(
       ? await findFirst(options.projectRoot, TSCONFIG_CANDIDATES)
       : options.consumerTsconfigPath;
   const registries = await generateRegistries(options);
+  const consumerTsconfigReference = consumerTsconfigPath
+    ? (() => {
+        const path = relative(options.cacheRoot, consumerTsconfigPath).replaceAll("\\", "/");
+        return path.startsWith(".") ? path : `./${path}`;
+      })()
+    : null;
 
+  const appDirectory = join(options.cacheRoot, "app");
   const layoutImports = [
-    ...stylePaths.map((path) => `import ${JSON.stringify(path.replaceAll("\\", "/"))};`),
+    ...stylePaths.map(
+      (path) =>
+        `import ${JSON.stringify(isAbsolute(path) ? relativeModuleSpecifier(appDirectory, path) : path)};`,
+    ),
     'import "./openstory.css";',
   ].join("\n");
   const files = new Map<string, string>([
@@ -155,7 +173,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
 `,
     ],
     [
-      join(options.cacheRoot, "app", "__pl__", "page.tsx"),
+      join(options.cacheRoot, "app", HARNESS_SEGMENT, "page.tsx"),
       `import OpenStoryHarness from "../../generated/registry.client";
 
 export default function OpenStoryPage() {
@@ -164,7 +182,7 @@ export default function OpenStoryPage() {
 `,
     ],
     [
-      join(options.cacheRoot, "app", "__pl__", "manifest.json", "route.ts"),
+      join(options.cacheRoot, "app", HARNESS_SEGMENT, "manifest.json", "route.ts"),
       `import { readFileSync } from "node:fs";
 import { assembleLoadedManifest } from "@gobrand/openstory-node";
 import { loadedProject } from "../../../generated/registry.server";
@@ -196,14 +214,14 @@ export async function GET() {
     [
       join(options.cacheRoot, "postcss.config.mjs"),
       consumerPostcssConfigPath
-        ? `export { default } from ${JSON.stringify(consumerPostcssConfigPath.replaceAll("\\", "/"))};\n`
+        ? `export { default } from ${JSON.stringify(relativeModuleSpecifier(options.cacheRoot, consumerPostcssConfigPath))};\n`
         : "export default { plugins: {} };\n",
     ],
     [
       join(options.cacheRoot, "tsconfig.json"),
       `${JSON.stringify(
         {
-          ...(consumerTsconfigPath ? { extends: consumerTsconfigPath } : {}),
+          ...(consumerTsconfigReference ? { extends: consumerTsconfigReference } : {}),
           compilerOptions: {
             jsx: "preserve",
             noEmit: true,

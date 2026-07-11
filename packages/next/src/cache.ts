@@ -10,7 +10,7 @@ function isWithin(parent: string, child: string): boolean {
 export async function resolveNextCacheRoot(projectRoot: string): Promise<string> {
   const canonicalRoot = await realpath(projectRoot);
   const projectHash = createHash("sha256").update(canonicalRoot).digest("hex").slice(0, 16);
-  return join(canonicalRoot, "node_modules", ".cache", "openstory-next", projectHash);
+  return join(canonicalRoot, ".openstory", "cache", "next", projectHash);
 }
 
 export async function assertRealPathWithin(path: string, allowedRoots: string[]): Promise<string> {

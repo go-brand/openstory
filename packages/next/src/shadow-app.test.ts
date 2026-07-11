@@ -1,6 +1,6 @@
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { generateShadowApp } from "./shadow-app.js";
 
@@ -38,23 +38,23 @@ describe("generateShadowApp", () => {
     });
 
     expect(generated.appDir).toBe(join(cacheRoot, "app"));
-    expect(await readFile(join(cacheRoot, "app/__pl__/page.tsx"), "utf8")).toContain(
+    expect(await readFile(join(cacheRoot, "app/%5F_pl__/page.tsx"), "utf8")).toContain(
       "<OpenStoryHarness />",
     );
-    expect(await readFile(join(cacheRoot, "app/__pl__/manifest.json/route.ts"), "utf8")).toContain(
-      "assembleLoadedManifest",
-    );
+    expect(
+      await readFile(join(cacheRoot, "app/%5F_pl__/manifest.json/route.ts"), "utf8"),
+    ).toContain("assembleLoadedManifest");
     expect(await readFile(join(cacheRoot, "app/layout.tsx"), "utf8")).toContain(
-      JSON.stringify(styles),
+      JSON.stringify(relative(join(cacheRoot, "app"), styles)),
     );
     expect(await readFile(join(cacheRoot, "next.config.mjs"), "utf8")).toContain(
       JSON.stringify(nextConfig),
     );
     expect(await readFile(join(cacheRoot, "postcss.config.mjs"), "utf8")).toContain(
-      JSON.stringify(postcssConfig),
+      JSON.stringify(relative(cacheRoot, postcssConfig)),
     );
     expect(JSON.parse(await readFile(join(cacheRoot, "tsconfig.json"), "utf8"))).toMatchObject({
-      extends: tsconfig,
+      extends: relative(cacheRoot, tsconfig),
     });
   });
 
@@ -66,7 +66,9 @@ describe("generateShadowApp", () => {
 
     await generateShadowApp({ projectRoot, cacheRoot, storyFiles: [] });
     const layout = await readFile(join(cacheRoot, "app/layout.tsx"), "utf8");
-    expect(layout).toContain(JSON.stringify(join(projectRoot, "app/globals.css")));
+    expect(layout).toContain(
+      JSON.stringify(relative(join(cacheRoot, "app"), join(projectRoot, "app/globals.css"))),
+    );
   });
 
   it("writes a local PostCSS fallback and never writes into the consumer app directory", async () => {
@@ -77,6 +79,6 @@ describe("generateShadowApp", () => {
     await generateShadowApp({ projectRoot, cacheRoot, storyFiles: [] });
 
     expect(await readFile(join(cacheRoot, "postcss.config.mjs"), "utf8")).toContain("plugins: {}");
-    await expect(readFile(join(projectRoot, "app/__pl__/page.tsx"), "utf8")).rejects.toThrow();
+    await expect(readFile(join(projectRoot, "app/%5F_pl__/page.tsx"), "utf8")).rejects.toThrow();
   });
 });

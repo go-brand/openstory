@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { assertRealPathWithin } from "./cache.js";
 
 export type GenerateRegistriesOptions = {
@@ -39,10 +39,16 @@ async function writeFileIfChanged(path: string, content: string): Promise<boolea
   return true;
 }
 
-function storyImports(storyPaths: string[]): string {
+function importSpecifier(importingDirectory: string, targetPath: string): string {
+  const path = toModuleSpecifier(relative(importingDirectory, targetPath));
+  return path.startsWith(".") ? path : `./${path}`;
+}
+
+function storyImports(storyPaths: string[], importingDirectory: string): string {
   return storyPaths
     .map(
-      (path, index) => `import * as story${index} from ${JSON.stringify(toModuleSpecifier(path))};`,
+      (path, index) =>
+        `import * as story${index} from ${JSON.stringify(importSpecifier(importingDirectory, path))};`,
     )
     .join("\n");
 }
@@ -56,17 +62,38 @@ function discoveredExpression(storyPaths: string[]): string {
   return `[\n  ${entries.join(",\n  ")},\n]`;
 }
 
-function buildClientRegistry(configPath: string | null, storyPaths: string[]): string {
+async function assertClientCompatibleStory(path: string): Promise<void> {
+  const source = await readFile(path, "utf8");
+  const boundary = /^\s*["']use server["']\s*;?/m.test(source)
+    ? 'a "use server" directive'
+    : /(?:import\s+(?:[^"']+\s+from\s+)?|require\()\s*["']server-only["']/.test(source)
+      ? "the server-only marker"
+      : /(?:import\s+(?:[^"']+\s+from\s+)?|require\()\s*["']node:/.test(source)
+        ? "a Node-only module"
+        : null;
+  if (boundary) {
+    throw new Error(
+      `[openstory] ${path} imports ${boundary}. OpenStory's Next v1 adapter supports client-compatible stories only.`,
+    );
+  }
+}
+
+function buildClientRegistry(
+  configPath: string | null,
+  storyPaths: string[],
+  importingDirectory: string,
+): string {
   const configImport = configPath
-    ? `import userConfigValue from ${JSON.stringify(toModuleSpecifier(configPath))};\nconst userConfig: OpenStoryConfig = userConfigValue;`
+    ? `import userConfigValue from ${JSON.stringify(importSpecifier(importingDirectory, configPath))};\nconst userConfig: OpenStoryConfig = userConfigValue;`
     : "const userConfig: OpenStoryConfig = {};";
   return `"use client";
 
 import { isRegisteredComponent, mergeComponents } from "@gobrand/openstory-config";
 import type { OpenStoryConfig } from "@gobrand/openstory-config";
 import { OpenStoryPreview } from "@gobrand/openstory-runtime";
+import { useEffect, useState } from "react";
 ${configImport}
-${storyImports(storyPaths)}
+${storyImports(storyPaths, importingDirectory)}
 
 const discovered = ${discoveredExpression(storyPaths)};
 const config = {
@@ -75,19 +102,26 @@ const config = {
 };
 
 export default function OpenStoryHarness() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
   return <OpenStoryPreview config={config} />;
 }
 `;
 }
 
-function buildServerRegistry(configPath: string | null, storyPaths: string[]): string {
+function buildServerRegistry(
+  configPath: string | null,
+  storyPaths: string[],
+  importingDirectory: string,
+): string {
   const configImport = configPath
-    ? `import userConfigValue from ${JSON.stringify(toModuleSpecifier(configPath))};\nconst userConfig: OpenStoryConfig = userConfigValue;`
+    ? `import userConfigValue from ${JSON.stringify(importSpecifier(importingDirectory, configPath))};\nconst userConfig: OpenStoryConfig = userConfigValue;`
     : "const userConfig: OpenStoryConfig = {};";
   return `import { isRegisteredComponent } from "@gobrand/openstory-config";
 import type { OpenStoryConfig } from "@gobrand/openstory-config";
 ${configImport}
-${storyImports(storyPaths)}
+${storyImports(storyPaths, importingDirectory)}
 
 const components = ${discoveredExpression(storyPaths)};
 
@@ -110,11 +144,13 @@ export async function generateRegistries(
     const normalizedRight = toModuleSpecifier(right);
     return normalizedLeft < normalizedRight ? -1 : normalizedLeft > normalizedRight ? 1 : 0;
   });
+  await Promise.all(storyPaths.map(assertClientCompatibleStory));
   const clientPath = join(options.cacheRoot, "generated", "registry.client.tsx");
   const serverPath = join(options.cacheRoot, "generated", "registry.server.ts");
+  const importingDirectory = dirname(clientPath);
   const [clientChanged, serverChanged] = await Promise.all([
-    writeFileIfChanged(clientPath, buildClientRegistry(configPath, storyPaths)),
-    writeFileIfChanged(serverPath, buildServerRegistry(configPath, storyPaths)),
+    writeFileIfChanged(clientPath, buildClientRegistry(configPath, storyPaths, importingDirectory)),
+    writeFileIfChanged(serverPath, buildServerRegistry(configPath, storyPaths, importingDirectory)),
   ]);
 
   return { clientPath, serverPath, changed: clientChanged || serverChanged };

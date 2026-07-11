@@ -45,8 +45,12 @@ describe("generateRegistries", () => {
 
     const result = await generateRegistries({ projectRoot, cacheRoot, storyFiles: [story] });
     const client = await readFile(result.clientPath, "utf8");
+    const storyImport = client.split("\n").find((line) => line.startsWith("import * as story0"));
     expect(client).not.toContain("\\\\");
-    expect(client).toContain(JSON.stringify((await realpath(story)).replaceAll("\\", "/")));
+    expect(client).toContain("button.stories.tsx");
+    expect(storyImport).not.toContain(
+      JSON.stringify((await realpath(story)).replaceAll("\\", "/")),
+    );
     expect(toModuleSpecifier("C:\\repo\\src\\button.stories.tsx")).toBe(
       "C:/repo/src/button.stories.tsx",
     );
@@ -72,5 +76,19 @@ describe("generateRegistries", () => {
 
     expect((await generateRegistries(input)).changed).toBe(true);
     expect((await generateRegistries(input)).changed).toBe(false);
+  });
+
+  it.each([
+    ['import "server-only";\nexport default {};', "server-only"],
+    ['"use server";\nexport default {};', '"use server"'],
+  ])("rejects a non-client-compatible story containing %s", async (source) => {
+    const projectRoot = await mkdtemp(join(tmpdir(), "openstory-next-registry-"));
+    const cacheRoot = join(projectRoot, ".openstory/cache/next/test");
+    const story = join(projectRoot, "server.stories.tsx");
+    await writeFile(story, source);
+
+    await expect(
+      generateRegistries({ projectRoot, cacheRoot, storyFiles: [story] }),
+    ).rejects.toThrow(/client-compatible stories/i);
   });
 });

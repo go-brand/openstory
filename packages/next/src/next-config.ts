@@ -51,7 +51,7 @@ export function buildNextConfigSource(options: {
     : "const consumerConfig = {};";
 
   return `${consumer}
-import { resolveShadowNextConfig } from "@gobrand/openstory-next/next-config";
+import { resolveShadowNextConfig } from ${JSON.stringify(moduleSpecifier(fileURLToPath(import.meta.url)))};
 
 export default function openStoryNextConfig(phase, context) {
   return resolveShadowNextConfig(consumerConfig, phase, context, ${JSON.stringify({
@@ -61,3 +61,4 @@ export default function openStoryNextConfig(phase, context) {
 }
 `;
 }
+import { fileURLToPath } from "node:url";

@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@theme {
+  --color-fixture: #7c3aed;
+}
+
+.fixture-card {
+  border: 3px solid var(--color-fixture);
+  padding: 1rem;
+}
