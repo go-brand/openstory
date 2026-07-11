@@ -1,0 +1,47 @@
+---
+title: Feature docs skill
+description: Give coding agents a source-backed workflow for maintaining OpenStory feature documentation
+---
+
+The `openstory-feature-docs` skill teaches coding agents how to create and maintain useful `*.stories.md` feature documentation. It keeps the workflow close to the repository, where an agent can compare the page with the current code, contracts, tests, and OpenStory manifest.
+
+## Install the skill
+
+Install it from the OpenStory repository with the Skills CLI:
+
+```bash
+npx skills add go-brand/openstory --skill openstory-feature-docs
+```
+
+You can also inspect the published skill on [skills.sh](https://skills.sh/go-brand/openstory/openstory-feature-docs).
+
+## What the skill does
+
+The workflow guides an agent to:
+
+- identify one cohesive feature and its durable contract;
+- read current source instead of turning a task diff into a changelog;
+- use OpenStory's affected-doc tools at the task boundary;
+- write meaningful internal links and live story embeds;
+- validate metadata, links, and embeds against the real project manifest.
+
+The result is operational feature documentation for engineers and maintainers—not a PR summary, implementation diary, or API dump.
+
+## When to use it
+
+Ask your agent to use the skill when a feature changes, when a `*.stories.md` page may have drifted, or when you are adding feature documentation to an existing codebase.
+
+The skill complements OpenStory's read-only MCP server. The server exposes project state; the skill defines how an agent should investigate that state and turn it into durable documentation.
+
+## Verify a page
+
+The skill includes a verifier for a project manifest served by an existing OpenStory-mode Vite process:
+
+```bash
+node <skill-dir>/scripts/verify-openstory-docs.mjs \
+  http://localhost:<port>/__pl__/manifest.json <doc-id>
+```
+
+The check covers supported feature metadata, resolved internal links, and valid story embeds.
+
+[Install OpenStory in a project →](/docs/installation)

@@ -1,22 +1,7 @@
 import { Link } from "@tanstack/react-router";
+import { CopyCommand } from "./copy-command";
 
 const installCommand = "pnpm add -D @gobrand/openstory-config @gobrand/openstory-vite";
-
-async function copyInstallCommand() {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(installCommand);
-    return;
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = installCommand;
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  document.body.append(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  textarea.remove();
-}
 
 export function Hero() {
   return (
@@ -28,17 +13,7 @@ export function Hero() {
           providers, and React. No separate docs app. No configuration maze.
         </p>
         <div className="hero-actions">
-          <code className="install-command">
-            <span aria-hidden="true">$</span>
-            <span>{installCommand}</span>
-            <button
-              type="button"
-              onClick={() => void copyInstallCommand()}
-              aria-label="Copy install command"
-            >
-              Copy
-            </button>
-          </code>
+          <CopyCommand command={installCommand} copyLabel="Copy install command" />
           <Link to="/docs/$" params={{ _splat: "installation" }} className="text-link">
             Read the docs <span aria-hidden="true">→</span>
           </Link>

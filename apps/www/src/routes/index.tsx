@@ -14,8 +14,8 @@ function Home() {
     <HomeLayout {...baseOptions()}>
       <main className="landing-main">
         <Hero />
-        <GettingStarted />
         <AgentCallout />
+        <GettingStarted />
       </main>
     </HomeLayout>
   );

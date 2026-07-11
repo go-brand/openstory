@@ -46,10 +46,17 @@ The project packages are available, but the public desktop manager download is *
     href="/docs/first-story"
     description="Render a real component in OpenStory."
   />
+  <Card
+    title="Feature docs skill"
+    href="/docs/agent-skill"
+    description="Give coding agents a source-backed documentation workflow."
+  />
 </Cards>
 
 ## Built for agents too
 
 Every project harness also exposes a versioned story render route and a read-only MCP server at `/__pl__/mcp`. An agent can list components, inspect story source, find changed stories, and navigate to the same rendered output a person sees in the manager.
+
+Install the [OpenStory feature docs skill](/docs/agent-skill) when you also want the agent to reconcile `*.stories.md` pages with the current source and verify them against the project manifest.
 
 No bundled browser is required; OpenStory works with the browser tooling your agent already uses.

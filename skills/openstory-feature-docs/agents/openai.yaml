@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenStory Feature Docs"
+  short_description: "Write source-backed living feature documentation"
+  default_prompt: "Use $openstory-feature-docs to reconcile affected feature documentation with the current code."

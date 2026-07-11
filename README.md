@@ -117,6 +117,16 @@ A docs page is just a `*.stories.md` with frontmatter (`title`, `group`,
 directives to embed the **real** story live, inline in the prose — edit the story
 and the doc updates with it.
 
+For source-backed feature documentation, install the OpenStory agent skill:
+
+```bash
+npx skills add go-brand/openstory --skill openstory-feature-docs
+```
+
+The skill provides a shared feature-page standard, the affected-doc MCP
+workflow, OpenStory internal-link and embed rules, and manifest verification.
+See [OpenStory Feature Docs on skills.sh](https://skills.sh/go-brand/openstory/openstory-feature-docs).
+
 An `openstory.config.ts` at the project root is optional: use it to declare
 shared `providers`, global `styles`, or custom `presets`.
 

@@ -15,6 +15,16 @@ The browser runtime is installed transitively by `@gobrand/openstory-vite`; you 
 
 OpenStory currently supports Vite 7 and 8. Your project also needs React 19.
 
+## Install the agent skill
+
+If coding agents maintain your feature documentation, install OpenStory's source-backed `*.stories.md` workflow too:
+
+```bash
+npx skills add go-brand/openstory --skill openstory-feature-docs
+```
+
+[Learn what the feature docs skill checks →](/docs/agent-skill)
+
 ## Add the Vite plugin
 
 Add `openStory()` before framework and runtime adapters in `vite.config.ts`:
