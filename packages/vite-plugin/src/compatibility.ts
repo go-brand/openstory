@@ -45,9 +45,7 @@ function neutralizePlugin(plugin: Plugin): void {
     if (key === "config") {
       const hook = plugin.config;
       plugin.config =
-        hook && typeof hook === "object"
-          ? { ...hook, handler: () => undefined }
-          : () => undefined;
+        hook && typeof hook === "object" ? { ...hook, handler: () => undefined } : () => undefined;
       continue;
     }
     delete plugin[key];
