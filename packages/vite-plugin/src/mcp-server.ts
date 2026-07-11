@@ -41,7 +41,6 @@ function findComponent(manifest: Manifest, id: unknown) {
 }
 
 const VIEWPORTS = ["desktop", "mobile"] as const;
-const LAYOUTS = ["padded", "centered", "fullscreen"] as const;
 const THEMES = ["light", "dark"] as const;
 
 // Read-only toolset over the manifest. Read-only by design (the documented MCP
@@ -180,7 +179,6 @@ export function buildMcpTools(ctx: McpToolContext): McpToolset {
         story: z.string().describe("Story id"),
         viewport: z.enum(VIEWPORTS).optional().describe("Defaults to desktop"),
         theme: z.enum(THEMES).optional().describe("Defaults to light"),
-        layout: z.enum(LAYOUTS).optional().describe("Overrides the component's declared layout"),
       },
       handler: async (args) => {
         const viewport = (args.viewport as string) ?? "desktop";
@@ -191,7 +189,6 @@ export function buildMcpTools(ctx: McpToolContext): McpToolset {
           viewport,
           theme,
         });
-        if (args.layout) params.set("layout", String(args.layout));
         return {
           url: `${ctx.baseUrl}/__pl__/?${params.toString()}`,
           component: args.component,

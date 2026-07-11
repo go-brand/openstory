@@ -43,7 +43,6 @@ describe("renderFallbackDelayMs", () => {
     pageId: null,
     viewport: "desktop",
     mode: "design",
-    layout: null,
     propOverrides: {},
   } as const;
 

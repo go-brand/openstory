@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { flushSync } from "react-dom";
-import type { Layout } from "@gobrand/openstory-config";
 import { DocsPage, PreviewStage } from "./preview-host";
 
 // Render synchronously into a detached container so we can read inline styles.
@@ -23,14 +22,13 @@ afterEach(() => {
 });
 
 const Dummy = () => null;
-function config(layout?: Layout) {
+function config() {
   return {
     components: [
       {
         id: "c",
         name: "C",
         component: Dummy,
-        layout,
         fixtures: [{ id: "s", label: "S", props: {} }],
       },
     ],
@@ -57,12 +55,8 @@ function configWithPreviewPadding() {
   } as any;
 }
 
-describe("PreviewStage layout", () => {
-  // Centering moved to the manager (it sizes the iframe to the reported component
-  // box and centers it on the canvas). The harness measuring wrapper just
-  // shrink-wraps the component with breathing room, so padded and centered render
-  // the same inline-block wrapper here.
-  it("padded renders the component in an inline-block measuring wrapper that shrink-wraps it", () => {
+describe("PreviewStage", () => {
+  it("renders the component in an inline-block measuring wrapper that shrink-wraps it", () => {
     render(<PreviewStage config={config()} selection={selection} />);
     const wrap = container.querySelector('div[style*="inline-block"]') as HTMLElement | null;
     expect(wrap).not.toBeNull();
@@ -71,19 +65,7 @@ describe("PreviewStage layout", () => {
     expect(wrap?.style.padding === "" || wrap?.style.padding === "0px").toBe(true);
   });
 
-  it("centered also uses the inline-block measuring wrapper (manager does the centering)", () => {
-    render(<PreviewStage config={config("centered")} selection={selection} />);
-    expect(container.querySelector('div[style*="inline-block"]')).not.toBeNull();
-  });
-
-  it("fullscreen fills the surface — no inline-block wrapper, no padding", () => {
-    render(<PreviewStage config={config("fullscreen")} selection={selection} />);
-    expect(container.querySelector('div[style*="inline-block"]')).toBeNull();
-    const wrap = container.querySelector("div") as HTMLElement | null;
-    expect(wrap?.style.padding === "" || wrap?.style.padding === "0px").toBe(true);
-  });
-
-  it("reports readiness again when switching stories with the same layout and width", () => {
+  it("reports readiness again when switching stories with the same width", () => {
     const post = vi.spyOn(window.parent, "postMessage");
     const cfg = {
       ...config(),
@@ -128,31 +110,9 @@ describe("PreviewStage layout", () => {
     expect(wrap?.style.paddingTop).toBe("12px");
   });
 
-  it("applies preview padding to fullscreen without adding an inline-block wrapper", () => {
-    render(
-      <PreviewStage
-        config={{
-          components: [
-            {
-              id: "c",
-              name: "C",
-              component: Dummy,
-              layout: "fullscreen",
-              previewPadding: { top: 8 },
-              fixtures: [{ id: "s", label: "S", props: {} }],
-            },
-          ],
-        }}
-        selection={selection}
-      />,
-    );
-    expect(container.querySelector('div[style*="inline-block"]')).toBeNull();
-    const wrap = container.querySelector("div") as HTMLElement | null;
-    expect(wrap?.style.paddingTop).toBe("8px");
-  });
 });
 
-describe("DocsPage layout", () => {
+describe("DocsPage", () => {
   it("reports full-canvas readiness after docs mount", async () => {
     const post = vi.spyOn(window.parent, "postMessage");
     render(<DocsPage config={config()} componentId="c" />);
@@ -160,22 +120,10 @@ describe("DocsPage layout", () => {
     expect(post).toHaveBeenCalledWith({ type: "pl:size", width: 0, height: 0 }, "*");
   });
 
-  it("centers each story card when the component layout is centered", () => {
-    render(<DocsPage config={config("centered")} componentId="c" />);
-    expect(container.querySelector('section div[style*="flex"]')).not.toBeNull();
-  });
-
-  it("does not force flex for the default padded layout", () => {
+  it("renders story cards with the standard inset", () => {
     render(<DocsPage config={config()} componentId="c" />);
-    expect(container.querySelector('section div[style*="flex"]')).toBeNull();
-  });
-
-  it("renders story cards flush (no inner padding) for fullscreen", () => {
-    render(<DocsPage config={config("fullscreen")} componentId="c" />);
-    // The card that holds the render carries the border; for fullscreen it must
-    // not add the default 24px inset.
     const card = container.querySelector('section div[style*="border"]') as HTMLElement | null;
     expect(card).not.toBeNull();
-    expect(card?.style.padding === "" || card?.style.padding === "0px").toBe(true);
+    expect(card?.style.padding).toBe("24px");
   });
 });

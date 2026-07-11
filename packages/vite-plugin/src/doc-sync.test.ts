@@ -11,7 +11,6 @@ const manifest = {
       group: "",
       section: "",
       background: "#fff",
-      layout: "padded",
       stories: [
         { id: "primary", label: "Primary", props: {} },
         { id: "small", label: "Small", props: {} },
@@ -25,7 +24,6 @@ const manifest = {
       group: "",
       section: "",
       background: "#fff",
-      layout: "padded",
       stories: [{ id: "basic", label: "Basic", props: {} }],
       controls: {},
       sourcePath: "/p/card.stories.tsx",

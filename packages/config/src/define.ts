@@ -8,16 +8,6 @@ export type Viewport = {
   dpr?: number;
 };
 
-/**
- * How the rendered component is positioned within the preview surface, mirroring
- * Storybook's `layout` parameter:
- * - `padded` (default): 1rem of breathing room on every side so the component
- *   never touches the canvas edges or the toolbar above it.
- * - `centered`: vertically + horizontally centered in the surface.
- * - `fullscreen`: flush to the edges, no padding.
- */
-export type Layout = "padded" | "centered" | "fullscreen";
-
 export type PreviewPadding =
   | number
   | {
@@ -164,8 +154,6 @@ export type ComponentDef<TProps = unknown> = {
   group?: string;
   /** Named render preset (viewport + chrome). Omit for the neutral default. */
   preset?: string;
-  /** Positioning of the render within the preview surface. Defaults to `padded`. */
-  layout?: Layout;
   /** Extra preview chrome around every fixture, outside the component itself. */
   previewPadding?: PreviewPadding;
   component: ComponentType<TProps>;
@@ -189,8 +177,6 @@ export type RegisteredComponent = {
   name?: string;
   group?: string;
   preset?: string;
-  /** Positioning of the render within the preview surface. Defaults to `padded`. */
-  layout?: Layout;
   /** Extra preview chrome around every fixture, outside the component itself. */
   previewPadding?: PreviewPadding;
   component: ComponentType<never>;
@@ -239,8 +225,6 @@ export type StoriesDef<TProps> = {
   group?: string;
   /** Named render preset (viewport + chrome). Omit for the neutral default. */
   preset?: string;
-  /** Positioning of the render within the preview surface. Defaults to `padded`. */
-  layout?: Layout;
   /** Extra preview chrome around every story, outside the component itself. */
   previewPadding?: PreviewPadding;
   /** Optional explicit id; defaults to the component's displayName/name. */
@@ -337,7 +321,6 @@ export function defineStories<TProps>(def: StoriesDef<TProps>): RegisteredCompon
   };
   if (def.group !== undefined) result.group = def.group;
   if (def.preset !== undefined) result.preset = def.preset;
-  if (def.layout !== undefined) result.layout = def.layout;
   if (def.previewPadding !== undefined) result.previewPadding = def.previewPadding;
   if (def.viewports !== undefined) {
     result.viewports = def.viewports;

@@ -5,8 +5,7 @@ import { ADDONS, NO_ADDONS, type AddonState } from "./preview-view";
 import { markPreviewRequest, measurePreviewVisible, type PreviewRequestKind } from "./performance";
 
 // Mirrors @gobrand/openstory-runtime's NavigateTarget. Duplicated (not imported)
-// because the desktop does not depend on the runtime package — same boundary
-// rationale as `Layout` in electron/types.ts. The message arrives as plain JSON,
+// because the desktop does not depend on the runtime package. The message arrives as plain JSON,
 // so structural typing is sufficient.
 export type NavigateTarget =
   | { kind: "page"; id: string }
@@ -48,7 +47,7 @@ export function dispatchNavigate(
  *  - `undefined`: no report yet for the current selection (still loading) — the
  *    manager keeps the iframe hidden so it never flashes full-size then snaps to
  *    the component size.
- *  - `"fill"`: the harness asked to fill the canvas (fullscreen layout).
+ *  - `"fill"`: a docs/page surface asked to fill the canvas.
  *  - `{width,height}`: the component's measured box; the manager sizes to it. */
 export type ContentSize = { width: number; height: number } | "fill" | undefined;
 
@@ -133,7 +132,6 @@ export function useHarnessBridge(
           componentId: s.docsComponentId,
           storyId: "",
           viewport: s.viewport,
-          ...(s.layout && { layout: s.layout }),
         },
         "*",
       );
@@ -146,7 +144,6 @@ export function useHarnessBridge(
         componentId: s.componentId,
         storyId: s.storyId,
         viewport: s.viewport,
-        ...(s.layout && { layout: s.layout }),
         fixtureOverrides: s.propOverrides,
       },
       "*",
@@ -176,7 +173,6 @@ export function useHarnessBridge(
     selection.componentId,
     selection.storyId,
     selection.viewport,
-    selection.layout,
     selection.docsComponentId,
     selection.pageId,
     propOverridesKey,
@@ -236,8 +232,8 @@ export function useHarnessBridge(
       // The harness re-posts pl:manifest when Vite HMR re-runs import.meta.glob
       // (a *.stories.tsx was added/removed) — refetch so the sidebar updates live.
       else if (type === "pl:manifest") apiRef.current?.invoke("preview:refreshManifest");
-      // The harness reports the rendered component's size; 0×0 means "fill the
-      // canvas" (fullscreen layout).
+      // The harness reports the rendered component's size; 0×0 means a docs/page
+      // surface should fill the canvas.
       else if (type === "pl:size") {
         const d = e.data as { width?: number; height?: number };
         const width = Number(d.width) || 0;

@@ -14,7 +14,6 @@ import {
   type OpenStoryConfig,
   type ComponentDef,
   type Fixture,
-  type Layout,
   type PreviewPadding,
   type RegisteredComponent,
 } from "@gobrand/openstory-config";
@@ -67,19 +66,12 @@ function previewPaddingStyle(padding: PreviewPadding | undefined): CSSProperties
 // keeps OpenStory's chrome independent of whatever CSS the loaded app ships: we
 // only ever render the component, never a full-canvas surface.
 //
-// `padded`/`centered`: an inline-block wrapper shrink-wraps to the component box
-// (plus breathing room) so offsetWidth/Height is the component's real size. The
-// manager does the centering, so both layouts measure the same here.
-// `fullscreen`: the component is meant to fill the canvas, so we post a 0×0
-// sentinel telling the manager to stretch the iframe full instead of fitting.
 function MeasuredStage({
-  layout,
   width,
   previewPadding,
   measureKey,
   children,
 }: {
-  layout: Layout;
   width: number;
   previewPadding?: PreviewPadding | undefined;
   measureKey: string;
@@ -89,10 +81,6 @@ function MeasuredStage({
   const paddingStyle = previewPaddingStyle(previewPadding);
 
   useLayoutEffect(() => {
-    if (layout === "fullscreen") {
-      window.parent.postMessage({ type: "pl:size", width: 0, height: 0 }, "*");
-      return;
-    }
     const el = ref.current;
     if (!el) return;
     const post = () =>
@@ -107,15 +95,7 @@ function MeasuredStage({
     const ro = new ResizeObserver(post);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [layout, width, measureKey]);
-
-  if (layout === "fullscreen") {
-    return (
-      <div style={{ width: "100%", minHeight: "100vh", boxSizing: "border-box", ...paddingStyle }}>
-        {children}
-      </div>
-    );
-  }
+  }, [width, measureKey]);
   // inline-block shrink-wraps to the component so the reported size IS the
   // component box plus any story-declared preview padding. The manager supplies
   // its normal breathing room around the iframe on the canvas.
@@ -130,19 +110,13 @@ type ActiveSelection = {
   componentId: string;
   storyId: string;
   viewport: "desktop" | "mobile";
-  /** Layout override from the manager toolbar; falls back to the component's
-   *  declared `layout` when absent. */
-  layout?: Layout;
   fixtureOverrides?: Record<string, unknown>;
 };
 
-const VALID_LAYOUTS: ReadonlySet<string> = new Set(["padded", "centered", "fullscreen"]);
-
 // The headless render contract (versioned by the manifest `schemaVersion`): an
 // agent points its browser MCP at `/__pl__/?component=&story=&viewport=&theme=&
-// layout=` and the harness renders that one story, identical to what the Electron
-// manager shows. `component`/`story`/`viewport` are required; `layout` overrides
-// the component's declared layout when valid; `theme` is applied separately by
+// theme=` and the harness renders that one story, identical to what the Electron
+// manager shows. `component`/`story`/`viewport` are required; `theme` is applied
 // `applyThemeFromUrl` on mount. Same renderer as the postMessage path — one
 // renderer, two triggers — so an agent's accessibility-tree snapshot can't drift
 // from the human view.
@@ -152,9 +126,7 @@ export function readSelectionFromUrl(): ActiveSelection | null {
   const storyId = params.get("story");
   const viewport = params.get("viewport") as "desktop" | "mobile" | null;
   if (!componentId || !storyId || !viewport) return null;
-  const rawLayout = params.get("layout");
-  const layout = rawLayout && VALID_LAYOUTS.has(rawLayout) ? (rawLayout as Layout) : undefined;
-  return { componentId, storyId, viewport, ...(layout && { layout }) };
+  return { componentId, storyId, viewport };
 }
 
 // Apply the `theme` URL param on a headless boot by toggling `.dark` on the
@@ -195,15 +167,11 @@ export function PreviewStage({
   // Constrain the rendered component to the resolved viewport width and center
   // it. This is what makes the desktop/mobile toggle visibly resize the preview:
   // `width` is re-derived from `selection.viewport` on every render message.
-  // The outer layout wrapper supplies the Storybook-style breathing room. A
-  // toolbar override (selection.layout) wins over the component's declared layout.
-  const layout = selection.layout ?? component.layout ?? "padded";
   const previewPadding = fixture.previewPadding ?? component.previewPadding;
   const measureKey = [
     selection.componentId,
     selection.storyId,
     selection.viewport,
-    layout,
     JSON.stringify(previewPadding ?? null),
     JSON.stringify(selection.fixtureOverrides ?? {}),
   ].join("|");
@@ -211,7 +179,6 @@ export function PreviewStage({
     <Providers>
       <ViewportContext.Provider value={selection.viewport}>
         <MeasuredStage
-          layout={layout}
           width={width}
           previewPadding={previewPadding}
           measureKey={measureKey}
@@ -238,15 +205,13 @@ function FallbackMessage({ text }: { text: string }) {
 export function DocsPage({
   config,
   componentId,
-  layoutOverride,
 }: {
   config: OpenStoryConfig;
   componentId: string;
-  layoutOverride?: Layout | undefined;
 }) {
   useLayoutEffect(() => {
     window.parent.postMessage({ type: "pl:size", width: 0, height: 0 }, "*");
-  }, [componentId, layoutOverride]);
+  }, [componentId]);
 
   const component = (config.components ?? []).find((p) => p.id === componentId) as
     | RegisteredComponent
@@ -260,12 +225,6 @@ export function DocsPage({
   const Providers = config.providers ?? (({ children }) => <>{children}</>);
   const Component = component.component as React.ComponentType<Record<string, unknown>>;
   const title = component.name ?? component.id;
-  // Each docs canvas card honors the component's `layout`, mirroring how
-  // PreviewStage positions the live render: `padded` (default) keeps the 24px
-  // card inset, `centered` flex-centers the render in the card, `fullscreen`
-  // drops the inset so the render sits flush to the card edge.
-  const layout = layoutOverride ?? component.layout ?? "padded";
-
   return (
     <ViewportContext.Provider value="desktop">
       {/* OpenStory chrome, themed by the manager (DOC_THEME_VARS flips on the
@@ -305,12 +264,9 @@ export function DocsPage({
                 style={{
                   border: "1px solid var(--os-doc-border)",
                   borderRadius: 8,
-                  padding: layout === "fullscreen" ? 0 : 24,
+                  padding: 24,
                   background: "var(--os-doc-card)",
                   overflow: "hidden",
-                  ...(layout === "centered"
-                    ? { display: "flex", alignItems: "center", justifyContent: "center" }
-                    : {}),
                 }}
               >
                 <Providers>
@@ -331,7 +287,6 @@ function App({ config }: { config: OpenStoryConfig }) {
   const [selection, setSelection] = useState<ActiveSelection | null>(readSelectionFromUrl);
   const [page, setPage] = useState<{ html: string; embeds: string[] } | null>(null);
   const [docsComponentId, setDocsComponentId] = useState<string | null>(null);
-  const [docsLayout, setDocsLayout] = useState<Layout | undefined>(undefined);
   const [addons, setAddons] = useState<AddonState>({
     outline: false,
     grid: false,
@@ -375,7 +330,6 @@ function App({ config }: { config: OpenStoryConfig }) {
         setPage(null);
         if (next.mode === "docs") {
           setDocsComponentId(next.componentId);
-          setDocsLayout(next.layout);
           return;
         }
         setDocsComponentId(null);
@@ -383,7 +337,6 @@ function App({ config }: { config: OpenStoryConfig }) {
           componentId: next.componentId,
           storyId: next.storyId,
           viewport: next.viewport,
-          ...(next.layout !== undefined && { layout: next.layout }),
           ...(next.fixtureOverrides !== undefined && {
             fixtureOverrides: next.fixtureOverrides,
           }),
@@ -433,7 +386,6 @@ function App({ config }: { config: OpenStoryConfig }) {
         key={`docs:${docsComponentId}:${remountKey}`}
         config={config}
         componentId={docsComponentId}
-        layoutOverride={docsLayout}
       />
     );
   }

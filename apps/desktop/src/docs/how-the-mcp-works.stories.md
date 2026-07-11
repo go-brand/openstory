@@ -25,8 +25,8 @@ manager's `postMessage`, or these query params):
 /__pl__/?component=button&story=primary&viewport=desktop&theme=dark
 ```
 
-`component` / `story` / `viewport` are required; `theme` (default `light`) and
-`layout` (`padded` | `centered` | `fullscreen`) are optional. An agent points its
+`component` / `story` / `viewport` are required; `theme` (default `light`) is
+optional. An agent points its
 **browser MCP** (Chrome DevTools, Playwright, claude-in-chrome) at the URL and
 snapshots the **accessibility tree** — the reliable way to "see" UI, more stable
 than pixels because it survives layout reflow — then optionally screenshots to

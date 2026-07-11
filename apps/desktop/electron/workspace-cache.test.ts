@@ -27,7 +27,6 @@ const manifest: ManifestComponent[] = [
     group: "",
     section: null,
     background: "#fff",
-    layout: "padded",
     stories: [{ id: "primary", label: "Primary", props: {} }],
     controls: [],
     sourcePath: null,

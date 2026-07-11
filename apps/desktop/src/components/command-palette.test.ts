@@ -29,7 +29,6 @@ const state = {
     pageId: null,
     viewport: "desktop",
     mode: "design",
-    layout: null,
     propOverrides: {},
   },
   manifest: [],

@@ -9,7 +9,6 @@ function component(over: Partial<ManifestComponent> & { id: string }): ManifestC
     group: over.group ?? "",
     section: over.section ?? null,
     background: "#fff",
-    layout: over.layout ?? "padded",
     stories: over.stories ?? [{ id: "default", label: "Default", props: {} }],
     controls: [],
     sourcePath: null,
@@ -61,7 +60,6 @@ describe("reconcileSelection", () => {
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
-      layout: null,
       mode: "design",
     });
   });
@@ -83,7 +81,6 @@ describe("reconcileSelection", () => {
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
-      layout: null,
       mode: "design",
     });
   });
@@ -103,7 +100,6 @@ describe("reconcileSelection", () => {
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
-      layout: null,
       mode: "design",
     });
   });
@@ -125,7 +121,6 @@ describe("reconcileSelection", () => {
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
-      layout: null,
       mode: "design",
     });
   });
@@ -178,7 +173,6 @@ describe("reconcileSelection", () => {
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
-      layout: null,
       mode: "design",
     });
   });
@@ -201,7 +195,6 @@ describe("reconcileSelection", () => {
       propOverrides: {},
       docsComponentId: null,
       pageId: null,
-      layout: null,
       mode: "design",
     });
   });
@@ -219,7 +212,6 @@ describe("reconcileSelection", () => {
       propOverrides: {},
       docsComponentId: null,
       pageId: "intro",
-      layout: null,
       mode: "docs",
     });
   });

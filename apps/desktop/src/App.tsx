@@ -19,7 +19,6 @@ const FALLBACK_STATE: AppState = {
     pageId: null,
     viewport: "desktop",
     mode: "design",
-    layout: null,
     propOverrides: {},
   },
   overlay: {

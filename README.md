@@ -185,11 +185,11 @@ both mounted under `/__pl__/`:
 triggers):
 
 ```
-/__pl__/?component=<id>&story=<id>&viewport=desktop|mobile&theme=light|dark&layout=padded|centered|fullscreen
+/__pl__/?component=<id>&story=<id>&viewport=desktop|mobile&theme=light|dark
 ```
 
-`component`, `story`, `viewport` are required; `theme` (default `light`) and
-`layout` (defaults to the component's declared layout) are optional. Point a
+`component`, `story`, `viewport` are required; `theme` (default `light`) is
+optional. Point a
 browser MCP (Chrome DevTools, Playwright, claude-in-chrome) at the URL and take
 an accessibility-tree snapshot — that's the agent's "eyes" — plus a screenshot to
 verify. The render is the naked component (no OpenStory chrome in the AX tree).
