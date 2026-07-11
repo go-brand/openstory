@@ -17,36 +17,34 @@ OpenStory currently supports Vite 7 and 8. Your project also needs React 19.
 
 ## Add the Vite plugin
 
-For a plain React and Vite project, add `openStory()` to `vite.config.ts`:
+Add `openStory()` before framework and runtime adapters in `vite.config.ts`:
 
 ```ts
+import { cloudflare } from "@cloudflare/vite-plugin";
 import react from "@vitejs/plugin-react";
 import { openStory } from "@gobrand/openstory-vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [react(), openStory()],
+  plugins: [react(), openStory(), tanstackStart(), cloudflare()],
 });
 ```
 
-OpenStory starts Vite with `mode: 'openstory'`. If your application uses a framework or runtime plugin that owns the development request pipeline, exclude it in that mode:
+OpenStory starts Vite with `mode: "openstory"`. In that mode it automatically isolates the preview harness from supported pipeline owners such as TanStack Start and `@cloudflare/vite-plugin`, while normal development and builds remain unchanged. TanStack Start is a framework plugin; Cloudflare is a platform/runtime and its Vite package is a runtime adapter.
+
+Unknown plugins stay enabled. If an unsupported adapter conflicts, use its exact Vite plugin name as an advanced escape hatch:
 
 ```ts
-import react from "@vitejs/plugin-react";
-import { openStory } from "@gobrand/openstory-vite";
-import { defineConfig } from "vite";
-
-export default defineConfig(({ mode }) => {
-  const isOpenStory = mode === "openstory";
-
-  return {
-    plugins: [react(), openStory(), ...(isOpenStory ? [] : [tanstackStart(), cloudflare()])],
-    ...(isOpenStory ? { optimizeDeps: { entries: [] } } : {}),
-  };
+openStory({
+  compatibility: {
+    disable: ["my-runtime:dev-server"],
+    keep: ["my-runtime:diagnostics"],
+  },
 });
 ```
 
-This keeps framework middleware from swallowing OpenStory's `/__pl__/` harness route and avoids crawling framework-only virtual modules during dependency optimization.
+`keep` takes precedence over built-in and custom disabling.
 
 ## Get the manager
 

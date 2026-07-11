@@ -31,7 +31,7 @@ That split is what lets OpenStory stay outside your application while still rend
 
 ## Current scope
 
-OpenStory currently targets React projects using Vite. Framework plugins that take over the development request pipeline—such as SSR or edge-runtime adapters—may need to be disabled in `openstory` mode so the preview route can run.
+OpenStory currently targets React projects using Vite. In `openstory` mode it automatically isolates the preview route from supported framework and runtime plugins that own the development request pipeline, including TanStack Start and the Cloudflare Vite plugin.
 
 The project packages are available, but the public desktop manager download is **coming soon**. You can run the manager from source today.
 

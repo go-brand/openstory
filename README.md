@@ -137,39 +137,46 @@ export default defineOpenStoryConfig({
 });
 ```
 
-### 2. The Vite plugin — gated to `openstory` mode
+### 2. Add the Vite plugin
 
-OpenStory starts the project's Vite server with `mode: 'openstory'`. Add the
-plugin, and **disable framework plugins that take over the request pipeline**
-(TanStack Start, the Cloudflare plugin, SSR adapters, etc.) in that mode — they
-will otherwise swallow the `/__pl__/` harness route.
+Add `openStory()` before framework and runtime adapters. OpenStory starts the
+project's Vite server with `mode: "openstory"` and automatically isolates the
+preview harness from supported pipeline owners such as TanStack Start and the
+Cloudflare runtime plugin.
 
 ```ts
 // vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { openStory } from "@gobrand/openstory-vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { cloudflare } from "@cloudflare/vite-plugin";
 
-export default defineConfig(({ mode }) => {
-  const isOpenStory = mode === "openstory";
-  return {
-    plugins: [
-      react(),
-      openStory(),
-      // Framework plugins own the dev server pipeline — skip under OpenStory.
-      ...(isOpenStory ? [] : [tanstackStart(), cloudflare()]),
-    ],
-    // Skip dep pre-bundling that crawls framework-only virtual modules.
-    ...(isOpenStory ? { optimizeDeps: { entries: [] } } : {}),
-  };
+export default defineConfig({
+  plugins: [react(), openStory(), tanstackStart(), cloudflare()],
 });
 ```
 
-> **Why the gating?** Framework plugins (TanStack Start, Cloudflare Workers, etc.)
-> install middleware that owns `/` and every request, so a plain harness route
-> like `/__pl__/` never reaches our plugin. Running them under `openstory` mode
-> also drags in framework-only virtual modules that crash dep-optimization.
-> Reducing this to truly zero-config is the main item on the roadmap.
+TanStack Start is a framework plugin. Cloudflare is a platform/runtime, and
+`@cloudflare/vite-plugin` is its runtime adapter. Both own parts of Vite's
+development pipeline, so OpenStory detects their instantiated plugin families
+and disables them only in `openstory` mode. Normal development and builds are
+unchanged.
+
+For an unsupported adapter, use exact Vite plugin names as an advanced escape
+hatch:
+
+```ts
+openStory({
+  compatibility: {
+    disable: ["my-runtime:dev-server"],
+    keep: ["vite-plugin-cloudflare:debug"],
+  },
+});
+```
+
+Unknown plugins stay enabled by default, and `keep` wins over built-in or custom
+disabling.
 
 Then in OpenStory: **Open a project…** → pick the folder. The sidebar fills with
 every discovered component (under **Design System**) and doc (under **Docs**).
