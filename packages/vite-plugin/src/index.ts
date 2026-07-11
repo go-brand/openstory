@@ -1,1 +1,1 @@
-export { openStory } from './plugin.js';
+export { openStory } from "./plugin.js";

@@ -1,24 +1,13 @@
 {
-  "name": "@gobrand/openstory-vite",
+  "name": "@gobrand/openstory-node",
   "version": "0.6.2",
   "private": false,
-  "description": "Vite plugin that serves the OpenStory preview harness for a project",
-  "keywords": [
-    "component-preview",
-    "openstory",
-    "preview",
-    "vite",
-    "vite-plugin"
-  ],
-  "homepage": "https://github.com/go-brand/openstory#readme",
-  "bugs": {
-    "url": "https://github.com/go-brand/openstory/issues"
-  },
+  "description": "Builder-independent Node services for OpenStory adapters",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/go-brand/openstory.git",
-    "directory": "packages/vite-plugin"
+    "directory": "packages/node"
   },
   "files": [
     "dist",
@@ -49,8 +38,6 @@
   },
   "dependencies": {
     "@gobrand/openstory-config": "workspace:^",
-    "@gobrand/openstory-node": "workspace:^",
-    "@gobrand/openstory-runtime": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "marked": "^18.0.5"
   },
@@ -58,17 +45,7 @@
     "@types/node": "24.10.4",
     "@types/react": "19.2.7",
     "typescript": "5.9.3",
-    "vite": "7.3.1",
     "vitest": "4.0.18",
     "zod": "^4.4.3"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0",
-    "vite": "^7.0.0 || ^8.0.0"
-  },
-  "peerDependenciesMeta": {
-    "typescript": {
-      "optional": true
-    }
   }
 }

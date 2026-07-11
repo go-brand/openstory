@@ -7,6 +7,7 @@ import {
   type ManifestControl,
   type ManifestDoc,
   type OpenStoryConfig,
+  type RegisteredComponent,
 } from "@gobrand/openstory-config";
 import { deriveSection } from "./derive-section.js";
 import { extractPropTypes } from "./extract-prop-types.js";
@@ -71,6 +72,53 @@ export function buildManifest(
 
 export type Manifest = ReturnType<typeof buildManifest>;
 
+export type LoadedProject = {
+  config: OpenStoryConfig | null;
+  components: RegisteredComponent[];
+};
+
+export function assembleLoadedManifest({
+  projectRoot,
+  loaded,
+  readFile,
+  matchedFiles,
+}: {
+  projectRoot: string;
+  loaded: LoadedProject;
+  readFile: (absPath: string) => string;
+  matchedFiles?: string[];
+}): Manifest {
+  const config = loaded.config;
+  const components = mergeComponents(loaded.components, config?.components ?? []);
+  const matched = matchedFiles ?? matchFiles(projectRoot, resolvePatterns(config));
+  const { docFiles } = partitionByExtension(matched);
+
+  const componentByAbsPath = new Map<string, ComponentTarget>();
+  for (const component of components) {
+    if (!component.sourcePath) continue;
+    componentByAbsPath.set(resolve(projectRoot, component.sourcePath), {
+      id: component.id,
+      storyIds: new Set(component.fixtures.map((fixture) => fixture.id)),
+    });
+  }
+
+  const docs = discoverDocs(docFiles, readFile, componentByAbsPath);
+  const storyKeys = new Set(
+    components.flatMap((component) =>
+      component.fixtures.map((fixture) => `${component.id}--${fixture.id}`),
+    ),
+  );
+  for (const doc of docs) {
+    for (const id of doc.embeds) {
+      if (!storyKeys.has(id)) {
+        console.warn(`[openstory] doc ${doc.sourcePath}: embed ${id} matches no story`);
+      }
+    }
+  }
+
+  return buildManifest({ ...config, components }, projectRoot, docs);
+}
+
 export type AssembleManifestDeps = {
   projectRoot: string;
   resolvedConfigPath: string | null;
@@ -91,31 +139,13 @@ export async function assembleManifest(deps: AssembleManifestDeps): Promise<Mani
 
   // One walk + glob match, then split by extension.
   const matched = matchFiles(projectRoot, patterns);
-  const { storyFiles, docFiles } = partitionByExtension(matched);
+  const { storyFiles } = partitionByExtension(matched);
 
   const discovered = await discoverComponentsFrom(storyFiles, (p) => ssrLoadModule(p));
-  const components = mergeComponents(discovered, config?.components ?? []);
-  // Map each component's absolute source path → { id, storyIds } so doc links to
-  // a component file resolve to its auto-docs (no fragment) or a story (#story).
-  const componentByAbsPath = new Map<string, ComponentTarget>();
-  for (const c of components) {
-    if (!c.sourcePath) continue;
-    componentByAbsPath.set(resolve(projectRoot, c.sourcePath), {
-      id: c.id,
-      storyIds: new Set(c.fixtures.map((f) => f.id)),
-    });
-  }
-  const docs = discoverDocs(docFiles, (abs) => readFile(abs), componentByAbsPath);
-
-  // Validate embeds against the assembled story registry; warn on misses.
-  const storyKeys = new Set(components.flatMap((c) => c.fixtures.map((f) => `${c.id}--${f.id}`)));
-  for (const doc of docs) {
-    for (const id of doc.embeds) {
-      if (!storyKeys.has(id)) {
-        console.warn(`[openstory] doc ${doc.sourcePath}: embed ${id} matches no story`);
-      }
-    }
-  }
-
-  return buildManifest({ ...config, components }, projectRoot, docs);
+  return assembleLoadedManifest({
+    projectRoot,
+    loaded: { config, components: discovered },
+    readFile,
+    matchedFiles: matched,
+  });
 }

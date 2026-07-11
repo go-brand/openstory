@@ -152,7 +152,8 @@ describe("buildDocSyncContext", () => {
 
   it("skips a component that is not in the manifest", () => {
     const affected = {
-      docId: "x", sourcePath: "/p/x.stories.md",
+      docId: "x",
+      sourcePath: "/p/x.stories.md",
       reasons: [{ kind: "embed-component-changed", componentId: "ghost", storyId: "z" }],
     } as const;
     const ctx = buildDocSyncContext(manifest, affected, deps);
@@ -161,7 +162,8 @@ describe("buildDocSyncContext", () => {
 
   it("does not pull a component diff for a broken-embed-only doc", () => {
     const affected = {
-      docId: "broken", sourcePath: "/p/broken.stories.md",
+      docId: "broken",
+      sourcePath: "/p/broken.stories.md",
       reasons: [{ kind: "broken-embed", embedId: "button--smal", suggestion: "button--small" }],
     } as const;
     const ctx = buildDocSyncContext(manifest, affected, deps);
