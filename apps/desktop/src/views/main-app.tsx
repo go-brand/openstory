@@ -217,12 +217,12 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
               </div>
             ) : (
               <div className="flex h-full w-full items-center justify-center">
-                <CanvasEmpty vite={state.vite} />
+                <CanvasEmpty previewServer={state.previewServer} />
               </div>
             )}
             {state.iframeUrl && !component && !docsComponent && state.selection.pageId === null && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-canvas p-6">
-                <CanvasEmpty vite={state.vite} emptyRepo />
+                <CanvasEmpty previewServer={state.previewServer} emptyRepo />
               </div>
             )}
           </div>
@@ -256,12 +256,23 @@ export function MainApp({ state, api }: { state: AppState; api: Api }) {
   );
 }
 
-function CanvasEmpty({ vite, emptyRepo = false }: { vite: AppState["vite"]; emptyRepo?: boolean }) {
+function CanvasEmpty({
+  previewServer,
+  emptyRepo = false,
+}: {
+  previewServer: AppState["previewServer"];
+  emptyRepo?: boolean;
+}) {
+  const adapterName = previewServer.adapter === "next" ? "Next" : "Vite";
   const [icon, title, subtitle] =
-    vite.status === "error"
-      ? ([Alert02Icon, "Vite failed to start", vite.error ?? "Unknown error"] as const)
-      : vite.status === "starting"
-        ? ([Loading03Icon, "Starting Vite…", "Spinning up the dev server"] as const)
+    previewServer.status === "error"
+      ? ([
+          Alert02Icon,
+          `${previewServer.adapter ? adapterName : "Preview"} failed to start`,
+          previewServer.error,
+        ] as const)
+      : previewServer.status === "starting"
+        ? ([Loading03Icon, `Starting ${adapterName}…`, "Spinning up the preview server"] as const)
         : emptyRepo
           ? ([
               PackageIcon,
@@ -269,7 +280,7 @@ function CanvasEmpty({ vite, emptyRepo = false }: { vite: AppState["vite"]; empt
               "Add OpenStory stories to openstory.config.ts",
             ] as const)
           : ([PackageIcon, "No preview loaded", "Pick a repository to load stories"] as const);
-  const spin = vite.status === "starting";
+  const spin = previewServer.status === "starting";
   return (
     <div className="flex max-w-xs flex-col items-center gap-3 text-center">
       <div className="flex size-12 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground">

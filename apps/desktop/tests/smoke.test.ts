@@ -208,7 +208,7 @@ test("settings menu toggles to dark theme and persists across reload", async () 
 // running vite dev server serving the manifest):
 //
 // - Component tree lists preview entries after project:add + project:select
-//   triggers viteHost.start() and fetchManifest().  Without a live vite server
+//   triggers previewServer.start() and fetchManifest(). Without a live preview server
 //   the manifest stays [] and no tree buttons are rendered.
 //
 // - Clicking a non-first tree item changes the active preview (button variant

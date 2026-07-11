@@ -2,12 +2,7 @@ import type { ActiveSelection, ManifestComponent, ManifestDoc } from "./types";
 
 export type SelectionPatch = Pick<
   ActiveSelection,
-  | "componentId"
-  | "storyId"
-  | "propOverrides"
-  | "docsComponentId"
-  | "pageId"
-  | "mode"
+  "componentId" | "storyId" | "propOverrides" | "docsComponentId" | "pageId" | "mode"
 >;
 
 // Reconcile the persisted selection against a freshly-loaded manifest.
@@ -21,10 +16,7 @@ export type SelectionPatch = Pick<
 //   of rendering the previous repo's stale ghost component.
 export function reconcileSelection(
   manifest: ManifestComponent[],
-  selection: Pick<
-    ActiveSelection,
-    "componentId" | "storyId" | "docsComponentId" | "pageId"
-  >,
+  selection: Pick<ActiveSelection, "componentId" | "storyId" | "docsComponentId" | "pageId">,
   docs: ManifestDoc[] = [],
 ): SelectionPatch | null {
   if (selection.pageId) return docs.some((doc) => doc.id === selection.pageId) ? null : fallback();

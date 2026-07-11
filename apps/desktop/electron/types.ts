@@ -100,11 +100,11 @@ export type AppState = {
   docs: ManifestDoc[];
   iframeUrl: string | null;
   detachedOpen: boolean;
-  vite: {
-    status: "idle" | "starting" | "ready" | "error";
-    port: number | null;
-    error: string | null;
-  };
+  previewServer:
+    | { status: "idle"; adapter: null; port: null; error: null }
+    | { status: "starting"; adapter: "vite" | "next"; port: null; error: null }
+    | { status: "ready"; adapter: "vite" | "next"; port: number; error: null }
+    | { status: "error"; adapter: "vite" | "next" | null; port: null; error: string };
 };
 
 export type IpcInvoke = {

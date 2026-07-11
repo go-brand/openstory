@@ -41,7 +41,7 @@ const state: AppState = {
   docs: [],
   iframeUrl: null,
   detachedOpen: false,
-  vite: { status: "idle", port: null, error: null },
+  previewServer: { status: "idle", adapter: null, port: null, error: null },
 };
 
 describe("Titlebar", () => {

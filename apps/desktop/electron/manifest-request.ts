@@ -1,6 +1,6 @@
 import type { ProjectIdentity } from "@gobrand/openstory-config";
 import type { ProjectRecord } from "./types";
-import type { ViteHostStatus } from "./vite-host";
+import type { PreviewServerStatus } from "./preview-server";
 
 export type ManifestRequest = {
   projectId: string;
@@ -12,7 +12,7 @@ export type ManifestRequest = {
 export function shouldApplyManifestResponse(
   request: ManifestRequest,
   currentProject: ProjectRecord | undefined,
-  currentStatus: ViteHostStatus,
+  currentStatus: PreviewServerStatus,
   currentGeneration: number,
   identity: ProjectIdentity | undefined,
 ) {
